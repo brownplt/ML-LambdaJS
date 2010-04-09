@@ -17,16 +17,17 @@ type expr
   | ObjectExpr of pos * (pos * string * expr) list
       (** Object properties are transformed into string literals *)
   | ThisExpr of pos
-  | VarExpr of pos * id
+  | VarExpr of pos * id (** identifiers bound in scope objects *)
+  | IdExpr of pos * id (** let-bound identifiers *)
   | BracketExpr of pos * expr * expr
   | NewExpr of pos * expr * expr list
-  | PrefixExpr of pos * JavaScript_syntax.prefixOp * expr
-  | InfixExpr of pos * JavaScript_syntax.infixOp * expr * expr
+  | PrefixExpr of pos * id * expr
+  | InfixExpr of pos * id * expr * expr
   | IfExpr of pos * expr * expr * expr
   | AssignExpr of pos * lvalue * expr
   | AppExpr of pos * expr * expr list
   | FuncExpr of pos * id list * expr
-  | LetExpr of pos * id * expr * expr
+  | LetExpr of pos * id * expr * expr 
       (** We need let-expressions to simplify statements. *)
   | SeqExpr of pos * expr * expr
   | WhileExpr of pos * expr * expr
@@ -53,4 +54,5 @@ val from_javascript : JavaScript_syntax.prog -> expr
 
 val from_javascript_expr : JavaScript_syntax.expr -> expr
 
+(** locally defined functions. *)
 val locals : expr -> IdSet.t
