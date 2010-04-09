@@ -44,7 +44,7 @@ let load_lambdajs () : unit =
     src :=  Lambdajs.parse_lambdajs !cin !cin_name
 
 let desugar () : unit =
-  src := Lambdajs_desugar.desugar_op !src;
+  src := Lambdajs_desugar.desugar_op !src
   
 (*
 let verify_app node exp = match exp with
@@ -74,13 +74,7 @@ let verify_app node exp = match exp with
         else
           ()            
   | _ -> ()
-*)      
 
-let action_cps () : unit =
-  let cpslambdajs = Lambdajs_cps.cps !src in
-    Lambdajs_cps.p_cpsexp cpslambdajs std_formatter
-     
-(*
 let action_cfa () : unit =
   let lambdajs = !src in
   let cpsexp = Lambdajs_cps.cps lambdajs in
@@ -88,6 +82,11 @@ let action_cfa () : unit =
     cmd_loop 
       { curr_exp = cpsexp; parent = None }
 *)
+
+let action_cps () : unit =
+  let cpslambdajs = Lambdajs_cps.cps !src in
+    Lambdajs_cps.p_cpsexp cpslambdajs std_formatter
+
 
 let action_operators () : unit =
   let ops = operators !src in
