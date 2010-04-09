@@ -18,6 +18,21 @@ let parse_javascript cin name =
                        (string_of_position 
                           (lexbuf.lex_curr_p, lexbuf.lex_curr_p)))
 
+let parse_expr cin name =
+  let lexbuf = Lexing.from_channel cin in
+    try 
+      lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = name };
+      JavaScript_parser.expression JavaScript_lexer.token lexbuf
+    with
+      |  Failure "lexing: empty token" ->
+           failwith (sprintf "lexical error at %s"
+                       (string_of_position 
+                          (lexbuf.lex_curr_p, lexbuf.lex_curr_p)))
+      | JavaScript_parser.Error ->
+           failwith (sprintf "parse error at %s"
+                       (string_of_position 
+                          (lexbuf.lex_curr_p, lexbuf.lex_curr_p)))
+
 
 module Pretty = struct
 
