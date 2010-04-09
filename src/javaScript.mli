@@ -1,7 +1,8 @@
 open Prelude
 open JavaScript_syntax
 
-val parse_javascript : in_channel -> string -> prog
+val parse_javascript : string -> string -> prog
+val parse_javascript_from_channel : in_channel -> string -> prog
 val parse_expr : string -> string -> expr
 
 module Pretty : sig

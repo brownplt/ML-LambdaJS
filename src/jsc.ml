@@ -36,7 +36,7 @@ let src =
   ref (EConst ((Lexing.dummy_pos, Lexing.dummy_pos), JavaScript_syntax.CUndefined))
 
 let load_js () : unit = 
-  let js = parse_javascript !cin !cin_name in
+  let js = parse_javascript_from_channel !cin !cin_name in
     src := Lambdajs_syntax.desugar (Exprjs_syntax.from_javascript js)
 
 let load_lambdajs () : unit =
