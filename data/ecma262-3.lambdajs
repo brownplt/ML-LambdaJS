@@ -1,0 +1,295 @@
+// TODO: free variables refer to names in the global environment.
+// TODO: apply, 
+
+fix [[getValue]] = func (x) {
+  return if (typeof x === "location") { !x } else { x }
+}
+
+[[newError]] = func(typ, s) {
+  return throw typ
+}
+
+/* Algorithm 9.9 of ECMA-262, ed. 3.  if given an object, expects it to
+  be a (ERef (EObject)) it itself returns Refs */
+[[toObject]] = func (x) {
+  return if (typeof x === "undefined") {
+    throw "TypeError: toObject received undefined"
+  }
+  else if (typeof x === "null") {
+    throw "TypeError: toObject received null"
+  }
+  else if (typeof x === "boolean") {
+    ref { __proto__ : "Boolean.prototype",
+         __class__ : "Boolean",
+         __value__ : x }
+  }
+  else if (typeof x === "number") {
+    ref { __proto__ : "Number.prototype",
+         __class__ : "Number",
+         __value__ : x }
+  }
+  else if (typeof x === "string") {
+    ref { __proto__ : "String.prototype",
+         __class__ : "String",
+         __value__ : x }
+  }
+  else {
+    x
+  }
+}
+
+/* Even though GetValue'd values are given to ToPrimitive in ECMA, here
+ we need ERefs because we will apply functions.  So make sure you give
+ this ERef (EObject) if you get an object.  */
+[[toPrimitive_valueOf]] = func (x, cont) {
+  return
+    let (valueOf = (!x)["valueOf"])
+      if (typeof valueOf === "location" && 
+          typeof !valueOf === "object" &&
+          typeof (!valueOf)["__code__"] === "function") {
+        let (result = !valueOf["__code__"](x, { }))
+          if (prim("primitive?", result)) result
+          else cont()
+      }
+      else {
+        cont()
+      }
+}
+
+[[toPrimitive_toString]] = func (x, cont) { return
+  let (toString = (!x)["toString"])
+    if (typeof toString === "location" && 
+        typeof !toString === "object" &&
+        typeof (!toString)["__code__"] === "function")
+      let (result = !toString["__code__"](x, {}))
+         if (prim("primitive?", result))
+           result
+         else 
+           cont()
+    else
+      cont()
+}
+
+[[toPrimitive_String]] = func(x) {
+  return toPrimitive_toString(x, func() {
+    return toPrimitive_valueOf(x, func() {
+      return throw "TypeError: cannot convert object to primitive"
+      })
+  })
+}
+
+[[toPrimitive_Number]] = func(x) {
+  return toPrimitive_valueOf(x, func() {
+    return toPrimitive_toString(x, func() {
+      return throw "TypeError: cannot convert object to primitive"
+      })
+  })
+}
+
+// ECMA 9.3 once again, must get object refs to pass them in as this in
+// toPrimitive
+[[toNumber]] = func(x) {
+  return prim("prim->num",
+    if (typeof x === "location") { toPrimitive_Number(x) }
+    else { x })
+
+}
+
+/* Algorithm 9.8 expects objects to be locations to be able to call
+  toPrimitive.  otherwise it should be a value. */
+[[toString]] = func(x) {
+  return prim("prim->str", 
+    if (typeof x === "location") { toPrimitive_Number(x) }
+    else { x })
+}
+
+[[abstractEquality]] = func(lhs, rhs) {
+  return if (prim("abstract=", lhs, rhs)) {
+    true
+  }
+  else if (typeof lhs === "location") {
+     prim("abstract=", toPrimitive_Number(lhs), rhs)
+  }
+  else if (typeof rhs === "location") {
+     prim("abstract=", lhs, toPrimitive_Number(rhs))
+  }
+  else {
+    false
+  }
+}
+
+// Not all properties can be deleted. However, there aren't that many, so
+// we don't bother DontDelete in \JS.
+[[safeDelete]] = func(obj, field) {
+  return
+    let (f_string = toString(field))
+    if (prim("obj-can-delete?", !obj, f_string)) {
+      obj := !obj[delete f_string];
+      true
+    }
+    else {
+      false
+    }
+}
+
+[[inOperator]] = func(prop, obj) { 
+  return 
+    if (prim("has-own-property?", obj, prop)) {
+      true
+    }
+    else if (prim("has-own-property?", !obj, "__proto__") &&
+             !obj["__proto__"] !== null) {
+      inOperator(prop, !obj["__proto__"])
+    }
+    else {
+      false
+   }
+}
+
+// 11.8.6, 15.3.5.3
+[[instanceofRec]] = func(obj, constr) {
+  return if (typeof obj === "location" && typeof !obj === "object") {
+    if (!obj["__proto__"] === !constr["prototype"]) {
+      true
+    }
+    else {
+      instanceofRec(!obj["__proto__"], constr)
+    }
+  }
+  else {
+    false
+  }
+}
+
+[[instanceofOperator]] = func (obj, constr) {
+  return
+    if (prim("has-own-property?", !constr, "__code__")) {
+      throw newError("TypeError", "instanceof args of wrong type")
+    }
+   else {
+     instanceofRec(obj, constr)
+   }
+}
+
+let [[toPrimitive]] = toPrimitive_Number
+
+let [[global]] = ref { }
+
+let [[Object_prototype]] = ref { 
+  __proto__ : null,
+  __class__ : "Object"
+}
+
+let [[Function_prototype]] = ref { 
+  __proto__ : Object_prototype,
+  __class__ : "Function",
+  __string__ : "function() { }",
+  length : 0
+}
+
+// Now that both Object_prototype and Function_prototype are bound, we can
+// use the function() { } syntax (instead of func() { }) to create function
+// objects.
+
+{
+  Object_prototype := 
+    !Object_prototype[ "toString" = function() {
+      return prim("+", "[object ", prim("+", !this["__class__"], "]"))
+    } ];
+
+  Object_prototype := 
+    !Object_prototype[ "toLocaleString" = function() {
+      return prim("+", "[object ", prim("+", !this["__class__"], "]"))
+    } ];
+
+  Object_prototype :=
+    !Object_prototype[ "valueOf" = function() { return this } ];
+
+  Object_prototype :=
+    !Object_prototype[ "hasOwnProperty" = function(v) {
+      return prim("has-own-property?", !this, toString(v))
+    } ];
+
+// TODO: I've removed the $isArgs check. Why was it there?
+// http://github.com/arjunguha/LambdaJS/blob/master/LambdaJS/src/BrownPLT/
+// JavaScript/Semantics/ECMAEnvironment.hs#L562
+
+  Function_prototype :=
+    !Function_prototype[ "apply" = function(thisArg, argArray) {
+      return if (prim("has-own-property?", !this, "__code__"))
+        // this is a function
+        thisArg := (if (thisArg === null || thisArg === undefined)
+                      global
+                    else // TODO: thisArg still may not be an object?
+                      thisArg);
+// TODO: grossly simplified
+        !this["__code__"](!thisArg, !argArray)       
+      else
+        newError("TypeError", "apply must have this as a function")
+    }]
+}
+
+
+let [[Date_prototype]] = ref {
+  __proto__: Object_prototype,
+  __class__: "Date",
+  __value__: NaN,
+  valueOf: function() { return !this["__value__"] }
+}
+
+let [[Number_prototype]] = ref {
+  __proto__: Object_prototype,
+  __class__: "Number",
+  __value__: 0,
+  __toString: function(radix) {
+    return prim("prim->str", !this["__value__"])
+  }
+}
+
+let [[Array_prototype]] = ref {
+  __proto__: Object_prototype
+}
+
+// Sections 15.2.1 and 15.2.2
+let [[Object]] = ref {
+  __proto__: Function_prototype, // This is correct.
+  prototype: Object_prototype,
+  length: 1,
+  __code__: func(value) {
+    return if (value === undefined || value === null)
+      ref { __class__: "Object", __proto__: Object_prototype }
+    else
+      toObject(value)
+  }
+}
+
+let [[Function]] = ref { }
+
+let [[Array]] = ref { }
+
+let [[global]] = ref { 
+  __proto__: Object_prototype,
+  __class__: "window",
+  "NaN": NaN,
+  Infinity: +inf,
+  "undefined": undefined,
+  parseInt: function(n) {
+    return prim("prim->num", toString(n))
+  },
+  parseFloat:  function(n) {
+    return prim("prim->float", toString(n))
+  },
+  isNaN: function(n) {
+    return toNumber(n) === NaN
+  },
+  isFinite: function(n) {
+    return let (n = toNumber(n))
+    if (n === NaN || n === +inf || n === -inf) 
+      false 
+    else 
+      true
+  },
+  Object: Object,
+  Function: Function,
+  Array: Array
+}

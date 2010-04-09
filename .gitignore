@@ -1,11 +1,4 @@
-_build
+build
 .DS_Store
 *.conflicts
 TAGS
-*.cmx
-*.cmxa
-*.cma
-*.cmo
-*.a
-*.o
-*.cmi
