@@ -1,9 +1,6 @@
-LambdaJS Compiler and Related Tools.
-Copyright (c) 2009 Arjun Guha and Claudiu Saftoiu.
+LambdaJS 2.0
+Copyright (c) 2009-2010 Arjun Guha and Claudiu Saftoiu.
 All Rights Reserved.
-
-/Desugar/Tests/ contains Mozilla Rhino and the SpiderMonkey test suite, used
-by the terms of the LGPL.
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
