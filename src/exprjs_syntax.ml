@@ -135,10 +135,12 @@ and stmt (s : S.stmt) = match s with
   | S.IfSingleStmt (a,e,s) -> 
       IfExpr (a,expr e,stmt s, ConstExpr (a, S.CUndefined))
   | S.SwitchStmt (p,e,clauses) ->
-      LetExpr (p, "%v", expr e,
-               LetExpr (p, "%t",
-                        ConstExpr (p, S.CBool false),
-                        caseClauses p clauses))
+      LetExpr 
+        (p, "%break", expr e,
+         LetExpr (p, "%v", expr e,
+                  LetExpr (p, "%t",
+                           ConstExpr (p, S.CBool false),
+                           caseClauses p clauses)))
   | S.LabelledStmt (p1, lbl ,S.WhileStmt (p2, test, body)) -> LabelledExpr 
         (p1, "%break", LabelledExpr
            (p1,lbl,WhileExpr
