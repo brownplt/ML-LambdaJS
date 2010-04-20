@@ -35,7 +35,7 @@ let expt_part = ['e' 'E'] signed_int
 
 let dec_int_lit = '0' | (['1'-'9'] dec_digit*)
 
-let hex = ['0'-'9' 'A'-'f' 'a'-'f']
+let hex = ['0'-'9' 'A'-'F' 'a'-'f']
 
 let hex_lit = ("0x" | "0X") hex+
 
@@ -75,8 +75,6 @@ rule token = parse
     *)
    | "continue" [ ' ' '\t' ]+ (ident as x) { ContinueId x }
    | "break" [ ' ' '\t' ]+ (ident as x) { BreakId x }
-   | '/' ([^ '*'] double_quoted_string_char* as x) "/gi"
-       { Regexp (x, true, true) }
    | '/' ([^ '*'] double_quoted_string_char* as x) "/g"
        { Regexp (x, true, false) }
    | '/' ([^ '*'] double_quoted_string_char* as x) "/i"
@@ -223,5 +221,3 @@ and string_lit end_ch = parse
           string_lit end_ch lexbuf
         end
       }
-          
-
