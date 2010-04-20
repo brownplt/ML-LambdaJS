@@ -14,9 +14,10 @@ let parse_javascript cin name =
                        (string_of_position 
                           (lexbuf.lex_curr_p, lexbuf.lex_curr_p)))
       | JavaScript_parser.Error ->
-           failwith (sprintf "parse error at %s"
+           failwith (sprintf "parse error at %s; unexpected token %s"
                        (string_of_position 
-                          (lexbuf.lex_curr_p, lexbuf.lex_curr_p)))
+                          (lexbuf.lex_curr_p, lexbuf.lex_curr_p))
+                       (lexeme lexbuf))
 
 let parse_javascript_from_channel cin name =
   let lexbuf = Lexing.from_channel cin in

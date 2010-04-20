@@ -170,10 +170,7 @@ rule token = parse
    | "with" { With  }
    | "continue" { Continue  }
    | "instanceof" { Instanceof  }
-
    | ident as x { Id (mk_loc lexbuf,x) }
-
-  
    | eof { EOF }
 
 and block_comment = parse
