@@ -7,14 +7,14 @@ open JavaScript_syntax
 module S = String
 
 (* TODO: if integer conversions overflow, treat as a float *)
-let parse_num_lit (s : string) (l : pos) : token =
+let parse_num_lit (s : string) : token =
   if S.contains s 'x' || S.contains s 'X'
-    then Int (l,int_of_string s)
+    then Int (int_of_string s)
     else if S.contains s '.'
-           then Float (l,float_of_string s)
+           then Float (float_of_string s)
            else if S.contains s 'e' || S.contains s 'E'
-                  then Float (l,float_of_string s)
-                  else Int (l,int_of_string s)
+                  then Float (float_of_string s)
+                  else Int (int_of_string s)
 
 let mk_loc (buf : lexbuf) : pos =
   Lexing.lexeme_start_p buf, Lexing.lexeme_end_p buf
@@ -86,11 +86,11 @@ rule token = parse
        { Regexp (x, false, false) }
 
    | '"' (double_quoted_string_char* as x) '"'
-     { String (mk_loc lexbuf, x) }
+     { String x }
    | ''' (single_quoted_string_char* as x) '''
-     { String (mk_loc lexbuf, x) }
+     { String x }
    
-   | num_lit as x { parse_num_lit x (mk_loc lexbuf) }
+   | num_lit as x { parse_num_lit x }
    | "{" { LBrace }
    | "}" { RBrace }
    | '(' { LParen }
@@ -170,7 +170,7 @@ rule token = parse
    | "with" { With  }
    | "continue" { Continue  }
    | "instanceof" { Instanceof  }
-   | ident as x { Id (mk_loc lexbuf,x) }
+   | ident as x { Id x }
    | eof { EOF }
 
 and block_comment = parse

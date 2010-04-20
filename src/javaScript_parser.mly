@@ -17,11 +17,11 @@ let rec expr_to_lvalue (e : expr) : lvalue =  match e with
 
 %token <string> ContinueId
 %token <string> BreakId
-%token <Prelude.pos * string> Id
-%token <Prelude.pos * string> String
+%token <string> Id
+%token <string> String
 %token <string * bool * bool> Regexp
-%token <Prelude.pos * int> Int
-%token <Prelude.pos * float> Float
+%token <int> Int
+%token <float> Float
 %token <JavaScript_syntax.assignOp> AssignOp
 
 %token <string> HINT
@@ -84,12 +84,12 @@ catches
 
 ids
   : { [] }
-  | Id { let _,x = $1 in [x] }
-  | Id Comma ids { let _,x = $1 in x :: $3 }
+  | Id { [$1] }
+  | Id Comma ids { $1 :: $3 }
 
 prop
-  : Id { let _,x = $1 in PropId x }  %prec GreaterThanColon
-  | String { let _,s = $1 in  PropString s }
+  : Id { PropId $1 }  %prec GreaterThanColon
+  | String { PropString $1 }
 
 fields
   : { [] }
@@ -119,15 +119,14 @@ const :
   | True { CBool true }
   | False { CBool false }
   | Null { CNull }
-  | String { let _, s = $1 in CString s }
+  | String { CString $1 }
   | Regexp { let re, g, ci = $1 in  CRegexp (re, g, ci) }
-  | Int { let _, n = $1 in CInt n }
-  | Float { let _, f = $1 in CNum f }
+  | Int { CInt $1}
+  | Float { CNum $1 }
 
 primary_expr :
   | const { ConstExpr (($startpos, $endpos), $1) }
-  | Id 
-      { let loc,x = $1 in VarExpr (loc,x) }
+  | Id { VarExpr (($startpos, $endpos), $1) }
   | LBrack element_list RBrack
       { ArrayExpr (($startpos, $endpos),$2) }
   | LBrace fields RBrace
@@ -157,12 +156,12 @@ member_expr
                        BlockStmt (($startpos($6), $startpos($8)), $7)) }
 *)
 
-  | member_expr Period Id 
-      { let _,x = $3 in DotExpr (($startpos, $endpos),$1,x) } 
+  | member_expr Period Id
+      { DotExpr (($startpos, $endpos), $1, $3) } 
   | member_expr LBrack expr RBrack
       { BracketExpr (($startpos, $endpos),$1,$3) }
   | New member_expr LParen exprs RParen 
-    { NewExpr (($startpos, $endpos),$2,$4) }
+      { NewExpr (($startpos, $endpos),$2,$4) }
   
 new_expr
   : member_expr
@@ -179,7 +178,7 @@ call_expr
   | call_expr LBrack expr RBrack 
       { BracketExpr (($startpos, $endpos),$1,$3) }
   | call_expr Period Id 
-      { let _,x = $3 in DotExpr (($startpos, $endpos),$1,x) }
+      { DotExpr (($startpos, $endpos), $1, $3) }
 
 lhs_expr
   : new_expr
@@ -345,16 +344,12 @@ expr_noin
       { ListExpr (($startpos, $endpos),$1,$3) }
 
 varDecl
-  : Id
-      { let loc,x = $1 in VarDeclNoInit (loc,x) }
-  | Id Assign assign_expr
-      { let _,x = $1 in VarDecl (($startpos, $endpos),x,$3) }
+  : Id { VarDeclNoInit (($startpos, $endpos),$1) }
+  | Id Assign assign_expr { VarDecl (($startpos, $endpos),$1,$3) }
 
 varDecl_noin
-  : Id
-      { let loc,x = $1 in VarDeclNoInit (loc,x) }
-  | Id Assign assign_noin_expr 
-      { let _,x = $1 in VarDecl (($startpos, $endpos),x,$3) }
+  : Id { VarDeclNoInit (($startpos, $endpos),$1) }
+  | Id Assign assign_noin_expr { VarDecl (($startpos, $endpos),$1,$3) }
 
 case
   : Case expr Colon stmts 
@@ -362,10 +357,11 @@ case
   | Default Colon stmts
   { CaseDefault (($startpos, $endpos),BlockStmt (($startpos, $endpos),$3)) }
 
-forInInit
-  : Id { let loc,x = $1 in NoVarForInInit (loc,x) }
+forInInit :
+  | Id 
+      { NoVarForInInit (($startpos, $endpos), $1) }
   | Var Id 
-  { let _,x = $2 in VarForInInit (($startpos, $endpos),x) }
+      { VarForInInit (($startpos, $endpos), $2) }
 
 forInit
   : { NoForInit }
@@ -374,7 +370,7 @@ forInit
 
 catch
   : Catch LParen Id RParen block
-    { let _,x = $3 in CatchClause (($startpos, $endpos),x,$5) }
+    { CatchClause (($startpos, $endpos), $3, $5) }
 
 
 block : LBrace stmts RBrace
@@ -413,8 +409,7 @@ stmt
       { BreakStmt (($startpos, $endpos)) }
   | BreakId Semi
       { BreakToStmt (($startpos, $endpos),$1) }
-  | Id Colon stmt
-      { let _,x = $1 in LabelledStmt (($startpos, $endpos),x,$3) }
+  | Id Colon stmt { LabelledStmt (($startpos, $endpos), $1, $3) }
   | For LParen forInInit In expr RParen stmt
     { ForInStmt (($startpos, $endpos),$3,$5,$7) }
   | For LParen forInit Semi opt_expr Semi opt_expr RParen stmt
@@ -445,11 +440,10 @@ src_elts
 src_elt
   : stmt { $1 }
   | Function Id LParen ids RParen src_elt_block
-    { let _,x = $2 in FuncStmt (($startpos, $endpos),x,$4,$6) } 
+    { FuncStmt (($startpos, $endpos), $2, $4, $6) } 
   | Function Id LParen ids RParen HINT src_elt_block
-    { let _,x = $2 in 
-        HintStmt (($startpos($6), $endpos($6)), $6,
-                  FuncStmt (($startpos, $endpos),x,$4,$7)) } 
+    { HintStmt (($startpos($6), $endpos($6)), $6,
+                FuncStmt (($startpos, $endpos), $2, $4, $7)) } 
 
 program : src_elts EOF { Prog (($startpos, $endpos), $1) }
 
