@@ -21,6 +21,8 @@ let mk_loc (buf : lexbuf) : pos =
 
 let block_comment_buf = Buffer.create 120
 
+let string_buf = Buffer.create 100
+
 let comment_start_p = ref dummy_pos
 }
 
@@ -58,9 +60,6 @@ let escape_sequence
 let double_quoted_string_char = 
   [^ '\r' '\n' '"' '\\'] | ('\\' escape_sequence)
 
-let single_quoted_string_char =
-  [^ '\r' '\n' '\'' '\\'] | ('\\' escape_sequence)
-
 rule token = parse
    | blank + { token lexbuf }
    | '\n' { new_line lexbuf; token lexbuf }
@@ -85,10 +84,8 @@ rule token = parse
    | '/' ([^ '*'] double_quoted_string_char* as x) "/"
        { Regexp (x, false, false) }
 
-   | '"' (double_quoted_string_char* as x) '"'
-     { String x }
-   | ''' (single_quoted_string_char* as x) '''
-     { String x }
+   | '"' { string_lit '"' lexbuf }
+   | '\'' { string_lit '\'' lexbuf }
    
    | num_lit as x { parse_num_lit x }
    | "{" { LBrace }
@@ -190,4 +187,41 @@ and hint = parse
                     hint lexbuf }
   | ([^ '\n' '\r' '*'])+ as txt { Buffer.add_string block_comment_buf txt;
                                   hint lexbuf }
+
+and string_lit end_ch = parse
+  (* multi-line *)
+  | "\\\r" { string_lit end_ch lexbuf }
+  | "\\\n" { string_lit end_ch lexbuf }
+  (* escape codes *)
+  | "\\'"  { Buffer.add_char string_buf '\''; string_lit end_ch lexbuf }
+  | "\\\"" { Buffer.add_char string_buf '\"'; string_lit end_ch lexbuf }
+  | "\\\\" { Buffer.add_char string_buf '\\'; string_lit end_ch lexbuf }
+  | "\\b" { Buffer.add_char string_buf '\b'; string_lit end_ch lexbuf }
+  | "\\n" { Buffer.add_char string_buf '\n'; string_lit end_ch lexbuf }
+  | "\\r" { Buffer.add_char string_buf '\r'; string_lit end_ch lexbuf }
+  | "\\t" { Buffer.add_char string_buf '\t'; string_lit end_ch lexbuf }
+  (* NOTE: OCaml does not support Unicode characters. See the OCaml "Batteries"
+     for a library that does. *)
+  | "\\v" { Buffer.add_char string_buf '\x0B'; string_lit end_ch lexbuf }
+  | "\\ " { Buffer.add_char string_buf ' '; string_lit end_ch lexbuf }
+  | "\\0" { Buffer.add_char string_buf '\x00'; string_lit end_ch lexbuf }
+  | "\\x" (hex hex as ascii)
+      { Buffer.add_char string_buf (char_of_int (int_of_string ("0x" ^ ascii)));
+        string_lit end_ch lexbuf }
+  (* NOTE: This is probably wrong, due to lack of Unicode support. *)
+  | "\\u" (hex hex hex hex as uni)
+      { Buffer.add_char string_buf (char_of_int (int_of_string ("0x" ^ uni)));
+        string_lit end_ch lexbuf }
+  | _ as ch
+      { if end_ch = ch then begin
+          let s = Buffer.contents string_buf in
+            Buffer.clear string_buf;
+            String s
+        end
+        else begin
+          Buffer.add_char string_buf ch; 
+          string_lit end_ch lexbuf
+        end
+      }
+          
 
