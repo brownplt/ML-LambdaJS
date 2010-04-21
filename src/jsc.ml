@@ -14,75 +14,32 @@ open Lexing
 
 
 module H = Hashtbl
-(*
-let print_env_at cxt = 
-  let env = H.find envs cxt in
-    p_env env std_formatter
 
-let print_heap_at cxt =
-  let sto = H.find heaps cxt in
-    p_heap sto std_formatter
-*)
+let p = (Lexing.dummy_pos, Lexing.dummy_pos)
 
-let cin = ref stdin
+let src =  ref (EConst (p, JavaScript_syntax.CUndefined))
 
-let cin_name = ref "stdin"
+let load_js (path : string) : unit = 
+  let js = parse_javascript_from_channel (open_in path) path in
+    src := 
+      ESeq (p, !src,
+            Lambdajs_syntax.desugar (Exprjs_syntax.from_javascript js))
 
-let action_load_file path =
-  cin := open_in path;
-  cin_name := path
+let load_lambdajs (path : string) : unit =
+  src := ESeq (p, !src,
+               Lambdajs.parse_lambdajs (open_in path) path)
 
-let src = 
-  ref (EConst ((Lexing.dummy_pos, Lexing.dummy_pos), JavaScript_syntax.CUndefined))
-
-let load_js () : unit = 
-  let js = parse_javascript_from_channel !cin !cin_name in
-    src := Lambdajs_syntax.desugar (Exprjs_syntax.from_javascript js)
-
-let load_lambdajs () : unit =
-  let _ = (Lexing.dummy_pos, Lexing.dummy_pos) in
-    src :=  Lambdajs.parse_lambdajs !cin !cin_name
+let load_file (path : string) : unit =
+  if Filename.check_suffix path ".js" then
+    load_js path
+  else if Filename.check_suffix path ".jsl" then
+    load_lambdajs path
+  else 
+    failwith ("unknown file extention; try -js or -jsl")
 
 let desugar () : unit =
   src := Lambdajs_desugar.desugar_op !src
   
-(*
-let verify_app node exp = match exp with
-  | App (_, Id x, _) ->
-      let v = lookup x (Hashtbl.find envs node) in
-      let set = Type.up (Hashtbl.find heaps node) v in
-        if AVSet.is_empty set then
-          eprintf "Unapplied application at %d.\n" node
-        else
-          ()
-  | If (_, Id x, _, _) ->
-      let v = lookup x (Hashtbl.find envs node) in
-      let set = Type.up (Hashtbl.find heaps node) v in
-        if AVSet.is_empty set then
-          eprintf "Branch skipped at %d.\n" node
-        else
-          ()
-  | Bind ((n, _), x, e, cont) ->
-      let bound_node = cpsexp_idx cont in
-      let v = lookup x (Hashtbl.find envs bound_node) in
-      let set = Type.up (Hashtbl.find heaps node) v in
-        if AVSet.is_empty set then
-          begin
-            eprintf "let/%d %s = %s is empty\n" node x
-              (FormatExt.to_string Lambdajs_cps.Pretty.p_bindexp e)
-          end 
-        else
-          ()            
-  | _ -> ()
-
-let action_cfa () : unit =
-  let lambdajs = !src in
-  let cpsexp = Lambdajs_cps.cps lambdajs in
-    Lambdajs_cfa.cfa cpsexp;
-    cmd_loop 
-      { curr_exp = cpsexp; parent = None }
-*)
-
 let action_cps () : unit =
   let cpslambdajs = Lambdajs_cps.cps !src in
     Lambdajs_cps.p_cpsexp cpslambdajs std_formatter
@@ -106,11 +63,9 @@ let set_action (thunk : unit -> unit) (() : unit) : unit =
 
 let main () : unit =
   Arg.parse
-    [ ("-file", Arg.String action_load_file,
-       "load from a file");
-      ("-js", Arg.Unit load_js,
+    [ ("-js", Arg.String load_js,
        "Load JavaScript");
-      ("-lambdajs", Arg.Unit load_lambdajs,
+      ("-jsl", Arg.String load_lambdajs,
        "Load LambdaJS");
       ("-env", Arg.String 
          (fun s -> src := enclose_in_env (parse_env (open_in s) s) !src),
@@ -123,11 +78,9 @@ let main () : unit =
        ("-cps", Arg.Unit (set_action action_cps),
 
        "convert program to CPS");
-(*      ("-cfa", Arg.Unit (set_action action_cfa),
-       "(undocumented)"); *)
     ]
-    (fun s -> action_load_file s)
-    "Usage: jsc [action] [path]";;
+    load_file
+    "Usage: jsc [action] [path] ...";;
 
 main ();
 Printexc.print !action ();
