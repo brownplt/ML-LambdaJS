@@ -377,12 +377,12 @@ opt_expr :
   | { ConstExpr (($startpos, $endpos), CUndefined) }
   | expr { $1 }
 
-stmt 
-  : LBrace stmts RBrace
+stmt : 
+  | LBrace stmts RBrace
       { BlockStmt (($startpos, $endpos), $2) }
   | Semi 
       { EmptyStmt (($startpos, $endpos)) }
-  | expr Semi 
+  | expr Semi
       { ExprStmt $1 }
   | Continue Semi 
       { ContinueStmt (($startpos, $endpos)) }

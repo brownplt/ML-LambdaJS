@@ -101,6 +101,8 @@ module DesugarOp = struct
             EOp2 (p, Prim2 "+",
                   EApp (p, EId (p, "[[toPrimitive]]"), [ desugar e1 ]),
                   EApp (p, EId (p, "[[toPrimitive]]"), [ desugar e2 ]))
+        | s -> failwith (sprintf "unknown operator '%s' at %s" s 
+                           (string_of_position p))
       end
   | EConst _ -> exp
   | EId _ -> exp

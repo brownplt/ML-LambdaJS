@@ -47,7 +47,7 @@ let rec mk_array (p, exps) =
           EObject (p, List.map2 mk_field (iota (List.length exps)) exps))
  
 let rec ds_expr (env : env) (expr : expr) : exp = match expr with
-    ConstExpr (p, c) -> EConst (p, c)
+  | ConstExpr (p, c) -> EConst (p, c)
   | ArrayExpr (p, es) -> mk_array (p, map (ds_expr env) es)
   | ObjectExpr (p, fields) -> 
       (* Imperative object *)
@@ -112,6 +112,16 @@ let rec ds_expr (env : env) (expr : expr) : exp = match expr with
                                    EApp (p, EId (p, "%while"), []),
                                    EConst (p, JavaScript_syntax.CUndefined))))) ],
             EApp (p, EId (p, "%dowhile"), []))
+  | ForInExpr (p, x, obj, body) ->
+      EFix
+        (p,
+         [ ("%forin",
+            ELambda 
+              (p, [x],
+               (* TODO: Infinite loop below, but adequate for typing *)
+               ESeq (p, ds_expr env body,
+                     EApp (p, EId (p, "%forin"), [])))) ],
+         EApp (p, EId (p, "%forin"), []))
   | LabelledExpr (p, l, e) ->
       ELabel (p, l, ds_expr env e)
   | BreakExpr (p, l, e) -> EBreak (p, l, ds_expr env e)
