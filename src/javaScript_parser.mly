@@ -420,7 +420,7 @@ stmt :
       { ReturnStmt (($startpos, $endpos),$2) } 
   | Var varDecls Semi
       { VarDeclStmt (($startpos, $endpos),$2) }
-  | With LParen expr RParen block
+  | With LParen expr RParen stmt
       { WithStmt ($3, $5) }
 
 src_elt_block
