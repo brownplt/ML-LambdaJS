@@ -17,6 +17,8 @@ type op2 =
   | DeleteField
   | SetRef
 
+(** NOTE: reference and object manipulation are defined using [EOp1] and 
+    [EOp2]. This design shrinks the size of many cases. *)
 type exp =
   | EConst of pos * JavaScript_syntax.const
   | EId of pos * id

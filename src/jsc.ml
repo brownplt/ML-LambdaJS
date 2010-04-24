@@ -10,6 +10,7 @@ open FormatExt
 open Lambdajs_lattice
 open Lambdajs_env
 open Lambdajs_syntax
+open Lambdajs_eval
 open Lexing
 
 
