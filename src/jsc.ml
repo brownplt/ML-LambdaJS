@@ -53,24 +53,20 @@ let action_operators () : unit =
 
 let action = ref (fun () -> ())
 
-let is_action_set = ref false
-
 let set_action (thunk : unit -> unit) (() : unit) : unit =
-  if !is_action_set then
-    (eprintf "invalid arguments (-help for help)\n"; exit 1)
-  else 
-    (is_action_set := true; action := thunk)
+  let prev = !action in
+  action :=  fun () -> prev (); thunk ()
 
 let main () : unit =
   Arg.parse
     [ ("-js", Arg.String load_js,
-       "Load JavaScript");
+       "<file> Load <file> as JavaScript");
       ("-jsl", Arg.String load_lambdajs,
-       "Load LambdaJS");
+       "Load <file> as LambdaJS");
       ("-env", Arg.String 
          (fun s -> src := enclose_in_env (parse_env (open_in s) s) !src),
-      "load environment");
-      ("-full-desugar", Arg.Unit desugar, "like it says");
+      "<file> load <file> as environment");
+      ("-full-desugar", Arg.Unit (set_action desugar), "like it says");
 
       ("-operators", Arg.Unit (set_action action_operators),
        "list operators used");
@@ -80,7 +76,7 @@ let main () : unit =
        "convert program to CPS");
     ]
     load_file
-    "Usage: jsc [action] [path] ...";;
+    "Usage: jsc <action> [path] ...";;
 
 main ();
 Printexc.print !action ();
