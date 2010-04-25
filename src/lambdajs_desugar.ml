@@ -97,7 +97,7 @@ module DesugarOp = struct
         | "instanceof" ->
             EApp (p, EId (p, "[[instanceofOperator]]"),
                   [ desugar e1; desugar e2 ])
-        | "+" ->
+        | "+" -> (* TODO: elaborate, separate strings and integers *)
             EOp2 (p, Prim2 "+",
                   EApp (p, EId (p, "[[toPrimitive]]"), [ desugar e1 ]),
                   EApp (p, EId (p, "[[toPrimitive]]"), [ desugar e2 ]))
