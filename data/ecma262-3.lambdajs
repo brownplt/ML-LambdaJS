@@ -274,10 +274,10 @@ let [[global]] = ref {
   Infinity: +inf,
   "undefined": undefined,
   parseInt: function(n) {
-    return prim("prim->num", toString(n))
+    return prim("prim->int", toString(n))
   },
   parseFloat:  function(n) {
-    return prim("prim->float", toString(n))
+    return prim("prim->num", toString(n))
   },
   isNaN: function(n) {
     return toNumber(n) === NaN
