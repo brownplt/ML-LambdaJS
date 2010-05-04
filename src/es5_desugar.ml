@@ -8,6 +8,8 @@ type env = bool IdMap.t
 let true_c p = EConst (p, S.CBool (true))
 let false_c p = EConst (p, S.CBool (false))
 
+let undef_c p = EConst (p, S.CUndefined)
+
 let rec str p s = 
   EConst (p, S.CString (s))
 
@@ -42,6 +44,47 @@ let new_obj p proto_id =
 	      ("extensible", true_c p);
 	      ("Class", true_c p)],
 	     [])
+
+(* Collect all the vars (and their source locations) in the
+   expression.  Recur inside everything that isn't a function.  We
+   just collect the names, and add them as undefined, let-alloced
+   values at the top level.  In desugaring, we turn the VarDeclExpr
+   into an assignment statement. *)
+
+let rec vars_in expr = match expr with
+  | VarDeclExpr (p,x,e) -> [(p,x)]
+  | ConstExpr (_, _) -> []
+  | ArrayExpr (_, elts) -> List.concat (map vars_in elts)
+  | ObjectExpr (_, fields) ->
+      let field_vars (p,n,v) = vars_in v in
+	List.concat (map field_vars fields)
+  | ThisExpr (_) -> []
+  | VarExpr (_,_) -> []
+  | IdExpr (_,_) -> []
+  | BracketExpr (_, o, f) -> List.concat (map vars_in [o; f])
+  | NewExpr (_, o, args) -> List.concat (map vars_in (o :: args))
+  | PrefixExpr (_, _, e) -> vars_in e
+  | InfixExpr (_, _, e1, e2) -> List.concat (map vars_in [e1; e2])
+  | IfExpr (_,c,t,e) -> List.concat (map vars_in [c; t; e])
+  | AssignExpr (_,_,e) -> vars_in e
+  | AppExpr (_, f, args) -> List.concat (map vars_in (f :: args))
+  | FuncExpr (_, _, _) -> [] (* don't go inside functions *)
+  | LetExpr (_, _, e, body) -> List.concat (map vars_in [e; body])
+  | SeqExpr (_, e1, e2) -> List.concat (map vars_in [e1; e2])
+  | WhileExpr (_, e1, e2) -> List.concat (map vars_in [e1; e2])
+  | DoWhileExpr (_, e1, e2) -> List.concat (map vars_in [e1; e2])
+  | LabelledExpr (_, _, e) -> vars_in e
+  | BreakExpr (_, _, e) -> vars_in e
+  | ForInExpr (_, _, e1, e2) -> List.concat (map vars_in [e1; e2])
+  | TryCatchExpr (_, e1, _, e2) -> List.concat (map vars_in [e1; e2])
+  | TryFinallyExpr (_, e1, e2) -> List.concat (map vars_in [e1; e2])
+  | ThrowExpr (_, e) -> vars_in e
+  | FuncStmtExpr (_,_,_,_) -> []
+  | HintExpr (_,_,_) -> []
+
+  
+  
+
 (* Same idea as in original \JS --- use the args array *)
 (* In strict mode, we aren't supposed to access the args array... *)
 
@@ -182,10 +225,10 @@ let rec ds expr =
     EApp (p, ds e, map ds es)
 
   | FuncExpr (p, ids, body) ->
-    func_object p ids (func_expr_lambda p ids (ds body))
+    func_object p ids (func_expr_lambda p ids (var_lift body))
 
   | FuncStmtExpr (p, func_name, ids, body) ->
-    func_object p ids (func_stmt_lambda p func_name ids (ds body))
+    func_object p ids (func_stmt_lambda p func_name ids (var_lift body))
 
   | LetExpr (p, x, e1, e2) -> ELet (p, x, ds e1, ds e2)
 
@@ -232,6 +275,10 @@ let rec ds expr =
       EThrow (p, ds e)
   | HintExpr (p, e1, e2) -> str p "NYI---Hints"
 
+and var_lift expr =
+  let folder (p,id) e = 
+    ELetAlloc (p, id, undef_c p, e) in
+    List.fold_right folder (vars_in expr) (ds expr)
 
 
 let rec ds_op exp = match exp with
