@@ -36,8 +36,12 @@ let rec exp e = match e with
 		[text "set!";
 		 text x;
 		 exp e])
-  | EOp1 (p, op, e) -> (text "op1")
-  | EOp2 (p, op, e1, e2) -> (text "op2")
+  | EOp1 (p, op, e) -> 
+      let op_string = op1_string op in
+	parens (horz [text op_string; exp e])
+  | EOp2 (p, op, e1, e2) ->
+      let op_string = op2_string op in
+	parens (horz [text op_string; exp e1; exp e2])
   | EIf (p, c, t, e) -> 
       parens (vert [horz [text "if"; exp c];
 		    exp t;
@@ -69,6 +73,14 @@ let rec exp e = match e with
 			  parens (horz (map text xs))];
 		    exp e])
 
+and op1_string op = match op with
+  | Op1Prefix op_id -> op_id
+  | Prim1 str -> str
+
+and op2_string op = match op with
+  | Op2Infix op_id -> op_id
+  | Prim2 str -> str
+    
 and attr (name, value) = parens (horz [text ("\"" ^ name ^ "\""); exp value])
 
 and field (p, f, attrs) = 

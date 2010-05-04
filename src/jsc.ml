@@ -46,7 +46,7 @@ let desugar () : unit =
 let action_pretty_es5 (path : string) : unit = 
   let js = parse_javascript_from_channel (open_in path) path in
   let es5prog = 
-    ES5ds.ds (Exprjs_syntax.from_javascript js) in
+    ES5ds.ds_op (ES5ds.ds (Exprjs_syntax.from_javascript js)) in
     Es5_pretty.exp es5prog std_formatter;
     print_newline ()
 
