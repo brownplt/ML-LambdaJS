@@ -12,7 +12,9 @@ open Lambdajs_env
 open Lambdajs_syntax
 open Lambdajs_eval
 open Lexing
-
+module ES5 = Es5_syntax
+module ES5ds = Es5_desugar
+module ES5pp = Es5_pretty
 
 module H = Hashtbl
 
@@ -40,7 +42,14 @@ let load_file (path : string) : unit =
 
 let desugar () : unit =
   src := Lambdajs_desugar.desugar_op !src
-  
+
+let action_pretty_es5 (path : string) : unit = 
+  let js = parse_javascript_from_channel (open_in path) path in
+  let es5prog = 
+    ES5ds.ds (Exprjs_syntax.from_javascript js) in
+    Es5_pretty.exp es5prog std_formatter;
+    print_newline ()
+
 let action_cps () : unit =
   let cpslambdajs = Lambdajs_cps.cps !src in
     Lambdajs_cps.p_cpsexp cpslambdajs std_formatter
@@ -75,6 +84,8 @@ let main () : unit =
        ("-cps", Arg.Unit (set_action action_cps),
 
        "convert program to CPS");
+       ("-pretty_es5", Arg.String action_pretty_es5,
+	("Pretty print"))
     ]
     load_file
     "Usage: jsc <action> [path] ...";;
