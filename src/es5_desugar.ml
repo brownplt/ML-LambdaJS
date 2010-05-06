@@ -45,46 +45,6 @@ let new_obj p proto_id =
 	      ("Class", true_c p)],
 	     [])
 
-(* Collect all the vars (and their source locations) in the
-   expression.  Recur inside everything that isn't a function.  We
-   just collect the names, and add them as undefined, let-alloced
-   values at the top level.  In desugaring, we turn the VarDeclExpr
-   into an assignment statement. *)
-
-let rec vars_in expr = match expr with
-  | VarDeclExpr (p,x,e) -> [(p,x)]
-  | ConstExpr (_, _) -> []
-  | ArrayExpr (_, elts) -> List.concat (map vars_in elts)
-  | ObjectExpr (_, fields) ->
-      let field_vars (p,n,v) = vars_in v in
-	List.concat (map field_vars fields)
-  | ThisExpr (_) -> []
-  | VarExpr (_,_) -> []
-  | IdExpr (_,_) -> []
-  | BracketExpr (_, o, f) -> List.concat (map vars_in [o; f])
-  | NewExpr (_, o, args) -> List.concat (map vars_in (o :: args))
-  | PrefixExpr (_, _, e) -> vars_in e
-  | InfixExpr (_, _, e1, e2) -> List.concat (map vars_in [e1; e2])
-  | IfExpr (_,c,t,e) -> List.concat (map vars_in [c; t; e])
-  | AssignExpr (_,_,e) -> vars_in e
-  | AppExpr (_, f, args) -> List.concat (map vars_in (f :: args))
-  | FuncExpr (_, _, _) -> [] (* don't go inside functions *)
-  | LetExpr (_, _, e, body) -> List.concat (map vars_in [e; body])
-  | SeqExpr (_, e1, e2) -> List.concat (map vars_in [e1; e2])
-  | WhileExpr (_, e1, e2) -> List.concat (map vars_in [e1; e2])
-  | DoWhileExpr (_, e1, e2) -> List.concat (map vars_in [e1; e2])
-  | LabelledExpr (_, _, e) -> vars_in e
-  | BreakExpr (_, _, e) -> vars_in e
-  | ForInExpr (_, _, e1, e2) -> List.concat (map vars_in [e1; e2])
-  | TryCatchExpr (_, e1, _, e2) -> List.concat (map vars_in [e1; e2])
-  | TryFinallyExpr (_, e1, e2) -> List.concat (map vars_in [e1; e2])
-  | ThrowExpr (_, e) -> vars_in e
-  | FuncStmtExpr (_,_,_,_) -> []
-  | HintExpr (_,_,_) -> []
-
-  
-  
-
 (* Same idea as in original \JS --- use the args array *)
 (* In strict mode, we aren't supposed to access the args array... *)
 
@@ -279,6 +239,46 @@ and var_lift expr =
   let folder (p,id) e = 
     ELetAlloc (p, id, undef_c p, e) in
     List.fold_right folder (vars_in expr) (ds expr)
+
+(* Collect all the vars (and their source locations) in the
+   expression.  Recur inside everything that isn't a function.  We
+   just collect the names, and add them as undefined, let-alloced
+   values at the top level.  In desugaring, we turn the VarDeclExpr
+   into an assignment statement. *)
+
+and vars_in expr = match expr with
+    (* remember the source loc of vars *)
+  | VarDeclExpr (p,x,e) -> [(p,x)]
+      (* don't go inside functions *)
+  | FuncExpr (_, _, _) -> []
+  | FuncStmtExpr (_,_,_,_) -> []
+      (* the rest is boilerplate *)
+  | ConstExpr (_, _) -> []
+  | ArrayExpr (_, elts) -> List.concat (map vars_in elts)
+  | ObjectExpr (_, fields) ->
+      let field_vars (p,n,v) = vars_in v in
+	List.concat (map field_vars fields)
+  | ThisExpr (_) -> []
+  | VarExpr (_,_) -> []
+  | IdExpr (_,_) -> []
+  | BracketExpr (_, o, f) -> List.concat (map vars_in [o; f])
+  | NewExpr (_, o, args) -> List.concat (map vars_in (o :: args))
+  | PrefixExpr (_, _, e) -> vars_in e
+  | InfixExpr (_, _, e1, e2) -> List.concat (map vars_in [e1; e2])
+  | IfExpr (_,c,t,e) -> List.concat (map vars_in [c; t; e])
+  | AssignExpr (_,_,e) -> vars_in e
+  | AppExpr (_, f, args) -> List.concat (map vars_in (f :: args))
+  | LetExpr (_, _, e, body) -> List.concat (map vars_in [e; body])
+  | SeqExpr (_, e1, e2) -> List.concat (map vars_in [e1; e2])
+  | WhileExpr (_, e1, e2) -> List.concat (map vars_in [e1; e2])
+  | DoWhileExpr (_, e1, e2) -> List.concat (map vars_in [e1; e2])
+  | LabelledExpr (_, _, e) -> vars_in e
+  | BreakExpr (_, _, e) -> vars_in e
+  | ForInExpr (_, _, e1, e2) -> List.concat (map vars_in [e1; e2])
+  | TryCatchExpr (_, e1, _, e2) -> List.concat (map vars_in [e1; e2])
+  | TryFinallyExpr (_, e1, e2) -> List.concat (map vars_in [e1; e2])
+  | ThrowExpr (_, e) -> vars_in e
+  | HintExpr (_,_,_) -> []
 
 
 let rec ds_op exp = match exp with

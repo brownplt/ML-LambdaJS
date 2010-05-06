@@ -51,10 +51,10 @@ let rec exp e = match e with
   | ESeq (p, e1, e2) ->
       parens (vert [text "begin"; exp e1; exp e2])
   | ELet (p, x, e, body) ->
-      parens (vert [parens (horz [text "let"; parens (horz [text x; exp e])]);
+      parens (vert [horz [text "let"; parens (horz [text x; exp e])];
 		    exp body])
   | ELetAlloc (p, x, e, body) ->
-      parens (vert [parens (horz [text "let-alloc"; parens (horz [text x; exp e])]);
+      parens (vert [horz [text "let-alloc"; parens (horz [text x; exp e])];
 		    exp body])
   | EFix (p, x, e) -> 
       parens (horz [text "fix"; text x; exp e])
@@ -83,7 +83,7 @@ and op2_string op = match op with
     
 and attr (name, value) = parens (horz [text ("\"" ^ name ^ "\""); exp value])
 
-and field (p, f, attrs) = 
+and field (p, f, attrs) =
   brackets (vert (text ("\"" ^ f ^ "\"") :: map attr attrs))
 
 and const c = match c with

@@ -13,6 +13,8 @@ type exp =
   | EId of pos * id
   | EObject of pos * (string * exp) list *
 	       (pos * string * (string * exp) list) list
+  | EUpdateFieldSurface of pos * exp * exp * exp
+  | EGetFieldSurface of pos * exp * exp
   | EUpdateField of pos * exp * exp * exp * exp
   | EGetField of pos * exp * exp * exp
   | EDeleteField of pos * exp * exp
@@ -34,3 +36,66 @@ type exp =
   | ELambda of pos * id list * exp
 
 (******************************************************************************)
+
+let rename (x : id) (y : id) (exp : exp) : exp = 
+  let rec ren exp = match exp with
+    | EConst _ -> exp
+    | EId (p, z) -> EId (p, if z = x then y else z)
+    | EObject (p, attrs, fields) -> 
+	let ren_attr (name, value) = (name, ren value) in
+	let ren_field (p, name, attrs) = (p, name, map ren_attr attrs) in
+	  EObject (p, map ren_attr attrs, map ren_field fields)
+    | EUpdateField (p, o1, o2, e1, e2) -> 
+	EUpdateField (p, ren o1, ren o1, ren e1, ren e2)
+    | EGetField (p, o1, o2, e) ->
+	EGetField (p, ren o1, ren o2, ren e)
+    | EDeleteField (p, o, e) ->
+	EDeleteField (p, ren o, ren e)
+    | EOp1 (p, o, e) -> EOp1 (p, o, ren e)
+    | EOp2 (p, o, e1, e2) -> EOp2 (p, o, ren e1, ren e2)
+    | EIf (p, e1, e2, e3) -> EIf (p, ren e1, ren e2, ren e3)
+    | EApp (p, f, args) -> EApp (p, ren f, map ren args)
+    | ESeq (p, e1, e2) -> ESeq (p, ren e1, ren e2)
+    | ELet (p, z, e1, e2) -> 
+        ELet (p, z, ren e1, if x = z then e2 else ren e2)
+    | EFix (p, z, body) ->
+        if z = x then exp
+        else EFix (p, z, ren body)
+    | ELabel (p, l, e) -> ELabel (p, l, ren e)
+    | EBreak (p, l, e) -> EBreak (p, l, ren e)
+    | ETryCatch (p, e1, e2) -> ETryCatch (p, ren e1, ren e2)
+    | ETryFinally (p, e1, e2) -> ETryFinally (p, ren e1, ren e2)
+    | EThrow (p, e) -> EThrow (p, ren e)
+    | ELambda (p, args, body) ->
+        if List.mem x args then exp
+        else ELambda (p, args, ren body)
+  in ren exp
+
+
+let rec fv (exp : exp) : IdSet.t = match exp with
+  | EConst _ -> IdSet.empty
+  | EId (_, x) -> IdSet.singleton x
+  | EObject (_, attrs, fields) -> 
+      let attr (name, value) = fv value in
+      let field (p, name, attrs) = 
+	IdSetExt.unions (map attr attrs) in
+	IdSetExt.unions (List.append (map attr attrs) (map field fields))
+  | EUpdateField (_, o1, o2, e1, e2) -> 
+      IdSetExt.unions (map fv [o1; o2; e1; e2])
+  | EGetField (_, o1, o2, e) ->
+      IdSetExt.unions (map fv [o1; o2; e])
+  | EDeleteField (_, o, e) -> IdSet.union (fv o) (fv e)
+  | EOp1 (_, _, e) -> fv e
+  | EOp2 (_, _, e1, e2) -> IdSet.union (fv e1) (fv e2)
+  | EIf (_, e1, e2, e3) -> IdSetExt.unions (map fv [e1; e2; e3])
+  | EApp (_, f, args) -> IdSetExt.unions (map fv (f :: args))
+  | ESeq (_, e1, e2) -> IdSet.union (fv e1) (fv e2)
+  | ELet (_, x, e1, e2) -> IdSet.union (fv e1) (IdSet.remove x (fv e2))
+  | EFix (_, x, body) ->
+      IdSet.union (fv body) (IdSet.remove x (fv body))
+  | ELabel (_, _, e) -> fv e
+  | EBreak (_, _, e) -> fv e
+  | ETryCatch (_, e1, e2) -> IdSet.union (fv e1) (fv e2)
+  | ETryFinally (_, e1, e2) -> IdSet.union (fv e1) (fv e2)
+  | EThrow (_, e) ->  fv e
+  | ELambda (_, args, body) -> IdSet.diff (fv body) (IdSetExt.from_list args)

@@ -14,6 +14,7 @@ open Lambdajs_eval
 open Lexing
 module ES5 = Es5_syntax
 module ES5ds = Es5_desugar
+module ES5e = Es5_env
 module ES5pp = Es5_pretty
 
 module H = Hashtbl
