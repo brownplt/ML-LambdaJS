@@ -76,7 +76,6 @@ ids :
  | ID { [$1] }
  | ID COMMA ids { $1 :: $3 }
 
-
 func :
  | FUNC LPAREN ids RPAREN LBRACE RETURN seq_exp RBRACE
    { ELambda (($startpos, $endpos), $3, $7) }
