@@ -363,6 +363,10 @@ let rec ds_op exp = match exp with
       EUpdateField (p, ds_op o1, ds_op o2, ds_op f, ds_op v)
   | EGetField (p, o1, o2, f) -> 
       EGetField (p, ds_op o1, ds_op o2, ds_op f)
+  | EUpdateFieldSurface (p, o, f, v) -> 
+      EUpdateFieldSurface (p, ds_op o, ds_op f, ds_op v)
+  | EGetFieldSurface (p, o, f) -> 
+      EGetFieldSurface (p, ds_op o, ds_op f)
   | EDeleteField (p, o, f) -> 
       EDeleteField (p, ds_op o, ds_op f)
   | ESetRef (p, x, v) -> 
@@ -406,3 +410,6 @@ and uint_uint p op e1 e2 =
     EOp2 (p, Prim2 op, 
           EApp (p, EId (p, "[[toUInt]]"), [ ds_op e1 ]),
           EApp (p, EId (p, "[[toUInt]]"), [ ds_op e2 ]))
+
+
+let rec desugar expr = ds_op (ds expr)

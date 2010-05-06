@@ -45,8 +45,12 @@ let rename (x : id) (y : id) (exp : exp) : exp =
 	let ren_attr (name, value) = (name, ren value) in
 	let ren_field (p, name, attrs) = (p, name, map ren_attr attrs) in
 	  EObject (p, map ren_attr attrs, map ren_field fields)
+    | EUpdateFieldSurface (p, o, e1, e2) ->
+	EUpdateFieldSurface (p, ren o, ren e1, ren e2)
     | EUpdateField (p, o1, o2, e1, e2) -> 
 	EUpdateField (p, ren o1, ren o1, ren e1, ren e2)
+    | EGetFieldSurface (p, o, e) ->
+	EGetFieldSurface (p, ren o, ren e)
     | EGetField (p, o1, o2, e) ->
 	EGetField (p, ren o1, ren o2, ren e)
     | EDeleteField (p, o, e) ->
@@ -56,8 +60,12 @@ let rename (x : id) (y : id) (exp : exp) : exp =
     | EIf (p, e1, e2, e3) -> EIf (p, ren e1, ren e2, ren e3)
     | EApp (p, f, args) -> EApp (p, ren f, map ren args)
     | ESeq (p, e1, e2) -> ESeq (p, ren e1, ren e2)
+    | ESetRef (p, z, e) -> 
+	if x = z then ESetRef (p, y, ren e) else ESetRef (p, z, ren e)
     | ELet (p, z, e1, e2) -> 
         ELet (p, z, ren e1, if x = z then e2 else ren e2)
+    | ELetAlloc (p, z, e1, e2) -> 
+        ELetAlloc (p, z, ren e1, if x = z then e2 else ren e2)
     | EFix (p, z, body) ->
         if z = x then exp
         else EFix (p, z, ren body)
@@ -84,13 +92,19 @@ let rec fv (exp : exp) : IdSet.t = match exp with
       IdSetExt.unions (map fv [o1; o2; e1; e2])
   | EGetField (_, o1, o2, e) ->
       IdSetExt.unions (map fv [o1; o2; e])
+  | EUpdateFieldSurface (_, o, e1, e2) -> 
+      IdSetExt.unions (map fv [o; e1; e2])
+  | EGetFieldSurface (_, o, e) ->
+      IdSetExt.unions (map fv [o; e])
   | EDeleteField (_, o, e) -> IdSet.union (fv o) (fv e)
   | EOp1 (_, _, e) -> fv e
   | EOp2 (_, _, e1, e2) -> IdSet.union (fv e1) (fv e2)
   | EIf (_, e1, e2, e3) -> IdSetExt.unions (map fv [e1; e2; e3])
   | EApp (_, f, args) -> IdSetExt.unions (map fv (f :: args))
   | ESeq (_, e1, e2) -> IdSet.union (fv e1) (fv e2)
+  | ESetRef (_, x, e) -> IdSet.union (fv e) (IdSet.singleton x)
   | ELet (_, x, e1, e2) -> IdSet.union (fv e1) (IdSet.remove x (fv e2))
+  | ELetAlloc (_, x, e1, e2) -> IdSet.union (fv e1) (IdSet.remove x (fv e2))
   | EFix (_, x, body) ->
       IdSet.union (fv body) (IdSet.remove x (fv body))
   | ELabel (_, _, e) -> fv e
