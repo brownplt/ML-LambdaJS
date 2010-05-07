@@ -410,6 +410,61 @@ and uint_uint p op e1 e2 =
           EApp (p, EId (p, "[[toUInt]]"), [ ds_op e1 ]),
           EApp (p, EId (p, "[[toUInt]]"), [ ds_op e2 ]))
 
+let rec ds_global exp env = match exp with
+  | EId (p, x) -> begin
+      try
+	if IdMap.find x env 
+	then EId (p, x)
+	else EGetFieldSurface (p, EId (p, "[[global]]"), str p x)
+      with Not_found ->
+	EGetFieldSurface (p, EId (p, "[[global]]"), str p x)
+    end
+  | ESetRef (p, x, e) -> begin
+      try
+	if IdMap.find x env 
+	then ESetRef (p, x, e)
+	else EUpdateFieldSurface (p, EId (p, "[[global]]"), str p x, e)
+      with Not_found ->
+	EUpdateFieldSurface (p, EId (p, "[[global]]"), str p x, e)
+    end
+  | ELambda (p, ids, e) ->
+      let new_env = fold_left (fun env x -> IdMap.add x true env) env ids in
+	ELambda (p, ids, ds_global e new_env)
+  | ELet (p, x, e1, e2) ->
+      ELet (p, x, ds_global e1 env, ds_global e2 (IdMap.add x true env))
+  | EFix (p, x, e) -> 
+      EFix (p, x, ds_global e (IdMap.add x true env))
+  | EConst (p, c) -> exp
+  | EObject (p, attrs, props) ->
+      let attr (name, value) = (name, ds_global value env) in
+      let prop (p, name, attrs) = (p, name, map attr attrs) in
+	EObject (p, map attr attrs, map prop props)
+  | EUpdateFieldSurface (p, o, f, e) ->
+      EUpdateFieldSurface (p, ds_global o env, ds_global f env, ds_global e env)
+  | EGetFieldSurface (p, o, f) ->
+      EGetFieldSurface (p, ds_global o env, ds_global f env)
+  | EUpdateField (p, o1, o2, f, e) ->
+      EUpdateField (p, ds_global o1 env, ds_global o2 env, 
+		    ds_global f env, ds_global e env)
+  | EGetField (p, o1, o2, f) ->
+      EGetField (p, ds_global o1 env, ds_global o2 env, ds_global f env)
+  | EDeleteField (p, o, f) ->
+      EDeleteField (p, ds_global o env, ds_global f env)
+  | ERef (p, e) -> ERef (p, ds_global e env)
+  | EOp1 (p, op, e) -> EOp1 (p, op, ds_global e env)
+  | EOp2 (p, op, e1, e2) -> EOp2 (p, op, ds_global e1 env, ds_global e2 env)
+  | EIf (p, c, t, e) -> 
+      EIf (p, ds_global c env, ds_global t env, ds_global e env)
+  | EApp (p, e, es) ->
+      EApp (p, ds_global e env, map (fun e -> ds_global e env) es)
+  | ESeq (p, e1, e2) -> ESeq (p, ds_global e1 env, ds_global e2 env)
+  | ELabel (p, l, e) -> ELabel (p, l, ds_global e env)
+  | EBreak (p, l, e) -> EBreak (p, l, ds_global e env)
+  | ETryCatch (p, e1, e2) -> ETryCatch (p, ds_global e1 env, ds_global e2 env)
+  | ETryFinally (p, e1, e2) -> 
+      ETryFinally (p, ds_global e1 env, ds_global e2 env)
+  | EThrow (p, e) -> EThrow (p, ds_global e env)
 
-let rec ds_top expr = (var_lift expr)
+
+let rec ds_top expr = ds_global (ds expr) IdMap.empty
 let rec desugar expr = ds_op (ds_top expr)

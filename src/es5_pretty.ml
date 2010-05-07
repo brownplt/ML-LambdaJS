@@ -13,6 +13,17 @@ let rec exp e = match e with
       parens (vert [text "object";
 		    vert (map attr internals);
 		    vert (map field fields)])
+  | EUpdateFieldSurface (p, o, f, v) ->
+      parens (horz 
+		 [text "update-field";
+		 exp o;
+		 exp f;
+		 exp v])
+  | EGetFieldSurface (p, o, f) ->
+      parens (horz 
+		 [text "get-field";
+		 exp o;
+		 exp f;])
   | EUpdateField (p, o1, o2, f, v) ->
       parens (horz 
 		 [text "update-field";
