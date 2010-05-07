@@ -58,8 +58,8 @@ attrs :
  | attr COMMA attrs { $1 :: $3 }
 
 prop :
- | STRING COLON attrs { (($startpos, $endpos), $1, $3) }
- | ID COLON attrs { (($startpos, $endpos), $1, $3) }
+ | STRING COLON LBRACE attrs RBRACE { (($startpos, $endpos), $1, $4) }
+ | ID COLON LBRACE attrs RBRACE { (($startpos, $endpos), $1, $4) }
 
 props :
  | { [] }
@@ -83,8 +83,9 @@ func :
 atom :
  | const { EConst (($startpos, $endpos), $1) }
  | ID { EId (($startpos, $endpos), $1) }
- | LBRACE attrs COMMA props RBRACE 
-   { EObject (($startpos, $endpos), $2, $4) }
+ | REF seq_exp { ERef (($startpos, $endpos), $2 ) }
+ | LBRACE LBRACK attrs RBRACK props RBRACE 
+   { EObject (($startpos, $endpos), $3, $5 )}
  | LBRACE seq_exp RBRACE
    { $2 }
  | LPAREN seq_exp RPAREN { $2 }
@@ -108,43 +109,43 @@ atom :
        let false_c p = EConst (p, CBool (false)) in
        let p = ($startpos, $endpos) in
        let body = $7 in
-	 ELetAlloc (p, "$prototype", 
-		    EObject (p,
-			     [("proto", EId (p, "Object.prototype"));
-			      ("extensible", true_c p);
-			      ("Class", EConst (p, CString ("Object")))],
-			     [(p, "constructor", 
-			       [("value", EConst (p, CUndefined));
-				("writable", true_c p);
-				("enumerable", false_c p);
-				("configurable", true_c p)])]),
-		    ELetAlloc (p, "$funobj", 
-			       EObject (p,
-					[("code", func_expr_lambda p args body);
-					 ("proto", EId (p, "Function.prototype"));
-					 ("extensible", true_c p)],
-					[(p,"length", 
-					  [("value", EConst 
-					      (p, 
-					       CNum (float_of_int
-						       (List.length args))));
-				      ("writable", false_c p);
-				      ("enumerable", false_c p);
-				      ("configurable", false_c p)]);
-				    (p,"prototype",
-				     [("value", EId (p, "$prototype")); 
-				      ("writable", true_c p);
-				      ("configurable", false_c p);
-				      ("enumerable", false_c p)])]),
-			  ESeq (p, EUpdateField (p, 
-					      EId (p, "$prototype"),
-					      EId (p, "$prototype"),
-					      EConst (p, CString ("constructor")),
-					      EId (p, "$funobj")),
-				EId (p, "$funobj"))))
-     }
- | TYPEOF atom
-     { EOp1 (($startpos, $endpos), Prim1 "typeof", $2) }
+	 ELet (p, "$prototype", 
+	       ERef (p, EObject (p,
+				 [("proto", EId (p, "Object.prototype"));
+				  ("extensible", true_c p);
+				  ("Class", EConst (p, CString ("Object")))],
+				 [(p, "constructor", 
+				   [("value", EConst (p, CUndefined));
+				    ("writable", true_c p);
+				    ("enumerable", false_c p);
+				    ("configurable", true_c p)])])),
+		     ELet (p, "$funobj", 
+			   ERef (p, EObject (p,
+					     [("code", func_expr_lambda p args body);
+					      ("proto", EId (p, "Function.prototype"));
+					      ("extensible", true_c p)],
+					     [(p,"length", 
+					       [("value", EConst 
+						   (p, 
+						    CNum (float_of_int
+							    (List.length args))));
+						("writable", false_c p);
+						("enumerable", false_c p);
+						("configurable", false_c p)]);
+					      (p,"prototype",
+					       [("value", EId (p, "$prototype")); 
+						("writable", true_c p);
+						("configurable", false_c p);
+						("enumerable", false_c p)])])),
+				 ESeq (p, EUpdateField (p, 
+							EId (p, "$prototype"),
+							EId (p, "$prototype"),
+							EConst (p, CString ("constructor")),
+							EId (p, "$funobj")),
+				       EId (p, "$funobj"))))
+	      }
+     | TYPEOF atom
+	 { EOp1 (($startpos, $endpos), Prim1 "typeof", $2) }
 
 exp :
  | atom { $1 }

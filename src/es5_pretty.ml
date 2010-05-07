@@ -31,6 +31,7 @@ let rec exp e = match e with
 		 [text "delete-field";
 		 exp o1;
 		 exp f])
+  | ERef (p, e) -> parens (horz [text "alloc"; exp e])
   | ESetRef (p, x, e) ->
       parens (horz
 		[text "set!";
@@ -52,9 +53,6 @@ let rec exp e = match e with
       parens (vert [text "begin"; exp e1; exp e2])
   | ELet (p, x, e, body) ->
       parens (vert [horz [text "let"; parens (horz [text x; exp e])];
-		    exp body])
-  | ELetAlloc (p, x, e, body) ->
-      parens (vert [horz [text "let-alloc"; parens (horz [text x; exp e])];
 		    exp body])
   | EFix (p, x, e) -> 
       parens (horz [text "fix"; text x; exp e])

@@ -42,7 +42,7 @@ let load_js (path : string) : unit =
 	    ESeq (p, !srcLJS,
 		  Lambdajs_syntax.desugar (Exprjs_syntax.from_javascript js))
       | "es5" ->
-	  srcES5 := ES5ds.ds (Exprjs_syntax.from_javascript js)
+	  srcES5 := ES5ds.ds_top (Exprjs_syntax.from_javascript js)
       | _ -> failwith ("Unknown language: " ^ !lang)
 
 let load_lambdajs (path : string) : unit =

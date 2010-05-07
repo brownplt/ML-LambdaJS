@@ -76,8 +76,8 @@ let rec func_stmt_lambda p func_name ids body =
 (* for strict mode add getter and setter errors for "caller" and
   "arguments" *)
 let rec func_object p ids lambda_exp =
-    ELetAlloc (p, "$prototype", 
-	       EObject (p,
+    ELet (p, "$prototype", 
+	  ERef (p, EObject (p,
 			[("proto", EId (p, "Object.prototype"));
 			 ("extensible", true_c p);
 			 ("Class", EConst (p, S.CString ("Object")))],
@@ -85,33 +85,33 @@ let rec func_object p ids lambda_exp =
 			  [("value", EConst (p, S.CUndefined));
 			   ("writable", true_c p);
 			   ("enumerable", false_c p);
-			   ("configurable", true_c p)])]),
-	       ELetAlloc (p, "$funobj", 
-			  EObject (p,
-				   [("code", lambda_exp);
-				    ("proto", EId (p, "Function.prototype"));
-				    ("extensible", true_c p)],
-				   [(p,"length", 
-				     [("value", EConst (p, S.CNum
-							  (float_of_int
-							     (List.length ids))));
-				      ("writable", false_c p);
-				      ("enumerable", false_c p);
-				      ("configurable", false_c p)]);
-				    (p,"prototype",
-				     [("value", EId (p, "$prototype")); 
-				      ("writable", true_c p);
-				      ("configurable", false_c p);
-				      ("enumerable", false_c p)])]),
-			  ESeq (p, EUpdateField (p, 
-					      EId (p, "$prototype"),
-					      EId (p, "$prototype"),
-					      EConst (p, S.CString ("constructor")),
-					      EId (p, "$funobj")),
-				EId (p, "$funobj"))))
-
+			   ("configurable", true_c p)])])),
+	       ELet (p, "$funobj", 
+		     ERef (p, EObject (p,
+				       [("code", lambda_exp);
+					("proto", EId (p, "Function.prototype"));
+					("extensible", true_c p)],
+				       [(p,"length", 
+					 [("value", EConst (p, S.CNum
+							      (float_of_int
+								 (List.length ids))));
+					  ("writable", false_c p);
+					  ("enumerable", false_c p);
+					  ("configurable", false_c p)]);
+					(p,"prototype",
+					 [("value", EId (p, "$prototype")); 
+					  ("writable", true_c p);
+					  ("configurable", false_c p);
+					  ("enumerable", false_c p)])])),
+		     ESeq (p, EUpdateField (p, 
+					    EId (p, "$prototype"),
+					    EId (p, "$prototype"),
+					    EConst (p, S.CString ("constructor")),
+					    EId (p, "$funobj")),
+			   EId (p, "$funobj"))))
+      
 let rec ds expr =
-    match expr with
+  match expr with
   | ConstExpr (p,c) -> EConst (p,c)
 
   | ArrayExpr (p,expr_list) -> mk_array (p, map ds expr_list)
@@ -151,24 +151,24 @@ let rec ds expr =
 			   EId (p, "$constructor"),
 			   EId (p, "$constructor"),
 			   str p "prototype"),
-		ELetAlloc (p,
-			   "$newObj", 
-			   new_obj p "$proto",
-			   ELet (p, 
-				 "$resObj", 
-				 EApp (p, 
-				       EId (p, "$constructor"),
-				       (EId (p, "$newObj"))::
-					 (map ds args)),
-				 EIf (p, 
-				      EOp2 (p, 
-					    Op2Infix ("==="),
-					    EOp1 (p, 
-						  Op1Prefix ("typeof"),
-					    EId (p, "$resObj")),
-					    EConst (p, S.CString ("Object"))),
-				      EId (p, "$resObj"),
-				      EId (p, "$newObj"))))))
+		ELet (p,
+		      "$newObj", 
+		      ERef (p, new_obj p "$proto"),
+		      ELet (p, 
+			    "$resObj", 
+			    EApp (p, 
+				  EId (p, "$constructor"),
+				  (EId (p, "$newObj"))::
+				    (map ds args)),
+			    EIf (p, 
+				 EOp2 (p, 
+				       Op2Infix ("==="),
+				       EOp1 (p, 
+					     Op1Prefix ("typeof"),
+					     EId (p, "$resObj")),
+				       EConst (p, S.CString ("Object"))),
+				 EId (p, "$resObj"),
+				 EId (p, "$newObj"))))))
 				
 	  
 
@@ -237,7 +237,7 @@ let rec ds expr =
 
 and var_lift expr =
   let folder (p,id) e = 
-    ELetAlloc (p, id, undef_c p, e) in
+    ELet (p, id, undef_c p, e) in
     List.fold_right folder (vars_in expr) (ds expr)
 
 (* Collect all the vars (and their source locations) in the
@@ -369,6 +369,7 @@ let rec ds_op exp = match exp with
       EGetFieldSurface (p, ds_op o, ds_op f)
   | EDeleteField (p, o, f) -> 
       EDeleteField (p, ds_op o, ds_op f)
+  | ERef (p, e) -> ERef (p, ds_op e)
   | ESetRef (p, x, v) -> 
       ESetRef (p, x, ds_op v)
   | EIf (p, c, t, e) -> 
@@ -379,8 +380,6 @@ let rec ds_op exp = match exp with
       ESeq (p, ds_op e1, ds_op e2)
   | ELet (p, x, e1, body) -> 
       ELet (p, x, ds_op e1, ds_op body)
-  | ELetAlloc (p, x, e1, body) ->
-      ELetAlloc (p, x, ds_op e1, ds_op body)
   | EFix (p, x, e) -> EFix (p, x, ds_op e)
   | ELabel (p, l, e) -> ELabel (p, l, ds_op e)
   | EBreak (p, l, e) -> EBreak (p, l, ds_op e)
@@ -412,4 +411,5 @@ and uint_uint p op e1 e2 =
           EApp (p, EId (p, "[[toUInt]]"), [ ds_op e2 ]))
 
 
-let rec desugar expr = ds_op (ds expr)
+let rec ds_top expr = (var_lift expr)
+let rec desugar expr = ds_op (ds_top expr)
