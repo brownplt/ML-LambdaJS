@@ -31,9 +31,9 @@ let rec mk_val p v =
 let rec mk_array (p, exps) = 
   let mk_field n v = (p, string_of_int n, 
 		      mk_val p v) in
-      EObject (p, [("proto", EId (p, "Array.prototype"));
-		   ("extensible", true_c p)],
-	       List.map2 mk_field (iota (List.length exps)) exps)
+    ERef (p, EObject (p, [("proto", EId (p, "Array.prototype"));
+			  ("extensible", true_c p)],
+		      List.map2 mk_field (iota (List.length exps)) exps))
 
 let rec mk_field (p, s, e) =
     (p, s, mk_val p e)
@@ -42,7 +42,7 @@ let new_obj p proto_id =
     EObject (p,
 	     [("proto", EId (p, proto_id));
 	      ("extensible", true_c p);
-	      ("Class", true_c p)],
+	      ("Class", str p "Object")],
 	     [])
 
 (* Same idea as in original \JS --- use the args array *)
@@ -116,12 +116,13 @@ let rec ds expr =
 
   | ArrayExpr (p,expr_list) -> mk_array (p, map ds expr_list)
 
+  (* Objects only exist as references *)
   | ObjectExpr (p,exprs) -> 
       let ds_tuple (p,s,e) = (p,s,ds e) in
-	EObject (p, 
-		 [("proto", str p "Object.prototype");
-		  ("extensible", true_c p)],
-		 List.map mk_field (List.map ds_tuple exprs))
+	ERef (p, EObject (p, 
+			  [("proto", str p "Object.prototype");
+			   ("extensible", true_c p)],
+			  List.map mk_field (List.map ds_tuple exprs)))
 
   | ThisExpr (p) -> EId (p, "this")
 
