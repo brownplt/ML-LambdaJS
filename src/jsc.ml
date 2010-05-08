@@ -89,7 +89,7 @@ let action_cps () : unit =
 
 let action_eval () : unit =
   match !lang with
-    | "es5" -> ES5eval.eval_expr !srcES5; print_newline ()
+    | "es5" -> printf "%S" (ES5eval.pretty_value (ES5eval.eval_expr !srcES5)); print_newline ()
     | _ -> failwith ("Not implemented for language: " ^ !lang)
 
 let action_operators () : unit =

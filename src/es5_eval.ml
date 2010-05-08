@@ -21,6 +21,19 @@ type label = string
 exception Break of label * value
 exception Throw of value
 
+let pretty_value v = match v with 
+  | Const c -> begin match c with
+      | CInt d -> string_of_int d
+      | CNum d -> string_of_float d
+      | CString s -> s
+      | CBool b -> string_of_bool b
+      | CUndefined -> "undefined"
+      | CNull -> "null"
+    end
+  | Closure c -> "function"
+  | ObjCell o -> "object"
+  | _ -> failwith ("Only prims defined")
+
 let rec apply func args = match func with
   | Closure c -> c args
   | _ -> failwith ("[interp] Applied non-function")
@@ -122,27 +135,7 @@ let rec update_field obj1 obj2 field newval = match obj1 with
 	    with Not_found -> Const (CUndefined)
 	  end
 	end
-				   
-	    
-  | ObjCell c ->
-      let (attrs, props) = !c in begin
-	try
-	  let prop_attrs = IdMap.find field props in
-	    try 
-	      let value = IdMap.find "value" prop_attrs in
-		value
-	    with Not_found ->
-	      try
-		let getter = IdMap.find "get" prop_attrs in
-		  apply_obj getter obj2 []
-	      with Not_found -> Const (CUndefined) (* No getting attributes *)
-	with Not_found ->
-	  try
-	    get_field (IdMap.find "proto" attrs) obj2 field
-	  with Not_found ->
-	    Const (CUndefined) (* No prototype found *)
-	end
-  | _ -> failwith ("[interp] get_field received (or found) a non-object")
+  | _ -> failwith ("[interp] set_field received (or found) a non-object")
 
 
 let rec eval exp env = match exp with
@@ -153,7 +146,7 @@ let rec eval exp env = match exp with
 	  | VarCell v -> !v
 	  | _ -> failwith ("[interp] Expected a VarCell for variable " ^ x ^ 
 			     " at " ^ (string_of_position p) ^ 
-			     ", but found something else.")
+			     ", but found something else: " ^ pretty_value (IdMap.find x env))
       with Not_found ->
 	failwith ("[interp] Unbound identifier: " ^ x ^ " at " ^
 		    (string_of_position p))
@@ -215,7 +208,7 @@ let rec eval exp env = match exp with
   | EOp1 (p, op, e) ->
       let eval_e = eval e env in
 	Const (CString ("( ... )"))
-  | EOp2 (p, op, e1, e2) ->
+  | EOp2 (p, op, e1, e2) -> 
       let e1_val = eval e1 env in
       let e2_val = eval e2 env in
 	Const (CString ("( ... )"))
@@ -225,9 +218,9 @@ let rec eval exp env = match exp with
 	then eval t env
 	else eval e env
   | EApp (p, func, args) -> apply (eval func env) (map (fun e -> eval e env) args)
-  | ESeq (p, e1, e2) ->
-      let e1_val = eval e1 env in
-	eval e2 env
+  | ESeq (p, e1, e2) -> 
+      eval e1 env;
+      eval e2 env
   | ELet (p, x, e, body) ->
       let e_val = eval e env in
 	eval body (IdMap.add x (VarCell (ref e_val)) env)
@@ -257,7 +250,7 @@ let rec eval exp env = match exp with
   | EThrow (p, e) -> raise (Throw (eval e env))
   | ELambda (p, xs, e) ->
       Closure (fun args -> 
-		 let set_arg arg x m = IdMap.add x arg m in
+		 let set_arg arg x m = IdMap.add x (VarCell (ref arg)) m in
 		   eval e (List.fold_right2 set_arg args xs env))
   | EUpdateField (_,_,_,_,_) -> failwith ("Not implemented---EUpdateField")
   | EGetField (_,_,_,_) -> failwith ("Not implemented---EGetField")
