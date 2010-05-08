@@ -1,25 +1,7 @@
 open Prelude
 open Es5_syntax
 open JavaScript_syntax
-
-module SMap = Map.Make (String)
-
-type value =
-  | Const of JavaScript_syntax.const
-      (* A VarCell can contain an ObjCell, but not vice versa.  This
-      mimics the semantics of heap-like object refs alongside mutable
-      variables *)
-  | VarCell of value ref 
-      (* Objects shouldn't have VarCells in them, but can have any of
-      the other kinds of values *)
-  | ObjCell of (value IdMap.t * ((value IdMap.t) IdMap.t)) ref
-  | Closure of (value list -> value)
-
-type env = value IdMap.t
-type label = string
-
-exception Break of label * value
-exception Throw of value
+open Es5_values
 
 let pretty_value v = match v with 
   | Const c -> begin match c with
@@ -36,7 +18,8 @@ let pretty_value v = match v with
 
 let rec apply func args = match func with
   | Closure c -> c args
-  | _ -> failwith ("[interp] Applied non-function")
+  | _ -> failwith ("[interp] Applied non-function, was actually " ^ 
+		     pretty_value func)
 
 let rec args_object args =
   let add_arg arg n m = IdMap.add (string_of_int n)
@@ -230,7 +213,19 @@ let rec eval exp env = match exp with
 	if (c_val = Const (CBool true))
 	then eval t env
 	else eval e env
-  | EApp (p, func, args) -> apply (eval func env) (map (fun e -> eval e env) args)
+  | EApp (p, func, args) -> 
+      let func_value = eval func env in
+      let args_values = map (fun e -> eval e env) args in begin
+	match func_value with
+	  | ObjCell o -> 
+	      if List.length args_values < 1 then
+		failwith ("[interp] Need to provide at least a this-value")
+	      else
+		apply_obj func_value 
+		  (List.hd args_values) (List.tl args_values)
+	  | Closure c -> apply func_value args_values
+	  | _ -> failwith ("[interp] Inapplicable value.")
+	end
   | ESeq (p, e1, e2) -> 
       eval e1 env;
       eval e2 env
@@ -238,7 +233,11 @@ let rec eval exp env = match exp with
       let e_val = eval e env in
 	eval body (IdMap.add x (VarCell (ref e_val)) env)
   | EFix (p, x, e) ->
-      eval e (IdMap.add x (Closure (fun args -> eval (EFix (p, x, e)) env)) env)
+      let x_var = ref (Const CUndefined) in
+      let e_val = eval e (IdMap.add x (VarCell x_var) env) in begin
+	  x_var := e_val;
+	  e_val
+	end
   | ELabel (p, l, e) -> begin
       try
 	eval e env
