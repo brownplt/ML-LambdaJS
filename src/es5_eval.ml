@@ -69,72 +69,85 @@ let rec get_field obj1 obj2 field = match obj1 with
   | Const (CNull) -> Const (CUndefined) (* nothing found *)
   | ObjCell c ->
       let (attrs, props) = !c in begin
-	try
-	  let prop_attrs = IdMap.find field props in
-	    try 
-	      let value = IdMap.find "value" prop_attrs in
-		value
-	    with Not_found ->
-	      try
-		let getter = IdMap.find "get" prop_attrs in
-		  apply_obj getter obj2 []
-	      with Not_found -> Const (CUndefined) (* No getting attributes *)
-	with Not_found ->
 	  try
-	    get_field (IdMap.find "proto" attrs) obj2 field
+	    let prop_attrs = IdMap.find field props in
+	      try 
+		let value = IdMap.find "value" prop_attrs in
+		  value
+	      with Not_found ->
+		try
+		  let getter = IdMap.find "get" prop_attrs in
+		    apply_obj getter obj2 []
+		with Not_found -> Const (CUndefined) (* No getting attributes *)
 	  with Not_found ->
-	    Const (CUndefined) (* No prototype found *)
+	    try
+	      get_field (IdMap.find "proto" attrs) obj2 field
+	    with Not_found ->
+	      Const (CUndefined) (* No prototype found *)
 	end
   | _ -> failwith ("[interp] get_field received (or found) a non-object")
 
 
-let rec update_field obj1 obj2 field newval = match obj1 with
-    (* The "add" case *)
-  | Const (CNull) -> begin match obj2 with
-	ObjCell c -> let (attrs, props) = !c in
-	  if IdMap.mem "extensible" attrs &&
-	    IdMap.find "extensible" attrs = (Const (CBool true))
-	  then begin
-	    c := (attrs, IdMap.add field 
-		    (IdMap.add "value" newval
-		       (IdMap.add "configurable" (Const (CBool true))
-			  (IdMap.add "writable" (Const (CBool true))
-			     (IdMap.add "enumerable" (Const (CBool true))
-				IdMap.empty))))
-		    props);
-	    newval
-	  end
-	  else
-	    Const (CUndefined)
-    end
-  | ObjCell c -> 
-      let (attrs, props) = !c in begin
-	  try
-	    let prop = IdMap.find field props in begin
-		try
-		  if (IdMap.find "writable" prop) = Const (CBool true) then
-		    begin
-		      c := (attrs, IdMap.add field
-			      (IdMap.add "value" newval prop)
-			      props);
-		      newval
-		    end
-		  else
-		    Const (CUndefined) (* TypeError? *)
-		with Not_found -> begin
-		  try
-		    let setter = IdMap.find "set" prop in
-		      apply_obj setter obj2 [newval]
-		  with Not_found -> Const (CUndefined) (* TypeError? *)
-		end
-	      end
-	  with Not_found -> begin
-	    try
-	      let proto = IdMap.find "proto" attrs in
-		update_field proto obj2 field newval
-	    with Not_found -> Const (CUndefined)
-	  end
+(* EUpdateField-Add *)
+(* ES5 8.12.5, step 6 *)
+let rec add_field obj field newval = match obj with
+  | ObjCell c -> let (attrs, props) = !c in
+      if IdMap.mem "extensible" attrs &&
+	((IdMap.find "extensible" attrs) = (Const (CBool true))) then begin
+	  c := (attrs, IdMap.add field 
+		  (IdMap.add "value" newval
+		     (IdMap.add "configurable" (Const (CBool true))
+			(IdMap.add "writable" (Const (CBool true))
+			   (IdMap.add "enumerable" (Const (CBool true))
+			      IdMap.empty))))
+		  props);
+	  newval
 	end
+      else Const CUndefined	
+  | _ -> failwith ("[interp] add_field given non-object.")
+
+let rec writable prop = 
+  (IdMap.mem "writable" prop) &&
+    ((IdMap.find "writable" prop) = Const (CBool true))
+
+let rec not_writable prop = 
+  (IdMap.mem "writable" prop) &&
+    ((IdMap.find "writable" prop) = Const (CBool false))
+
+(* EUpdateField *)
+(* ES5 8.12.4, 8.12.5 *)
+let rec update_field obj1 obj2 field newval = match obj1 with
+    (* 8.12.4, step 4 *)
+  | Const (CNull) -> add_field obj2 field newval
+  | ObjCell c -> let (attrs, props) = !c in
+      if (not (IdMap.mem field props)) then
+	if (IdMap.mem "proto" attrs) then
+	  (* EUpdateField-Proto *)
+	  update_field (IdMap.find "proto" attrs) obj2 field newval
+	else
+	  (* 8.12.4, step 4, sort of.  Handles if proto doesn't exist *)
+	  add_field obj2 field newval
+      else
+	let prop = (IdMap.find field props) in
+	  if writable prop then 
+	    if (not (obj1 = obj2)) then
+	      (* 8.12.4, last step where inherited.[[writable]] is true *)
+	      add_field obj2 field newval
+	    else begin
+	      (* 8.12.5, step 3 *)
+	      c := (attrs, IdMap.add field
+		      (IdMap.add "value" newval prop)
+		      props);
+	      newval
+	    end
+	  else begin try
+	    (* 8.12.5, step 5 *)
+	    let setter = IdMap.find "set" prop in
+	      apply_obj setter obj2 [newval]
+	  with Not_found -> 
+	    (* TODO: Make type error for strict. Not writable, no setter. *)
+	    Const CUndefined
+	  end
   | _ -> failwith ("[interp] set_field received (or found) a non-object")
 
 
@@ -144,7 +157,7 @@ let rec eval exp env = match exp with
       try
 	match IdMap.find x env with
 	  | VarCell v -> !v
-	  | _ -> failwith ("[interp] Expected a VarCell for variable " ^ x ^ 
+	  | _ -> failwith ("[interp] (EId) Expected a VarCell for variable " ^ x ^ 
 			     " at " ^ (string_of_position p) ^ 
 			     ", but found something else: " ^ pretty_value (IdMap.find x env))
       with Not_found ->
@@ -155,7 +168,7 @@ let rec eval exp env = match exp with
       try
 	match IdMap.find x env with
 	  | VarCell v -> v := eval e env; !v
-	  | _ -> failwith ("[interp] Expected a VarCell for variable " ^ x ^ 
+	  | _ -> failwith ("[interp] (ESet) Expected a VarCell for variable " ^ x ^ 
 			     " at " ^ (string_of_position p) ^ 
 			     ", but found something else.")
       with Not_found ->
