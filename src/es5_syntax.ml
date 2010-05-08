@@ -18,8 +18,7 @@ type exp =
   | EUpdateField of pos * exp * exp * exp * exp
   | EGetField of pos * exp * exp * exp
   | EDeleteField of pos * exp * exp
-  | ERef of pos * exp
-  | ESetRef of pos * id * exp
+  | ESet of pos * id * exp
   | EOp1 of pos * op1 * exp
   | EOp2 of pos * op2 * exp * exp
   | EIf of pos * exp * exp * exp
@@ -60,9 +59,8 @@ let rename (x : id) (y : id) (exp : exp) : exp =
     | EIf (p, e1, e2, e3) -> EIf (p, ren e1, ren e2, ren e3)
     | EApp (p, f, args) -> EApp (p, ren f, map ren args)
     | ESeq (p, e1, e2) -> ESeq (p, ren e1, ren e2)
-    | ERef (p, e) -> ERef (p, ren e)
-    | ESetRef (p, z, e) -> 
-	if x = z then ESetRef (p, y, ren e) else ESetRef (p, z, ren e)
+    | ESet (p, z, e) -> 
+	if x = z then ESet (p, y, ren e) else ESet (p, z, ren e)
     | ELet (p, z, e1, e2) -> 
         ELet (p, z, ren e1, if x = z then e2 else ren e2)
     | EFix (p, z, body) ->
@@ -101,8 +99,7 @@ let rec fv (exp : exp) : IdSet.t = match exp with
   | EIf (_, e1, e2, e3) -> IdSetExt.unions (map fv [e1; e2; e3])
   | EApp (_, f, args) -> IdSetExt.unions (map fv (f :: args))
   | ESeq (_, e1, e2) -> IdSet.union (fv e1) (fv e2)
-  | ERef (_, e) -> fv e
-  | ESetRef (_, x, e) -> IdSet.union (fv e) (IdSet.singleton x)
+  | ESet (_, x, e) -> IdSet.union (fv e) (IdSet.singleton x)
   | ELet (_, x, e1, e2) -> IdSet.union (fv e1) (IdSet.remove x (fv e2))
   | EFix (_, x, body) ->
       IdSet.union (fv body) (IdSet.remove x (fv body))

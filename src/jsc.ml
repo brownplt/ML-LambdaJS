@@ -18,6 +18,7 @@ module ES5ds = Es5_desugar
 module ES5e = Es5_env
 module ES5pp = Es5_pretty
 module ES5p = Es5_parser
+module ES5eval = Es5_eval
 
 module H = Hashtbl
 
@@ -86,6 +87,11 @@ let action_cps () : unit =
   let cpslambdajs = Lambdajs_cps.cps !srcLJS in
     Lambdajs_cps.p_cpsexp cpslambdajs std_formatter
 
+let action_eval () : unit =
+  match !lang with
+    | "es5" -> ES5eval.eval_expr !srcES5; print_newline ()
+    | _ -> failwith ("Not implemented for language: " ^ !lang)
+
 let action_operators () : unit =
   let ops = operators !srcLJS in
     IdSetExt.p_set text ops std_formatter;
@@ -120,6 +126,9 @@ all languages");
 
        ("-cps", Arg.Unit (set_action action_cps),
        "convert program to CPS");
+
+       ("-eval", Arg.Unit (set_action action_eval),
+	"run the program");
 
        ("-pretty", Arg.Unit (set_action action_pretty),
 	"Pretty print the current source")

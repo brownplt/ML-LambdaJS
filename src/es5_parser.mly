@@ -83,7 +83,6 @@ func :
 atom :
  | const { EConst (($startpos, $endpos), $1) }
  | ID { EId (($startpos, $endpos), $1) }
- | REF seq_exp { ERef (($startpos, $endpos), $2 ) }
  | LBRACE LBRACK attrs RBRACK props RBRACE 
    { EObject (($startpos, $endpos), $3, $5 )}
  | LBRACE seq_exp RBRACE
@@ -110,43 +109,43 @@ atom :
        let p = ($startpos, $endpos) in
        let body = $7 in
 	 ELet (p, "$prototype", 
-	       ERef (p, EObject (p,
-				 [("proto", EId (p, "Object.prototype"));
-				  ("extensible", true_c p);
-				  ("Class", EConst (p, CString ("Object")))],
-				 [(p, "constructor", 
+	       EObject (p,
+			[("proto", EId (p, "Object.prototype"));
+			 ("extensible", true_c p);
+			 ("Class", EConst (p, CString ("Object")))],
+			[(p, "constructor", 
 				   [("value", EConst (p, CUndefined));
 				    ("writable", true_c p);
 				    ("enumerable", false_c p);
-				    ("configurable", true_c p)])])),
+				    ("configurable", true_c p)])]),
 		     ELet (p, "$funobj", 
-			   ERef (p, EObject (p,
-					     [("code", func_expr_lambda p args body);
-					      ("proto", EId (p, "Function.prototype"));
-					      ("extensible", true_c p)],
-					     [(p,"length", 
-					       [("value", EConst 
-						   (p, 
-						    CNum (float_of_int
-							    (List.length args))));
-						("writable", false_c p);
-						("enumerable", false_c p);
-						("configurable", false_c p)]);
-					      (p,"prototype",
-					       [("value", EId (p, "$prototype")); 
+			   EObject (p,
+				    [("code", func_expr_lambda p args body);
+				     ("proto", EId (p, "Function.prototype"));
+				     ("extensible", true_c p)],
+				    [(p,"length", 
+				      [("value", EConst 
+					  (p, 
+					   CNum (float_of_int
+						   (List.length args))));
+				       ("writable", false_c p);
+				       ("enumerable", false_c p);
+				       ("configurable", false_c p)]);
+				     (p,"prototype",
+				      [("value", EId (p, "$prototype")); 
 						("writable", true_c p);
 						("configurable", false_c p);
-						("enumerable", false_c p)])])),
-				 ESeq (p, EUpdateField (p, 
-							EId (p, "$prototype"),
-							EId (p, "$prototype"),
-							EConst (p, CString ("constructor")),
-							EId (p, "$funobj")),
-				       EId (p, "$funobj"))))
-	      }
-     | TYPEOF atom
-	 { EOp1 (($startpos, $endpos), Prim1 "typeof", $2) }
-
+						("enumerable", false_c p)])]),
+			   ESeq (p, EUpdateField (p, 
+						  EId (p, "$prototype"),
+						  EId (p, "$prototype"),
+						  EConst (p, CString ("constructor")),
+						  EId (p, "$funobj")),
+				 EId (p, "$funobj"))))
+     }
+ | TYPEOF atom
+     { EOp1 (($startpos, $endpos), Prim1 "typeof", $2) }
+     
 exp :
  | atom { $1 }
  | exp LPAREN exps RPAREN 
@@ -156,7 +155,7 @@ exp :
  | PRIM LPAREN STRING COMMA seq_exp RPAREN
    { EOp1 (($startpos, $endpos), Prim1 $3, $5) }
  | ID COLONEQ exp
-   { ESetRef (($startpos, $endpos), $1, $3) }
+   { ESet (($startpos, $endpos), $1, $3) }
  | exp EQEQEQUALS exp
      { EOp2 (($startpos, $endpos), Prim2 "stx=", $1, $3) }
  | exp BANGEQEQUALS exp

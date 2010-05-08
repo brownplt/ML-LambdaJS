@@ -31,9 +31,9 @@ let rec mk_val p v =
 let rec mk_array (p, exps) = 
   let mk_field n v = (p, string_of_int n, 
 		      mk_val p v) in
-    ERef (p, EObject (p, [("proto", EId (p, "Array.prototype"));
-			  ("extensible", true_c p)],
-		      List.map2 mk_field (iota (List.length exps)) exps))
+    EObject (p, [("proto", EId (p, "Array.prototype"));
+		 ("extensible", true_c p)],
+	     List.map2 mk_field (iota (List.length exps)) exps)
 
 let rec mk_field (p, s, e) =
     (p, s, mk_val p e)
@@ -77,65 +77,64 @@ let rec func_stmt_lambda p func_name ids body =
   "arguments" *)
 let rec func_object p ids lambda_exp =
     ELet (p, "$prototype", 
-	  ERef (p, EObject (p,
-			[("proto", EId (p, "Object.prototype"));
-			 ("extensible", true_c p);
-			 ("Class", EConst (p, S.CString ("Object")))],
-			[(p, "constructor", 
-			  [("value", EConst (p, S.CUndefined));
-			   ("writable", true_c p);
-			   ("enumerable", false_c p);
-			   ("configurable", true_c p)])])),
-	       ELet (p, "$funobj", 
-		     ERef (p, EObject (p,
-				       [("code", lambda_exp);
-					("proto", EId (p, "Function.prototype"));
-					("extensible", true_c p)],
-				       [(p,"length", 
-					 [("value", EConst (p, S.CNum
-							      (float_of_int
-								 (List.length ids))));
-					  ("writable", false_c p);
-					  ("enumerable", false_c p);
-					  ("configurable", false_c p)]);
-					(p,"prototype",
-					 [("value", EId (p, "$prototype")); 
-					  ("writable", true_c p);
-					  ("configurable", false_c p);
-					  ("enumerable", false_c p)])])),
-		     ESeq (p, EUpdateField (p, 
-					    EId (p, "$prototype"),
-					    EId (p, "$prototype"),
-					    EConst (p, S.CString ("constructor")),
-					    EId (p, "$funobj")),
-			   EId (p, "$funobj"))))
-      
+	  EObject (p,
+		   [("proto", EId (p, "Object.prototype"));
+		    ("extensible", true_c p);
+		    ("Class", EConst (p, S.CString ("Object")))],
+		   [(p, "constructor", 
+		     [("value", EConst (p, S.CUndefined));
+		      ("writable", true_c p);
+		      ("enumerable", false_c p);
+		      ("configurable", true_c p)])]),
+	  ELet (p, "$funobj", 
+		EObject (p,
+			 [("code", lambda_exp);
+			  ("proto", EId (p, "Function.prototype"));
+			  ("extensible", true_c p)],
+			 [(p,"length", 
+			   [("value", EConst (p, S.CNum
+						(float_of_int
+						   (List.length ids))));
+			    ("writable", false_c p);
+			    ("enumerable", false_c p);
+			    ("configurable", false_c p)]);
+			  (p,"prototype",
+			   [("value", EId (p, "$prototype")); 
+			    ("writable", true_c p);
+			    ("configurable", false_c p);
+			    ("enumerable", false_c p)])]),
+		ESeq (p, EUpdateField (p, 
+				       EId (p, "$prototype"),
+				       EId (p, "$prototype"),
+				       EConst (p, S.CString ("constructor")),
+				       EId (p, "$funobj")),
+		      EId (p, "$funobj"))))
+	    
 let rec ds expr =
   match expr with
-  | ConstExpr (p,c) -> EConst (p,c)
+    | ConstExpr (p,c) -> EConst (p,c)
+	
+    | ArrayExpr (p,expr_list) -> mk_array (p, map ds expr_list)
 
-  | ArrayExpr (p,expr_list) -> mk_array (p, map ds expr_list)
-
-  (* Objects only exist as references *)
-  | ObjectExpr (p,exprs) -> 
-      let ds_tuple (p,s,e) = (p,s,ds e) in
-	ERef (p, EObject (p, 
-			  [("proto", str p "Object.prototype");
-			   ("extensible", true_c p)],
-			  List.map mk_field (List.map ds_tuple exprs)))
-
-  | ThisExpr (p) -> EId (p, "this")
-
-  | VarExpr (p, x) -> EId (p, x)
-
-  | IdExpr (p, x) -> EId (p, x)
+    | ObjectExpr (p,exprs) -> 
+	let ds_tuple (p,s,e) = (p,s,ds e) in
+	  EObject (p, 
+		   [("proto", str p "Object.prototype");
+		    ("extensible", true_c p)],
+		   List.map mk_field (List.map ds_tuple exprs))
+	    
+    | ThisExpr (p) -> EId (p, "this")
+	
+    | VarExpr (p, x) -> EId (p, x)
+	
+    | IdExpr (p, x) -> EId (p, x)
 
   | BracketExpr (p, obj, f) ->
     ELet (p, "$x", to_object (ds obj),
 	  EGetField (p, EId (p,"$x"), EId (p,"$x"), to_string (ds f)))
 
   | AssignExpr (p1, VarLValue (p2, x), e) ->
-    ESetRef (p1, x, ds e)
+    ESet (p1, x, ds e)
 
   | AssignExpr (p1, PropLValue (p2, obj, f), e) ->
     ELet (p2, "$x", to_object (ds obj),
@@ -154,7 +153,7 @@ let rec ds expr =
 			   str p "prototype"),
 		ELet (p,
 		      "$newObj", 
-		      ERef (p, new_obj p "$proto"),
+		      new_obj p "$proto",
 		      ELet (p, 
 			    "$resObj", 
 			    EApp (p, 
@@ -227,7 +226,7 @@ let rec ds expr =
       EBreak (p, l, ds e)
   | ForInExpr (p, x, obj, body) -> str p "NYI---ForInExpr"
   | VarDeclExpr (p, x, e) ->
-      ESetRef (p, x, ds e)
+      ESet (p, x, ds e)
   | TryCatchExpr (p, body, x, catch) ->
       ETryCatch (p, ds body, ELambda (p, [x], ds catch))
   | TryFinallyExpr (p, body, fin) ->
@@ -370,9 +369,8 @@ let rec ds_op exp = match exp with
       EGetFieldSurface (p, ds_op o, ds_op f)
   | EDeleteField (p, o, f) -> 
       EDeleteField (p, ds_op o, ds_op f)
-  | ERef (p, e) -> ERef (p, ds_op e)
-  | ESetRef (p, x, v) -> 
-      ESetRef (p, x, ds_op v)
+  | ESet (p, x, v) -> 
+      ESet (p, x, ds_op v)
   | EIf (p, c, t, e) -> 
       EIf (p, ds_op c, ds_op t, ds_op e)
   | EApp (p, func, args) -> 
@@ -420,10 +418,10 @@ let rec ds_global exp env = match exp with
       with Not_found ->
 	EGetFieldSurface (p, EId (p, "[[global]]"), str p x)
     end
-  | ESetRef (p, x, e) -> begin
+  | ESet (p, x, e) -> begin
       try
 	if IdMap.find x env 
-	then ESetRef (p, x, e)
+	then ESet (p, x, e)
 	else EUpdateFieldSurface (p, EId (p, "[[global]]"), str p x, e)
       with Not_found ->
 	EUpdateFieldSurface (p, EId (p, "[[global]]"), str p x, e)
@@ -451,7 +449,6 @@ let rec ds_global exp env = match exp with
       EGetField (p, ds_global o1 env, ds_global o2 env, ds_global f env)
   | EDeleteField (p, o, f) ->
       EDeleteField (p, ds_global o env, ds_global f env)
-  | ERef (p, e) -> ERef (p, ds_global e env)
   | EOp1 (p, op, e) -> EOp1 (p, op, ds_global e env)
   | EOp2 (p, op, e1, e2) -> EOp2 (p, op, ds_global e1 env, ds_global e2 env)
   | EIf (p, c, t, e) -> 

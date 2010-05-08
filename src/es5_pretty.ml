@@ -42,8 +42,7 @@ let rec exp e = match e with
 		 [text "delete-field";
 		 exp o1;
 		 exp f])
-  | ERef (p, e) -> parens (horz [text "alloc"; exp e])
-  | ESetRef (p, x, e) ->
+  | ESet (p, x, e) ->
       parens (horz
 		[text "set!";
 		 text x;
