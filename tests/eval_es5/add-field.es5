@@ -1,0 +1,3 @@
+let (o = {[extensible: true]})
+    o["f" = 40];
+    o["f"]
