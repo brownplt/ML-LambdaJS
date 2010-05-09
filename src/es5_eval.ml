@@ -114,7 +114,7 @@ let rec update_field obj1 obj2 field newval = match obj1 with
       else
 	let prop = (IdMap.find field props) in
 	  if writable prop then 
-	    if (not (obj1 = obj2)) then
+	    if (not (obj1 == obj2)) then
 	      (* 8.12.4, last step where inherited.[[writable]] is true *)
 	      add_field obj2 field newval
 	    else begin
@@ -203,13 +203,24 @@ let rec eval exp env = match exp with
 			     string_of_position p)
 	end
   | EOp1 (p, op, e) ->
-      let eval_e = eval e env in
-	Const (CString ("( ... )"))
+      let e_val = eval e env in
+	begin match op with
+	  | Prim1 str -> op1 str e_val
+	  | _ -> failwith ("[interp] Invalid EOp1 form")
+	end
   | EOp2 (p, op, e1, e2) -> 
       let e1_val = eval e1 env in
       let e2_val = eval e2 env in
 	begin match op with
 	  | Prim2 str -> op2 str e1_val e2_val
+	  | _ -> failwith ("[interp] Invalid EOp2 form")
+	end
+  | EOp3 (p, op, e1, e2, e3) -> 
+      let e1_val = eval e1 env in
+      let e2_val = eval e2 env in
+      let e3_val = eval e3 env in
+	begin match op with
+	  | Prim3 str -> op3 str e1_val e2_val e3_val
 	  | _ -> failwith ("[interp] Invalid EOp2 form")
 	end
   | EIf (p, c, t, e) ->
@@ -258,15 +269,16 @@ let rec eval exp env = match exp with
     end
   | ETryFinally (p, body, fin) -> begin
       try
-	eval body env
+	ignore (eval body env)
       with
-	| Throw v -> eval fin env; raise (Throw v)
-	| Break (l, v) -> eval fin env; raise (Break (l, v))
-    end
+	| Throw v -> ignore (eval fin env); raise (Throw v)
+	| Break (l, v) -> ignore (eval fin env); raise (Break (l, v))
+    end;
+      eval fin env
   | EThrow (p, e) -> raise (Throw (eval e env))
   | ELambda (p, xs, e) ->
-      Closure (fun args -> 
-		 let set_arg arg x m = IdMap.add x (VarCell (ref arg)) m in
+      let set_arg arg x m = IdMap.add x (VarCell (ref arg)) m in
+	Closure (fun args -> 
 		   eval e (List.fold_right2 set_arg args xs env))
   | EUpdateField (_,_,_,_,_) -> failwith ("Not implemented---EUpdateField")
   | EGetField (_,_,_,_) -> failwith ("Not implemented---EGetField")

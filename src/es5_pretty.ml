@@ -53,6 +53,9 @@ let rec exp e = match e with
   | EOp2 (p, op, e1, e2) ->
       let op_string = op2_string op in
 	parens (horz [text op_string; exp e1; exp e2])
+  | EOp3 (p, op, e1, e2, e3) ->
+      let op_string = op3_string op in
+	parens (horz [text op_string; exp e1; exp e2; exp e3])
   | EIf (p, c, t, e) -> 
       parens (vert [horz [text "if"; exp c];
 		    exp t;
@@ -83,11 +86,15 @@ let rec exp e = match e with
 
 and op1_string op = match op with
   | Op1Prefix op_id -> op_id
-  | Prim1 str -> str
+  | Prim1 str -> "~" ^ str ^ "~"
 
 and op2_string op = match op with
   | Op2Infix op_id -> op_id
-  | Prim2 str -> str
+  | Prim2 str -> "~" ^ str ^ "~"
+
+and op3_string op = match op with
+  | Op3Prefix op_id -> op_id
+  | Prim3 str -> "~" ^ str ^ "~"
     
 and attr (name, value) = parens (horz [text ("\"" ^ name ^ "\""); exp value])
 

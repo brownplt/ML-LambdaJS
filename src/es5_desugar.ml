@@ -130,18 +130,15 @@ let rec ds expr =
     | IdExpr (p, x) -> EId (p, x)
 
   | BracketExpr (p, obj, f) ->
-    ELet (p, "$x", to_object (ds obj),
-	  EGetField (p, EId (p,"$x"), EId (p,"$x"), to_string (ds f)))
+      EGetFieldSurface (p, to_object (ds obj), to_string (ds f))
 
   | AssignExpr (p1, VarLValue (p2, x), e) ->
     ESet (p1, x, ds e)
 
   | AssignExpr (p1, PropLValue (p2, obj, f), e) ->
-    ELet (p2, "$x", to_object (ds obj),
-	  EUpdateField (p1, 
-			EId (p2,"$x"), 
-			EId (p2,"$x"), 
-			to_string (ds f), ds e))
+      EUpdateFieldSurface (p1, 
+			   to_object (ds obj),
+			   to_string (ds f), ds e)
 
   (* 11.2.2 *)
   | NewExpr (p, e, args) ->
@@ -181,8 +178,12 @@ let rec ds expr =
   | IfExpr (p, c, t, e) ->
     EIf (p, ds c, ds t, ds e)
 
-  | AppExpr (p, e, es) ->
-    EApp (p, ds e, map ds es)
+  | AppExpr (p, BracketExpr (p', obj, prop), es) ->
+      ELet (p, "$obj", EGetFieldSurface (p', ds obj, ds prop),
+	    EApp (p, EId (p', "$obj"), (EId (p', "$obj") :: map ds es)))
+	
+  | AppExpr (p, func, es) ->
+      EApp (p, ds func, (EId (p, "[[global]]") :: map ds es))
 
   | FuncExpr (p, ids, body) ->
     func_object p ids (func_expr_lambda p ids (var_lift body))
@@ -421,10 +422,10 @@ let rec ds_global exp env = match exp with
   | ESet (p, x, e) -> begin
       try
 	if IdMap.find x env 
-	then ESet (p, x, e)
-	else EUpdateFieldSurface (p, EId (p, "[[global]]"), str p x, e)
+	then ESet (p, x, ds_global e env)
+	else EUpdateFieldSurface (p, EId (p, "[[global]]"), str p x, ds_global e env)
       with Not_found ->
-	EUpdateFieldSurface (p, EId (p, "[[global]]"), str p x, e)
+	EUpdateFieldSurface (p, EId (p, "[[global]]"), str p x, ds_global e env)
     end
   | ELambda (p, ids, e) ->
       let new_env = fold_left (fun env x -> IdMap.add x true env) env ids in
@@ -464,5 +465,5 @@ let rec ds_global exp env = match exp with
   | EThrow (p, e) -> EThrow (p, ds_global e env)
 
 
-let rec ds_top expr = ds_global (ds expr) IdMap.empty
+let rec ds_top expr = ds_global (ds expr) (IdMap.add "[[global]]" true IdMap.empty)
 let rec desugar expr = ds_op (ds_top expr)

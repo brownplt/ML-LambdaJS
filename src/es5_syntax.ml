@@ -8,6 +8,10 @@ type op2 =
   | Op2Infix of id
   | Prim2 of string
 
+type op3 =
+  | Op3Prefix of id
+  | Prim3 of string
+
 type exp =
   | EConst of pos * JavaScript_syntax.const
   | EId of pos * id
@@ -21,6 +25,7 @@ type exp =
   | ESet of pos * id * exp
   | EOp1 of pos * op1 * exp
   | EOp2 of pos * op2 * exp * exp
+  | EOp3 of pos * op3 * exp * exp * exp
   | EIf of pos * exp * exp * exp
   | EApp of pos * exp * exp list
   | ESeq of pos * exp * exp
@@ -56,6 +61,7 @@ let rename (x : id) (y : id) (exp : exp) : exp =
 	EDeleteField (p, ren o, ren e)
     | EOp1 (p, o, e) -> EOp1 (p, o, ren e)
     | EOp2 (p, o, e1, e2) -> EOp2 (p, o, ren e1, ren e2)
+    | EOp3 (p, o, e1, e2, e3) -> EOp3 (p, o, ren e1, ren e2, ren e3)
     | EIf (p, e1, e2, e3) -> EIf (p, ren e1, ren e2, ren e3)
     | EApp (p, f, args) -> EApp (p, ren f, map ren args)
     | ESeq (p, e1, e2) -> ESeq (p, ren e1, ren e2)
@@ -96,6 +102,7 @@ let rec fv (exp : exp) : IdSet.t = match exp with
   | EDeleteField (_, o, e) -> IdSet.union (fv o) (fv e)
   | EOp1 (_, _, e) -> fv e
   | EOp2 (_, _, e1, e2) -> IdSet.union (fv e1) (fv e2)
+  | EOp3 (_, _, e1, e2, e3) -> IdSetExt.unions (map fv [e1; e2; e3])
   | EIf (_, e1, e2, e3) -> IdSetExt.unions (map fv [e1; e2; e3])
   | EApp (_, f, args) -> IdSetExt.unions (map fv (f :: args))
   | ESeq (_, e1, e2) -> IdSet.union (fv e1) (fv e2)

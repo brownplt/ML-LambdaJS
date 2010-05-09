@@ -96,10 +96,9 @@ atom :
 	 let folder id ix e = 
 	   ELet (p, 
 		 id,
-		 EGetField (p, 
-			    EId (p, "args"), 
-		     EId (p, "args"),
-			    EConst (p, CString (string_of_int ix))),
+		 EGetFieldSurface (p, 
+				   EId (p, "args"),
+				   EConst (p, CString (string_of_int ix))),
 		 e) in
 	   ELambda (p, 
 		    ["this"; "args"],
@@ -149,6 +148,8 @@ exp :
  | atom { $1 }
  | exp LPAREN exps RPAREN 
    { EApp (($startpos, $endpos), $1, $3) }
+ | PRIM LPAREN STRING COMMA seq_exp COMMA seq_exp COMMA seq_exp RPAREN
+   { EOp3 (($startpos, $endpos), Prim3 $3, $5, $7, $9) }
  | PRIM LPAREN STRING COMMA seq_exp COMMA seq_exp RPAREN
    { EOp2 (($startpos, $endpos), Prim2 $3, $5, $7) }
  | PRIM LPAREN STRING COMMA seq_exp RPAREN

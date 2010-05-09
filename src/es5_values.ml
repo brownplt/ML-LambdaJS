@@ -1,4 +1,5 @@
 open Prelude
+open JavaScript_syntax
 
 type value =
   | Const of JavaScript_syntax.const
@@ -16,3 +17,16 @@ type label = string
 
 exception Break of label * value
 exception Throw of value
+
+let pretty_value v = match v with 
+  | Const c -> begin match c with
+      | CInt d -> string_of_int d
+      | CNum d -> string_of_float d
+      | CString s -> s
+      | CBool b -> string_of_bool b
+      | CUndefined -> "undefined"
+      | CNull -> "null"
+    end
+  | Closure c -> "function"
+  | ObjCell o -> "object"
+  | _ -> failwith ("Only prims defined")

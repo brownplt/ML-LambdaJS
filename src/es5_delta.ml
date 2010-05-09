@@ -94,6 +94,11 @@ let prim_to_bool v = bool begin match v with
   | _ -> true
 end
 
+let print v = match v with
+  | Const (CString s) -> 
+      printf "%S\n" s; Const CUndefined
+  | _ -> failwith ("[interp] Print received non-string: " ^ pretty_value v)
+
 let op1 op = match op with
   | "typeof" -> typeof
   | "surface-typeof" -> surface_typeof
@@ -101,6 +106,7 @@ let op1 op = match op with
   | "prim->str" -> prim_to_str
   | "prim->num" -> prim_to_num
   | "prim->bool" -> prim_to_bool
+  | "print" -> print
   | _ -> failwith ("no implementation of unary operator: " ^ op)
 
 let arith i_op f_op v1 v2 = match v1, v2 with
@@ -204,3 +210,10 @@ let op2 op = match op with
   | "has-own-property?" -> has_own_property
   | "string+" -> string_plus
   | _ -> failwith ("no implementation of binary operator: " ^ op)
+
+
+let define_property obj field attrobj = obj
+
+let op3 op = match op with
+  | "define_property" -> define_property
+  | _ -> failwith ("no implementation of ternary operator: " ^ op)
