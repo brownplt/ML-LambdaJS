@@ -1,0 +1,3 @@
+let (f = func(this, args) { return args["0"] })
+    let (f_obj = {[code: f]})
+    f_obj(null,5)

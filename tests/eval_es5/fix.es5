@@ -1,0 +1,5 @@
+let (fact = fix f 
+    func (cont) { 
+    	 return if (cont) { f(false) } else { f(true) } 
+	 })
+    fact(true)

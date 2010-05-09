@@ -110,7 +110,7 @@ atom :
        let body = $7 in
 	 ELet (p, "$prototype", 
 	       EObject (p,
-			[("proto", EId (p, "Object.prototype"));
+			[("proto", EId (p, "Object_prototype"));
 			 ("extensible", true_c p);
 			 ("Class", EConst (p, CString ("Object")))],
 			[(p, "constructor", 
@@ -121,7 +121,7 @@ atom :
 		     ELet (p, "$funobj", 
 			   EObject (p,
 				    [("code", func_expr_lambda p args body);
-				     ("proto", EId (p, "Function.prototype"));
+				     ("proto", EId (p, "Function_prototype"));
 				     ("extensible", true_c p)],
 				    [(p,"length", 
 				      [("value", EConst 
@@ -136,10 +136,9 @@ atom :
 						("writable", true_c p);
 						("configurable", false_c p);
 						("enumerable", false_c p)])]),
-			   ESeq (p, EUpdateField (p, 
-						  EId (p, "$prototype"),
-						  EId (p, "$prototype"),
-						  EConst (p, CString ("constructor")),
+			   ESeq (p, EUpdateFieldSurface (p, 
+							 EId (p, "$prototype"),
+							 EConst (p, CString ("constructor")),
 						  EId (p, "$funobj")),
 				 EId (p, "$funobj"))))
      }

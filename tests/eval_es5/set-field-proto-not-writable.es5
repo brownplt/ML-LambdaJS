@@ -2,4 +2,4 @@
 let (o = {[proto:null] f: {value: 42, writable: false}})
     let (o2 = {[proto:o, extensible: true]})
     o2["f" = 22];
-    o["f"]
+    o["f"] === 42

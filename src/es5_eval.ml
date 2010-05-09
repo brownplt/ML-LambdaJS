@@ -2,6 +2,7 @@ open Prelude
 open Es5_syntax
 open JavaScript_syntax
 open Es5_values
+open Es5_delta
 
 let pretty_value v = match v with 
   | Const c -> begin match c with
@@ -207,7 +208,10 @@ let rec eval exp env = match exp with
   | EOp2 (p, op, e1, e2) -> 
       let e1_val = eval e1 env in
       let e2_val = eval e2 env in
-	Const (CString ("( ... )"))
+	begin match op with
+	  | Prim2 str -> op2 str e1_val e2_val
+	  | _ -> failwith ("[interp] Invalid EOp2 form")
+	end
   | EIf (p, c, t, e) ->
       let c_val = eval c env in
 	if (c_val = Const (CBool true))
