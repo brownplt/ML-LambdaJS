@@ -1,3 +1,4 @@
+
 /* Algorithm 9.9 of ECMA-262, ed. 3.  if given an object, expects it to
   be a (ERef (EObject)) it itself returns Refs */
 let [[toObject]] = func (x) {
@@ -36,6 +37,59 @@ let [[toObject]] = func (x) {
   }
 }
 
+/* 9.8, but uses 8.12.8: [[DefaultValue]] hint "string" */
+let [[ToString]] = func(obj) {
+    return
+    label ret :
+    if (prim("primitive?", obj)) {
+	prim("prim->str", obj)
+    }
+    else { undefined };
+	
+    let (ts = obj["toString"])
+    if (prim("is-callable", ts)) {
+	let (str = ts(obj))
+	if (prim("primitive?", str)) {
+	    break ret prim("prim->str",str)
+	}
+	else { undefined }
+    } else { undefined };
+    
+    let (vo = obj["valueOf"])
+    if (prim("is-callable", vo)) {
+	let (val = vo(obj))
+	if (prim("primitive?", val)) {
+	    break ret prim("prim->str",val)
+	}
+	else { undefined }
+    } else { undefined };
+    
+    throw "TypeError"
+}
+    
+let [[Object_prototype]] = 
+    {[proto: null, extensible: true, class: "Object"]}
+
+let [[Function_prototype]] = 
+    {[proto: Object_prototype, extensible: true, class: "Function"]}
+
+let [[print]] = function(s) {
+    return 
+    prim("print",ToString(s));
+    undefined
+}
+
+let [[Object]] = 
+    {[proto: Object_prototype, 
+      extensible: true, 
+      class: "Function",
+      code: undefined]
+     prototype: {value: Object_prototype,
+		 writable: false,
+		 enumerable: false,
+		 configurable: false}}
+
+
 let [[global]] = { [proto: null, class: "Lambda-JS global"]
 		   "NaN": {value: NaN,
 			   writable: false,
@@ -48,19 +102,68 @@ let [[global]] = { [proto: null, class: "Lambda-JS global"]
 		   "undefined": {value: undefined,
 				 writable: false,
 				 enumerable: false,
-				 configurable: false}}
+				 configurable: false},
+		   "print": {value: print},
+		   "Object" : {value: Object}
+		 }
 
-let [[Object_prototype]] = 
-    {[proto: null, extensible: true, class: "Object"]}
 
-let [[Function_prototype]] = 
-    {[proto: Object_prototype, extensible: true, class: "Function"]}
+let [[isDataField]] = func(obj, field) {
+    return (prim("has-value",obj,field) ||
+	    prim("has-writable",obj,field))
+}
 
-{
-    Object_prototype["hasOwnProperty" =
-		     function(fname) {
-			 return prim("has-own-property?", this, fname)
-		     }]
+let [[isAccessorField]] = func(obj, field) {
+    return (prim("has-setter",obj,field) ||
+	    prim("has-getter",obj,field))
+}
+
+let [[isDataDescriptor]] = func(attr-obj) {
+    return (typeof attr-obj["value"] !== "undefined" ||
+	    typeof attr-obj["writable"] !== "undefined")
+}
+
+let [[isAccessorDescriptor]] = func(attr-obj) {
+    return (typeof attr-obj["set"] !== "undefined" ||
+	    typeof attr-obj["get"] !== "undefined")
+}
+
+let [[isGenericDescriptor]] = func(attr-obj) {
+    return (isAccessorDescriptor(attr-obj) === false &&
+	    isDataDescriptor(attr-obj) === false)
+}
+
+/* 8.12.9 */
+let [[defineOwnProperty]] = func(obj, field, attr-obj) {
+    return
+
+    let (current-config = prim("is-configurable", obj, field))
+    // if it's configurable or non-existent and extensible, go for it
+    if (current-config ||
+	(prim("is-extensible", obj) && 
+	 (prim("has-own-property", obj, field) === false))) {
+	prim("define_property", obj, field, attr-obj)
+    }
+    else {
+	throw "TypeError"
+    }
+}
+
+
+let [[newObject]] = func() {
+    return
+    let (newObj = {[proto: Object, extensible: true, class: "Object"]})
+    Object(newObj)
+}
+
+
+let [[getOwnPropertyDescriptor]] = func(obj, field) {
+    return
+    let (fstring = ToString(field))
+    if (typeof obj !== "object") { throw "TypeError" }
+    else {
+	prim("get-own-property", obj, field)
+    }
 }
 
 {
@@ -69,67 +172,81 @@ let [[Function_prototype]] =
        then defers to the primitive delta operation define_property */
     Object["defineProperty" =
 	   function(obj, field, propobj) {
-	       
+	       return
 	       /* 8.10.5 checks */
-	       let (attrobj = {[]})
-	       let (enumerable = propobj["enumerable"])
-	       if (typeof enumerable !== "undefined") {
-		   attrobj["enumerable" = enumerable];
-	       }
-	       else { attrobj };
-
-	       let (configurable = propbobj["configurable"])
-	       if (typeof configurable !== "undefined") {
-		   attrobj["configurable" = configurable]
-	       }
-	       else { attrobj };
-
-	       let (writable = propobj["writable"])
-	       if (typeof writable !== "undefined") {
-		   attrobj["writable" = writable]
-	       }
-	       else { attrobj };
-
-	       let (value = propobj["value"])
-	       if (typeof value !== "undefined") {
-		   attrobj["value" = value]
-	       }
-	       else { attrobj };
-
-	       let (get = propobj["get"])
-	       if (typeof get !== "undefined" && typeof get !== "function") {
-		   throw "TypeError";
+	       if ((typeof obj) !== "object") {
+		   throw "TypeError"
 	       }
 	       else {
-		   attrobj["get" = get]
-	       };
-	       
-	       let (set = propobj["set"])
-	       if (typeof set !== "undefined" && typeof set !== "function") {
-		   throw "TypeError";
-	       }
-	       else {
-		   attrobj["set" = set]
-	       };
-
-	       /* 8.10.5, step 9 */
-	       if ((typeof value !== "undefined" ||
-		    typeof writable !== "undefined") &&
-		   (typeof set !== "undefined" ||
-		    typeof get !== "undefined")) {
-		   throw "TypeError";
-	       }
-	       else {
-		   prim("define_property", 
-			obj, 
-			field["toString"](field), 
-			attrobj);
-	       }
-	       
+		   let (attrobj = {[]})
+		   let (enumerable = propobj["enumerable"])
+		   if ((typeof enumerable) !== "undefined") {
+		       attrobj["enumerable" = enumerable]
+		   }
+		   else { attrobj };
+		   
+		   let (configurable = propbobj["configurable"])
+		   if ((typeof configurable) !== "undefined") {
+		       attrobj["configurable" = configurable]
+		   }
+		   else { attrobj };
+		   
+		   let (writable = propobj["writable"])
+		   if ((typeof writable) !== "undefined") {
+		       attrobj["writable" = writable]
+		   }
+		   else { attrobj };
+		   
+		   let (value = propobj["value"])
+		   if ((typeof value) !== "undefined") {
+		       attrobj["value" = value]
+		   }
+		   else { attrobj };
+		   
+		   let (get = propobj["get"])
+		   if ((typeof get) !== "undefined" && (typeof get) !== "function") {
+		       throw "TypeError"
+		   }
+		   else {
+		       attrobj["get" = get]
+		   };
+		   
+		   let (set = propobj["set"])
+		   if (typeof set !== "undefined" && typeof set !== "function") {
+		       throw "TypeError"
+		   }
+		   else {
+		       attrobj["set" = set]
+		   };
+		   
+		   /* 8.10.5, step 9 */
+		   if (((typeof value) !== "undefined" ||
+			(typeof writable) !== "undefined") &&
+		       ((typeof set) !== "undefined" ||
+			(typeof get) !== "undefined")) {
+		       throw "TypeError"
+		   }
+		   else {
+		       prim("define_property",
+			    obj,
+			    field["toString"](field), 
+			    attrobj)
+		   }
+	       }	   
 	   }]
+}
 
-}		    
+{
+    Object["getOwnPropertyDescriptor" = 
+	   function(obj, field) { return getOwnPropertyDescriptor(obj,field) }]
+}
 
+{
+    Object_prototype["hasOwnProperty" =
+		     function(fname) {
+			 return prim("has-own-property?", this, fname)
+		     }]
+}
 
 
 

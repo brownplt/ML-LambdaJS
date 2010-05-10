@@ -186,7 +186,7 @@ cexp :
  | exp { $1 }
  | IF LPAREN seq_exp RPAREN seq_exp ELSE seq_exp
      { EIf (($startpos, $endpos), $3, $5, $7) }
- | LABEL ID COLON cexp
+ | LABEL ID COLON seq_exp
      { ELabel (($startpos, $endpos), $2, $4) } 
  | BREAK ID cexp
    { EBreak (($startpos, $endpos), $2, $3) }

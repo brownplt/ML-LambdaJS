@@ -94,10 +94,29 @@ let prim_to_bool v = bool begin match v with
   | _ -> true
 end
 
+let is_callable obj = bool begin match obj with
+  | ObjCell o -> let (attrs, props) = !o in begin try
+      match IdMap.find "code" attrs with
+	| Closure c -> true
+	| _ -> false
+    with Not_found -> false
+    end
+  | _ -> false
+end
+
 let print v = match v with
   | Const (CString s) -> 
       printf "%S\n" s; Const CUndefined
   | _ -> failwith ("[interp] Print received non-string: " ^ pretty_value v)
+
+let is_extensible obj = match obj with
+  | ObjCell o ->
+      let (attrs, props) = !o in begin try
+	bool (IdMap.find "extensible" attrs ==
+		bool true)
+	with Not_found -> bool false
+	end
+  | _ -> raise (Throw (str "is-extensible"))
 
 let op1 op = match op with
   | "typeof" -> typeof
@@ -106,6 +125,8 @@ let op1 op = match op with
   | "prim->str" -> prim_to_str
   | "prim->num" -> prim_to_num
   | "prim->bool" -> prim_to_bool
+  | "is-callable" -> is_callable
+  | "is-extensible" -> is_extensible
   | "print" -> print
   | _ -> failwith ("no implementation of unary operator: " ^ op)
 
@@ -187,7 +208,45 @@ let has_own_property obj field = match obj, field with
   | ObjCell o, Const (CString s) -> 
       let (attrs, props) = !o in
 	bool (IdMap.mem s props)
-  | _ -> raise (Throw (str "has_own_property?"))
+  | _ -> raise (Throw (str "has-own-property?"))
+
+
+let default_attr value = 
+  IdMap.add "value" value
+    (IdMap.add "configurable" (bool true)
+       (IdMap.add "enumerable" (bool true)
+	  (IdMap.add "writable" (bool true)
+	     IdMap.empty)))
+
+let val_or_undefined name m = default_attr
+  begin try 
+    IdMap.find name m
+  with Not_found -> undef
+  end
+
+(* This is like calling FromPropertyDescriptor([[GetOwnProperty]]),
+   except that the object is a bare object (not like calling new
+   Object()). *)
+
+let get_own_property obj field = match obj, field with
+  | ObjCell ob, Const (CString s) ->
+      let (attrs, props) = !ob in
+      let prop = IdMap.find s props in
+      let startmap = IdMap.add "configurable" 
+	(val_or_undefined "configurable" prop)
+	(IdMap.add "enumerable" (val_or_undefined "enumerable" prop)
+	   IdMap.empty) in
+	if (IdMap.mem "value" prop or IdMap.mem "writable" prop) then
+	  ObjCell (ref (IdMap.empty,
+			IdMap.add "value" (val_or_undefined "value" prop)
+			  (IdMap.add "writable" (val_or_undefined "writable" prop)
+			     startmap)))
+	else 
+	  ObjCell (ref (IdMap.empty, IdMap.add "get" (val_or_undefined "get" prop)
+			  (IdMap.add "set" (val_or_undefined "set" prop)
+			     startmap)))
+  | _ -> raise (Throw (str "get_own_property"))	  
+
 
 let op2 op = match op with
   | "+" -> arith_sum
@@ -208,11 +267,52 @@ let op2 op = match op with
   | "stx=" -> stx_eq
   | "abs=" -> abs_eq
   | "has-own-property?" -> has_own_property
+  | "get-own-property" -> get_own_property
   | "string+" -> string_plus
   | _ -> failwith ("no implementation of binary operator: " ^ op)
 
 
-let define_property obj field attrobj = obj
+let props_to_atts props =
+  let add_att name m = 
+    begin try
+      (IdMap.add name (IdMap.find "value" (IdMap.find name props))
+	 m)
+    with Not_found -> m 
+    end in
+      List.fold_right 
+	add_att
+	["set"; "get"; "value"; "writable"; "enumerable"; "configurable"]
+	IdMap.empty
+
+
+let merge_atts atts atts' =
+  IdMap.mapi (fun key value -> begin try
+		IdMap.find key atts'
+	      with Not_found -> value
+	      end) atts
+
+
+(* This assumes that all checks have been done, and it is OK to
+   overwrite/add the property named in field.  Specifically, the
+   checks from [[defineOwnProperty]] (8.12.9) are defined in the
+   environment, not in the semantics *)
+let define_property obj field attrobj = match obj, field, attrobj with
+  | ObjCell ob, Const (CString s), ObjCell atts ->
+      let (attrs, props) = !ob in
+      let (attrs', props') = !atts in
+      let new_atts = 
+	begin try merge_atts (IdMap.find s props) (props_to_atts props')
+	with Not_found -> (props_to_atts props')
+	end in begin
+	  ob := (attrs, IdMap.add s new_atts props);
+	  bool true
+	end
+	
+
+
+	
+
+
 
 let op3 op = match op with
   | "define_property" -> define_property
