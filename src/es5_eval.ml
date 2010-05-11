@@ -4,19 +4,6 @@ open JavaScript_syntax
 open Es5_values
 open Es5_delta
 
-let pretty_value v = match v with 
-  | Const c -> begin match c with
-      | CInt d -> string_of_int d
-      | CNum d -> string_of_float d
-      | CString s -> s
-      | CBool b -> string_of_bool b
-      | CUndefined -> "undefined"
-      | CNull -> "null"
-    end
-  | Closure c -> "function"
-  | ObjCell o -> "object"
-  | _ -> failwith ("Only prims defined")
-
 let rec apply func args = match func with
   | Closure c -> c args
   | _ -> failwith ("[interp] Applied non-function, was actually " ^ 
@@ -69,7 +56,7 @@ let rec get_field obj1 obj2 field = match obj1 with
 	    with Not_found ->
 	      Const (CUndefined) (* No prototype found *)
 	end
-  | _ -> failwith ("[interp] get_field received (or found) a non-object")
+  | _ -> failwith ("[interp] get_field received (or found) a non-object.  The call was (get-field " ^ pretty_value obj1 ^ " " ^ pretty_value obj2 ^ " " ^ field)
 
 
 (* EUpdateField-Add *)
@@ -132,7 +119,8 @@ let rec update_field obj1 obj2 field newval = match obj1 with
 	    (* TODO: Make type error for strict. Not writable, no setter. *)
 	    Const CUndefined
 	  end
-  | _ -> failwith ("[interp] set_field received (or found) a non-object")
+  | _ -> failwith ("[interp] set_field received (or found) a non-object.  The call was (set-field " ^ pretty_value obj1 ^ " " ^ pretty_value obj2 ^ " " ^ field ^ " " ^ pretty_value newval ^ ")" )
+
 
 
 let rec eval exp env = match exp with
@@ -145,7 +133,7 @@ let rec eval exp env = match exp with
 			     " at " ^ (string_of_position p) ^ 
 			     ", but found something else: " ^ pretty_value (IdMap.find x env))
       with Not_found ->
-	failwith ("[interp] Unbound identifier: " ^ x ^ " at " ^
+	failwith ("[interp] Unbound identifier: " ^ x ^ " in get-field at " ^
 		    (string_of_position p))
     end
   | ESet (p, x, e) -> begin
@@ -156,7 +144,7 @@ let rec eval exp env = match exp with
 			     " at " ^ (string_of_position p) ^ 
 			     ", but found something else.")
       with Not_found ->
-	failwith ("[interp] Unbound identifier: " ^ x ^ " at " ^
+	failwith ("[interp] Unbound identifier: " ^ x ^ " in set-field at " ^
 		    (string_of_position p))
     end
   | EObject (p, attrs, props) ->
@@ -183,7 +171,7 @@ let rec eval exp env = match exp with
 	match (obj_value, f_value) with
 	  | (ObjCell o, Const (CString s)) ->
 	      get_field obj_value obj_value s
-	  | _ -> failwith ("[interp] Get field didn't get an object and a string")
+	  | _ -> failwith ("[interp] Get field didn't get an object and a string at " ^ string_of_position p ^ ". Instead, it got " ^ pretty_value obj_value ^ " and " ^ pretty_value f_value)
 	end
   | EDeleteField (p, obj, f) ->
       let obj_val = eval obj env in
@@ -239,7 +227,7 @@ let rec eval exp env = match exp with
 		apply_obj func_value 
 		  (List.hd args_values) (List.tl args_values)
 	  | Closure c -> apply func_value args_values
-	  | _ -> failwith ("[interp] Inapplicable value.")
+	  | _ -> failwith ("[interp] Inapplicable value: " ^ pretty_value func_value ^ ", at " ^ string_of_position p)
 	end
   | ESeq (p, e1, e2) -> 
       eval e1 env;

@@ -31,7 +31,7 @@ let rec mk_val p v =
 let rec mk_array (p, exps) = 
   let mk_field n v = (p, string_of_int n, 
 		      mk_val p v) in
-    EObject (p, [("proto", EId (p, "Array.prototype"));
+    EObject (p, [("proto", EId (p, "Array_prototype"));
 		 ("extensible", true_c p)],
 	     List.map2 mk_field (iota (List.length exps)) exps)
 
@@ -52,9 +52,8 @@ let rec func_expr_lambda p ids body =
   let folder id ix e = 
     ELet (p, 
 	  id,
-	  EGetField (p, 
+	  EGetFieldSurface (p, 
 		     EId (p, "args"), 
-		     EId (p, "args"),
 		     EConst (p, S.CString (string_of_int ix))),
 	  e) in
     ELambda (p, 
@@ -78,7 +77,7 @@ let rec func_stmt_lambda p func_name ids body =
 let rec func_object p ids lambda_exp =
     ELet (p, "$prototype", 
 	  EObject (p,
-		   [("proto", EId (p, "Object.prototype"));
+		   [("proto", EId (p, "Object_prototype"));
 		    ("extensible", true_c p);
 		    ("Class", EConst (p, S.CString ("Object")))],
 		   [(p, "constructor", 
@@ -89,7 +88,7 @@ let rec func_object p ids lambda_exp =
 	  ELet (p, "$funobj", 
 		EObject (p,
 			 [("code", lambda_exp);
-			  ("proto", EId (p, "Function.prototype"));
+			  ("proto", EId (p, "Function_prototype"));
 			  ("extensible", true_c p)],
 			 [(p,"length", 
 			   [("value", EConst (p, S.CNum
@@ -103,11 +102,10 @@ let rec func_object p ids lambda_exp =
 			    ("writable", true_c p);
 			    ("configurable", false_c p);
 			    ("enumerable", false_c p)])]),
-		ESeq (p, EUpdateField (p, 
-				       EId (p, "$prototype"),
-				       EId (p, "$prototype"),
-				       EConst (p, S.CString ("constructor")),
-				       EId (p, "$funobj")),
+		ESeq (p, EUpdateFieldSurface (p, 
+					      EId (p, "$prototype"),
+					      EConst (p, S.CString ("constructor")),
+					      EId (p, "$funobj")),
 		      EId (p, "$funobj"))))
 	    
 let rec ds expr =
@@ -119,7 +117,7 @@ let rec ds expr =
     | ObjectExpr (p,exprs) -> 
 	let ds_tuple (p,s,e) = (p,s,ds e) in
 	  EObject (p, 
-		   [("proto", str p "Object.prototype");
+		   [("proto", EId (p, "Object_prototype"));
 		    ("extensible", true_c p)],
 		   List.map mk_field (List.map ds_tuple exprs))
 	    
@@ -144,10 +142,9 @@ let rec ds expr =
   | NewExpr (p, e, args) ->
     ELet (p, "$constructor", ds e,
 	  ELet (p, "$proto", 
-		EGetField (p,
-			   EId (p, "$constructor"),
-			   EId (p, "$constructor"),
-			   str p "prototype"),
+		EGetFieldSurface (p,
+				  EId (p, "$constructor"),
+				  str p "prototype"),
 		ELet (p,
 		      "$newObj", 
 		      new_obj p "$proto",
@@ -159,7 +156,7 @@ let rec ds expr =
 				    (map ds args)),
 			    EIf (p, 
 				 EOp2 (p, 
-				       Op2Infix ("==="),
+				       Prim2 ("stx="),
 				       EOp1 (p, 
 					     Op1Prefix ("typeof"),
 					     EId (p, "$resObj")),
@@ -179,8 +176,9 @@ let rec ds expr =
     EIf (p, ds c, ds t, ds e)
 
   | AppExpr (p, BracketExpr (p', obj, prop), es) ->
-      ELet (p, "$obj", EGetFieldSurface (p', ds obj, ds prop),
-	    EApp (p, EId (p', "$obj"), (EId (p', "$obj") :: map ds es)))
+      ELet (p, "$obj", ds obj,
+	    ELet (p, "$fun", EGetFieldSurface (p', EId (p, "$obj"), ds prop),
+		  EApp (p, EId (p', "$fun"), (EId (p', "$obj") :: map ds es))))
 	
   | AppExpr (p, func, es) ->
       EApp (p, ds func, (EId (p, "[[global]]") :: map ds es))
@@ -284,8 +282,11 @@ and vars_in expr = match expr with
 
 let rec ds_op exp = match exp with
   | EOp1 (p, Op1Prefix op, e) -> begin match op with
-      | "prefix:typeof" ->
-	  EOp1 (p, Prim1 "surface-typeof", ds_op e)
+      | "prefix:delete" -> begin match e with
+	  | EGetFieldSurface (p, obj, field) ->
+	      EDeleteField (p, obj, field)
+	  | _ -> true_c p
+	end
       | "prefix:!" -> 
           EIf (p, EOp1 (p, Prim1 "prim->bool", ds_op e),
                false_c p,
@@ -299,9 +300,10 @@ let rec ds_op exp = match exp with
           EOp2 (p, Prim2 "-", 
                 num_c p 0.0,
                 EApp (p, EId (p, "[[toNumber]]"), [ ds_op e ]))
+      | "typeof" ->
+          EOp1 (p, Prim1 "typeof", ds_op e)
       | "prefix:typeof" ->
-          EOp1 (p, Prim1 "surface-typeof", 
-                EApp (p, EId (p, "[[getValue]]"), [ ds_op e ]))
+          EOp1 (p, Prim1 "surface-typeof", ds_op e)
       | "prefix:void" ->
           ESeq (p, e, EConst (p, S.CUndefined))
       | _ -> failwith ("unknown prefix operator: " ^ op)
@@ -333,9 +335,9 @@ let rec ds_op exp = match exp with
       | "!=" -> EIf (p, EOp2 (p, Prim2 "==",
 			      ds_op e1, ds_op e2),
 		     false_c p, true_c p)
-      | "===" -> EOp2 (p, Prim2 "===",
+      | "===" -> EOp2 (p, Prim2 "stx=",
 		       ds_op e1, ds_op e2)
-      | "!==" -> EIf (p, EOp2 (p, Prim2 "===",
+      | "!==" -> EIf (p, EOp2 (p, Prim2 "stx=",
 			      ds_op e1, ds_op e2),
 		     false_c p, true_c p)
 	  (* 11.11 *)

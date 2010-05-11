@@ -307,7 +307,7 @@ let define_property obj field attrobj = match obj, field, attrobj with
 	  ob := (attrs, IdMap.add s new_atts props);
 	  bool true
 	end
-	
+  | _, _, _ -> raise (Throw (str "define_property"))
 
 
 	

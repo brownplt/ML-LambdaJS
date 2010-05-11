@@ -37,6 +37,28 @@ let [[toObject]] = func (x) {
   }
 }
 
+let [[toBoolean]] = func(x) {
+    return
+    if (typeof x === "undefined") {
+	false
+    }
+    else if (typeof x === "null") {
+	false
+    }
+    else if (typeof x === "boolean") {
+	x
+    }
+    else if (typeof x === "number") {
+	x !== 0 && x !== NaN
+    }
+    else if (typeof x === "string") {
+	x !== ""
+    }
+    else { /* Object */
+	true
+    }
+}
+
 /* 9.8, but uses 8.12.8: [[DefaultValue]] hint "string" */
 let [[ToString]] = func(obj) {
     return
@@ -66,7 +88,37 @@ let [[ToString]] = func(obj) {
     
     throw "TypeError"
 }
+
+/* 9.8, but uses 8.12.8: [[DefaultValue]] hint "string" */
+let [[ToString]] = func(obj) {
+    return
+    label ret :
+    if (prim("primitive?", obj)) {
+	prim("prim->str", obj)
+    }
+    else { undefined };
+	
+    let (vo = obj["valueOf"])
+    if (prim("is-callable", vo)) {
+	let (val = vo(obj))
+	if (prim("primitive?", val)) {
+	    break ret prim("prim->str",val)
+	}
+	else { undefined }
+    } else { undefined };
     
+    let (ts = obj["toString"])
+    if (prim("is-callable", ts)) {
+	let (str = ts(obj))
+	if (prim("primitive?", str)) {
+	    break ret prim("prim->str",str)
+	}
+	else { undefined }
+    } else { undefined };
+    
+    throw "TypeError"
+}
+
 let [[Object_prototype]] = 
     {[proto: null, extensible: true, class: "Object"]}
 
@@ -89,8 +141,11 @@ let [[Object]] =
 		 enumerable: false,
 		 configurable: false}}
 
+let [[Array_prototype]] = {[proto: Object_prototype, extensible: true, class: "Array"]}
 
-let [[global]] = { [proto: null, class: "Lambda-JS global"]
+let [[eval]] = function(s) { return throw "EVAL---BOOM" }
+
+let [[global]] = { [proto: null, class: "Lambda-JS global", extensible: true]
 		   "NaN": {value: NaN,
 			   writable: false,
 			   enumerable: false,
@@ -104,8 +159,16 @@ let [[global]] = { [proto: null, class: "Lambda-JS global"]
 				 enumerable: false,
 				 configurable: false},
 		   "print": {value: print},
-		   "Object" : {value: Object}
+		   "Object" : {value: Object},
+		   "Object_prototype" : {value: Object_prototype},
+		   "Function_prototype" : {value: Function_prototype},
+		   "Array_prototype" : {value: Array_prototype},
+		   "eval" : {value: eval}
 		 }
+
+{
+    global["window" = global]
+}
 
 
 let [[isDataField]] = func(obj, field) {
@@ -185,7 +248,7 @@ let [[getOwnPropertyDescriptor]] = func(obj, field) {
 		   }
 		   else { attrobj };
 		   
-		   let (configurable = propbobj["configurable"])
+		   let (configurable = propobj["configurable"])
 		   if ((typeof configurable) !== "undefined") {
 		       attrobj["configurable" = configurable]
 		   }
