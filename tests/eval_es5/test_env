@@ -1,4 +1,4 @@
-let [[assert]] = func(passed, testname) {
+let [[assert]] = function(passed, testname) {
     return
     prim("print",testname);
     if(passed === true) {
