@@ -1,4 +1,4 @@
 let (o = {[] f: {value: 55, writable: false}})
     o["f" = 22];
-    o["f"]
+    assert(o["f"] === 55, "set-field-not-writable")
 

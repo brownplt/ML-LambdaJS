@@ -1,5 +1,7 @@
 let (fact = fix f 
-    func (cont) { 
-    	 return if (cont) { f(false) } else { f(true) } 
-	 })
-    fact(true)
+     func (n) { 
+    	 return if (n === 1) { 1 } else { prim("*",n,f(prim("-",n,1))) } 
+     })
+assert(fact(5) === 120, "fix.es5")
+
+

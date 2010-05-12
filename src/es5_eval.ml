@@ -8,7 +8,7 @@ let rec apply func args = match func with
   | Closure c -> c args
   | _ -> failwith ("[interp] Applied non-function, was actually " ^ 
 		     pretty_value func)
-
+(*
 let rec args_object args =
   let add_arg arg n m = IdMap.add (string_of_int n)
     (IdMap.add "value" arg 
@@ -20,16 +20,16 @@ let rec args_object args =
     (IdMap.add "extensible" (Const (CBool false))
        IdMap.empty) in
     ObjCell (ref (attrs, 
-		  List.fold_right2 add_arg args 
+		  List.fold_right2 add_arg args
 		    (iota (List.length args)) IdMap.empty))
-
+*)
 let rec apply_obj o this args = match o with
   | ObjCell c -> 
       let (attrs, props) = !c in
 	begin
 	  try
 	    let code_attr = IdMap.find "code" attrs in
-	      apply code_attr [this; (args_object args)]
+	      apply code_attr (this :: args)
 	  with Not_found ->
 	    failwith ("[interp] Applied an object with no code attr")
 	end
@@ -209,7 +209,7 @@ let rec eval exp env = match exp with
       let e3_val = eval e3 env in
 	begin match op with
 	  | Prim3 str -> op3 str e1_val e2_val e3_val
-	  | _ -> failwith ("[interp] Invalid EOp2 form")
+	  | _ -> failwith ("[interp] Invalid EOp3 form")
 	end
   | EIf (p, c, t, e) ->
       let c_val = eval c env in
@@ -222,7 +222,7 @@ let rec eval exp env = match exp with
 	match func_value with
 	  | ObjCell o -> 
 	      if List.length args_values < 1 then
-		failwith ("[interp] Need to provide at least a this-value")
+		failwith ("[interp] Need to provide at least a this-value at " ^ string_of_position p)
 	      else
 		apply_obj func_value 
 		  (List.hd args_values) (List.tl args_values)
@@ -264,12 +264,16 @@ let rec eval exp env = match exp with
     end;
       eval fin env
   | EThrow (p, e) -> raise (Throw (eval e env))
-  | ELambda (p, xs, e) ->
+  | ELambda (p, xs, e) -> 
       let set_arg arg x m = IdMap.add x (VarCell (ref arg)) m in
 	Closure (fun args -> 
-		   eval e (List.fold_right2 set_arg args xs env))
+		     if (List.length args) != (List.length xs) then
+		       arity_mismatch_err p xs args
+		     else
+		     eval e (List.fold_right2 set_arg args xs env))
   | EUpdateField (_,_,_,_,_) -> failwith ("Not implemented---EUpdateField")
   | EGetField (_,_,_,_) -> failwith ("Not implemented---EGetField")
 
+and arity_mismatch_err p xs args = failwith ("Arity mismatch, supplied " ^ string_of_int (List.length args) ^ " arguments and expected " ^ string_of_int (List.length xs) ^ " at " ^ string_of_position p ^ ". Arg names were: " ^ (List.fold_right (^) (map (fun s -> " " ^ s ^ " ") xs) "") ^ ". Values were: " ^ (List.fold_right (^) (map (fun v -> " " ^ pretty_value v ^ " ") args) ""))
 
 let rec eval_expr expr = eval expr IdMap.empty

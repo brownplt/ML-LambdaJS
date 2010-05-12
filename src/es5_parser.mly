@@ -92,6 +92,7 @@ atom :
  | FUNCTION LPAREN ids RPAREN LBRACE RETURN seq_exp RBRACE
      {
        let args = $3 in
+       let body = $7 in
        let rec func_expr_lambda p ids body =
 	 let folder id ix e = 
 	   ELet (p, 
@@ -106,7 +107,6 @@ atom :
        let true_c p = EConst (p, CBool (true)) in 
        let false_c p = EConst (p, CBool (false)) in
        let p = ($startpos, $endpos) in
-       let body = $7 in
 	 ELet (p, "$prototype", 
 	       EObject (p,
 			[("proto", EId (p, "Object_prototype"));

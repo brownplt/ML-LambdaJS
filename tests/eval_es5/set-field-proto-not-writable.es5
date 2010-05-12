@@ -1,5 +1,5 @@
-/* should extend fail, because f on o is not writable */
+/* should fail to extend, because f on o is not writable */
 let (o = {[proto:null] f: {value: 42, writable: false}})
     let (o2 = {[proto:o, extensible: true]})
     o2["f" = 22];
-    o["f"] === 42
+    assert((o["f"] === 42 && o2["f"] === 42), "set-field-proto-not-writable")

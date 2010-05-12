@@ -1,3 +1,3 @@
 let (o = {[proto: null, extensible: true] f: {value: 42, writable: true}})
     o["f" = 55];
-    o["f"]
+    assert(o["f"] === 55, "set-field")

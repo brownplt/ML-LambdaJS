@@ -118,6 +118,14 @@ let is_extensible obj = match obj with
 	end
   | _ -> raise (Throw (str "is-extensible"))
 
+let get_proto obj = match obj with
+  | ObjCell o -> 
+      let (attrs, _) = !o in begin try
+	  IdMap.find "proto" attrs
+	with Not_found -> undef
+	end
+  | _ -> raise (Throw (str "get-proto"))
+
 let op1 op = match op with
   | "typeof" -> typeof
   | "surface-typeof" -> surface_typeof
@@ -128,6 +136,7 @@ let op1 op = match op with
   | "is-callable" -> is_callable
   | "is-extensible" -> is_extensible
   | "print" -> print
+  | "get-proto" -> get_proto
   | _ -> failwith ("no implementation of unary operator: " ^ op)
 
 let arith i_op f_op v1 v2 = match v1, v2 with

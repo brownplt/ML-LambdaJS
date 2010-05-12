@@ -1,3 +1,3 @@
 let (o = {[extensible: true]})
     o["f" = 40];
-    o["f"]
+    assert(o["f"]===40,"add-field")

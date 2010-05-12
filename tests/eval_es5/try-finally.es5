@@ -1,0 +1,19 @@
+let (f = func(x) {
+    return 
+    try {
+	try {
+	    throw "TypeError"
+	}
+	catch {
+	    func(e) {
+		return e === "TypeError"
+	    }
+	}
+    }
+    finally {
+	x["fin" = 5]
+    }
+})
+let (o = {[extensible: true]})
+f(o);
+assert(o["fin"] === 5, "try-finally")

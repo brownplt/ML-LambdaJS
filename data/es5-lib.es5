@@ -1,42 +1,3 @@
-
-/* Algorithm 9.9 of ECMA-262, ed. 3.  if given an object, expects it to
-  be a (ERef (EObject)) it itself returns Refs */
-let [[toObject]] = func (x) {
-  return if (typeof x === "undefined") {
-    throw "TypeError: toObject received undefined"
-  }
-  else if (typeof x === "null") {
-    throw "TypeError: toObject received null"
-  }
-  else if (typeof x === "boolean") {
-      { [proto: "Boolean_prototype",
-         class: "Boolean"]
-	value: {value: x,
-		enumerable: true,
-		configurable: true,
-		writable: true}}
-  }
-  else if (typeof x === "number") {
-      { [proto: "Number_prototype",
-         class: "Number"]
-	value: {value: x,
-		enumerable: true,
-		configurable: true,
-		writable: true}}
-  }
-  else if (typeof x === "string") {
-      { [proto: "String_prototype",
-         class: "String"]
-	value: {value: x,
-		enumerable: true,
-		configurable: true,
-		writable: true}}
-  }
-  else {
-    x
-  }
-}
-
 let [[toBoolean]] = func(x) {
     return
     if (typeof x === "undefined") {
@@ -70,7 +31,7 @@ let [[ToString]] = func(obj) {
 	
     let (ts = obj["toString"])
     if (prim("is-callable", ts)) {
-	let (str = ts(obj))
+	let (str = ts(obj, {[]}))
 	if (prim("primitive?", str)) {
 	    break ret prim("prim->str",str)
 	}
@@ -79,7 +40,7 @@ let [[ToString]] = func(obj) {
     
     let (vo = obj["valueOf"])
     if (prim("is-callable", vo)) {
-	let (val = vo(obj))
+	let (val = vo(obj, {[]}))
 	if (prim("primitive?", val)) {
 	    break ret prim("prim->str",val)
 	}
@@ -89,8 +50,8 @@ let [[ToString]] = func(obj) {
     throw "TypeError"
 }
 
-/* 9.8, but uses 8.12.8: [[DefaultValue]] hint "string" */
-let [[ToString]] = func(obj) {
+/* 9.3, but uses 8.12.8: [[DefaultValue]] hint "string" */
+let [[ToNumber]] = func(obj) {
     return
     label ret :
     if (prim("primitive?", obj)) {
@@ -119,16 +80,188 @@ let [[ToString]] = func(obj) {
     throw "TypeError"
 }
 
+let [[toUInt]] = func (n) { 
+    return ToNumber(n)
+}
+
+
+
+let [[in]] = func(obj, field) {
+    return false
+}
+    
 let [[Object_prototype]] = 
     {[proto: null, extensible: true, class: "Object"]}
 
 let [[Function_prototype]] = 
     {[proto: Object_prototype, extensible: true, class: "Function"]}
 
+/* 15.11.2 */
+let [[Error]] = 
+    {[proto: Function_prototype]}
+
+/* 15.11.4 */
+let [[Error_prototype]] = 
+    {[class: "Error", proto: Object_prototype, extensible: false]
+     name: {value: "Error",
+	    configurable: false,
+	    writable: false,
+	    enumerable: false },
+     constructor: {value: Error,
+		   configurable: false,
+		   writable: false,
+		   enumerable: false },
+     message: {value: "",
+     	       configurable: false,
+	       writable: false,
+	       enumerable: false }
+     /* have to define toString later, since there is a recursive
+      * dependency with TypeError */
+}
+
+/* 15.11.7.7-10 */
+let [[makeNativeErrorPrototype]] = func(constr, name_str) {
+    return {[proto: Error_prototype,
+	     class: "Error",
+	     extensible: false]
+	    constructor: {value: constr,
+			  configurable: false,
+			  writable: false,
+			  enumerable: false},
+	    name: {value: name_str,
+		   configurable: false,
+		   writable: false,
+		   enumerable: false},
+	    message: {value: "",
+		   configurable: false,
+		   writable: false,
+		   enumerable: false}}
+}
+
+let [[TypeError_prototype]] = {[]}
+
+let [[TypeError]] = function(msg) {
+    return
+    let (obj =
+	 {[class: "Error", proto: TypeError_prototype, extensible: true]})
+    if(msg === undefined) {
+	obj
+    }
+    else {
+	obj["message" = ToString(msg)];
+	obj
+    }
+}
+
+/* Use internally to call function objects that take no arguments */
+let [[CallNoArgs]] = func(f) { return f(undefined, {[]}) }
+
+{
+    TypeError_prototype := makeNativeErrorPrototype(TypeError, "TypeError");
+    TypeError["prototype" = TypeError_prototype]
+}
+
+/* Algorithm 9.9 of ECMA-262, ed. 3.  if given an object, expects it to
+  be a (ERef (EObject)) it itself returns Refs */
+let [[toObject]] = func (x) {
+  return if (typeof x === "undefined") {
+    throw CallNoArgs(TypeError)
+  }
+  else if (typeof x === "null") {
+    throw CallNoArgs(TypeError)
+  }
+  else if (typeof x === "boolean") {
+      { [proto: "Boolean_prototype",
+         class: "Boolean"]
+	value: {value: x,
+		enumerable: true,
+		configurable: true,
+		writable: true}}
+  }
+  else if (typeof x === "number") {
+      { [proto: "Number_prototype",
+         class: "Number"]
+	value: {value: x,
+		enumerable: true,
+		configurable: true,
+		writable: true}}
+  }
+  else if (typeof x === "string") {
+      { [proto: "String_prototype",
+         class: "String"]
+	value: {value: x,
+		enumerable: true,
+		configurable: true,
+		writable: true}}
+  }
+  else {
+    x
+  }
+}
+
+
+
 let [[print]] = function(s) {
     return 
     prim("print",ToString(s));
     undefined
+}
+
+let [[getPrototypeOf]] = function(obj) {
+    return
+    if (typeof obj !== "object") {
+	throw CallNoArgs(TypeError)
+    }
+    else {
+	prim("get-proto", obj)
+    }
+}
+
+let [[mkArgsArray]] = func(alist) {
+    return
+    let (arr = {[extensible: true, proto: Object_prototype, class: "Arguments"]})
+    let (len = alist["length"])
+    let (add_arg = 
+	 fix aa func(ar-acc, curr-index) {
+	     return 
+	     if (curr-index === len) { ar-acc } 
+	     else { 
+		 let (nextval = alist[curr-index])
+		 ar-acc[curr-index = nextval];
+		 aa(ar-acc, prim("+", curr-index, 1))
+	     }
+	 })
+    add_arg(arr, 0)
+}
+
+let [[call]] = function(thisarg) {
+    return this(thisarg, args)
+}
+
+/* 15.3.4.2 */
+let [[apply]] = function(thisarg, arglist) {
+    return 
+    if (arglist === undefined || arglist === null) {
+	this(thisarg, mkArgsArray({[]}))
+    }
+    else if (typeof arglist !== "object") {
+	throw CallNoArgs(TypeError)
+    }
+    else {
+	let (len = arglist["length"])
+	if (len === null || len === undefined) {
+	    throw CallNoArgs(TypeError)
+	}
+	else {
+	    let (n = ToUInt(len))
+	    if (ToNumber(len) !== n) {
+		throw CallNoArgs(TypeError)
+	    }
+	    else {
+		this(thisargs, mkArgsArray(arglist))
+	    }
+	}
+    }
 }
 
 let [[Object]] = 
@@ -139,7 +272,11 @@ let [[Object]] =
      prototype: {value: Object_prototype,
 		 writable: false,
 		 enumerable: false,
-		 configurable: false}}
+		 configurable: false},
+     getPrototypeOf: {value: getPrototypeOf,
+		      writable: false,
+		      configurable: false,
+		      enumerable: false}}
 
 let [[Array_prototype]] = {[proto: Object_prototype, extensible: true, class: "Array"]}
 
@@ -163,7 +300,8 @@ let [[global]] = { [proto: null, class: "Lambda-JS global", extensible: true]
 		   "Object_prototype" : {value: Object_prototype},
 		   "Function_prototype" : {value: Function_prototype},
 		   "Array_prototype" : {value: Array_prototype},
-		   "eval" : {value: eval}
+		   "eval" : {value: eval},
+		   "TypeError" : {value: TypeError}
 		 }
 
 {
@@ -208,7 +346,7 @@ let [[defineOwnProperty]] = func(obj, field, attr-obj) {
 	prim("define_property", obj, field, attr-obj)
     }
     else {
-	throw "TypeError"
+	throw CallNoArgs(TypeError)
     }
 }
 
@@ -223,7 +361,7 @@ let [[newObject]] = func() {
 let [[getOwnPropertyDescriptor]] = func(obj, field) {
     return
     let (fstring = ToString(field))
-    if (typeof obj !== "object") { throw "TypeError" }
+    if (typeof obj !== "object") { throw CallNoArgs(TypeError) }
     else {
 	prim("get-own-property", obj, field)
     }
@@ -238,7 +376,7 @@ let [[getOwnPropertyDescriptor]] = func(obj, field) {
 	       return
 	       /* 8.10.5 checks */
 	       if ((typeof obj) !== "object") {
-		   throw "TypeError"
+		   throw CallNoArgs(TypeError)
 	       }
 	       else {
 		   let (attrobj = {[]})
@@ -268,7 +406,7 @@ let [[getOwnPropertyDescriptor]] = func(obj, field) {
 		   
 		   let (get = propobj["get"])
 		   if ((typeof get) !== "undefined" && (typeof get) !== "function") {
-		       throw "TypeError"
+		       throw CallNoArgs(TypeError)
 		   }
 		   else {
 		       attrobj["get" = get]
@@ -276,7 +414,7 @@ let [[getOwnPropertyDescriptor]] = func(obj, field) {
 		   
 		   let (set = propobj["set"])
 		   if (typeof set !== "undefined" && typeof set !== "function") {
-		       throw "TypeError"
+		       throw CallNoArgs(TypeError)
 		   }
 		   else {
 		       attrobj["set" = set]
@@ -287,7 +425,7 @@ let [[getOwnPropertyDescriptor]] = func(obj, field) {
 			(typeof writable) !== "undefined") &&
 		       ((typeof set) !== "undefined" ||
 			(typeof get) !== "undefined")) {
-		       throw "TypeError"
+		       throw CallNoArgs(TypeError)
 		   }
 		   else {
 		       prim("define_property",
@@ -311,7 +449,54 @@ let [[getOwnPropertyDescriptor]] = func(obj, field) {
 		     }]
 }
 
+let [[instanceof]] = func(obj1, obj2) {
+    return
+    if(typeof obj1 !== "object") {
+	throw CallNoArgs(TypeError)
+    }
+    else {
+	let (o = obj2["prototype"])
+	if (typeof o !== "object") {
+	    throw CallNoArgs(TypeError)
+	}
+	else {
+	    let (repeat = fix rep func(proto) {
+		return
+		if (proto !== o) {
+		    rep(prim("get-proto", proto))
+		}
+		else {
+		    true
+		}
+	    })
+	    repeat(prim("get-proto", obj1))
+	}
+    }
+}
 
+let [[toPrimitive]] = func(val, hint) {
+    return
+    if (hint === "string") {
+	ToString(val)
+    }
+    else {
+	ToNumber(val)
+    }
+    // TODO: special case for Date
+}
+
+/* 11.6.1 */
+let [[plus]] = func(arg1, arg2) {
+    return
+    let (lval = toPrimitive(arg1, undefined))
+    let (rval = toPrimitive(arg2, undefined))
+    if (typeof lval === "string" || typeof rval === "string") {
+	prim("string+", ToString(lval), ToString(rval))
+    }
+    else {
+	prim("+", ToNumber(lval), ToNumber(rval))
+    }
+}
 
 
 /*[[toNumber]]
@@ -319,7 +504,6 @@ let [[getOwnPropertyDescriptor]] = func(obj, field) {
 [[toPrimitive]]
 [[getValue]]
 [[toInt]]
-[[toUInt]]
 [[>]]
 [[<]]
 [[Object.prototype]]

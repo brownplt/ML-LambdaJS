@@ -10,14 +10,17 @@ let false_c p = EConst (p, S.CBool (false))
 
 let undef_c p = EConst (p, S.CUndefined)
 
-let rec str p s = 
+let str p s = 
   EConst (p, S.CString (s))
 
-let rec num_c p d = 
+let num_c p d = 
   EConst (p, S.CNum (d))
 
-let rec int_c p d =
+let int_c p d =
   EConst (p, S.CInt (d))
+
+let obj_proto p = EId (p, "[[Object_prototype]]")
+let fun_proto p = EId (p, "[[Function_prototype]]")
 
 let to_object e = e
 let to_string e = e
@@ -31,12 +34,25 @@ let rec mk_val p v =
 let rec mk_array (p, exps) = 
   let mk_field n v = (p, string_of_int n, 
 		      mk_val p v) in
-    EObject (p, [("proto", EId (p, "Array_prototype"));
+    EObject (p, [("proto", EId (p, "[[Array_prototype]]"));
 		 ("extensible", true_c p)],
 	     List.map2 mk_field (iota (List.length exps)) exps)
 
 let rec mk_field (p, s, e) =
     (p, s, mk_val p e)
+
+let args_obj p arg_list = 
+  let mk_field n v = (p, string_of_int n, 
+		      mk_val p v) in
+  EObject 
+    (p, [("proto", obj_proto p);
+	 ("class", str p "Arguments");
+	 ("extensible", false_c p)],
+     ((p, "length", [("value", int_c p (List.length arg_list));
+		     ("writable", false_c p);
+		     ("enumerable", false_c p);
+		     ("configurable", false_c p)]) ::
+	(List.map2 mk_field (iota (List.length arg_list)) arg_list)))
 
 let new_obj p proto_id = 
     EObject (p,
@@ -77,7 +93,7 @@ let rec func_stmt_lambda p func_name ids body =
 let rec func_object p ids lambda_exp =
     ELet (p, "$prototype", 
 	  EObject (p,
-		   [("proto", EId (p, "Object_prototype"));
+		   [("proto", obj_proto p);
 		    ("extensible", true_c p);
 		    ("Class", EConst (p, S.CString ("Object")))],
 		   [(p, "constructor", 
@@ -88,7 +104,7 @@ let rec func_object p ids lambda_exp =
 	  ELet (p, "$funobj", 
 		EObject (p,
 			 [("code", lambda_exp);
-			  ("proto", EId (p, "Function_prototype"));
+			  ("proto", fun_proto p);
 			  ("extensible", true_c p)],
 			 [(p,"length", 
 			   [("value", EConst (p, S.CNum
@@ -117,7 +133,7 @@ let rec ds expr =
     | ObjectExpr (p,exprs) -> 
 	let ds_tuple (p,s,e) = (p,s,ds e) in
 	  EObject (p, 
-		   [("proto", EId (p, "Object_prototype"));
+		   [("proto", obj_proto p);
 		    ("extensible", true_c p)],
 		   List.map mk_field (List.map ds_tuple exprs))
 	    
@@ -152,8 +168,8 @@ let rec ds expr =
 			    "$resObj", 
 			    EApp (p, 
 				  EId (p, "$constructor"),
-				  (EId (p, "$newObj"))::
-				    (map ds args)),
+				  [EId (p, "$newObj");
+				   args_obj p (map ds args)]),
 			    EIf (p, 
 				 EOp2 (p, 
 				       Prim2 ("stx="),
@@ -178,10 +194,11 @@ let rec ds expr =
   | AppExpr (p, BracketExpr (p', obj, prop), es) ->
       ELet (p, "$obj", ds obj,
 	    ELet (p, "$fun", EGetFieldSurface (p', EId (p, "$obj"), ds prop),
-		  EApp (p, EId (p', "$fun"), (EId (p', "$obj") :: map ds es))))
+		  EApp (p, EId (p', "$fun"), 
+			[EId (p', "$obj"); args_obj p (map ds es)])))
 	
   | AppExpr (p, func, es) ->
-      EApp (p, ds func, (EId (p, "[[global]]") :: map ds es))
+      EApp (p, ds func, map ds es)
 
   | FuncExpr (p, ids, body) ->
     func_object p ids (func_expr_lambda p ids (var_lift body))
@@ -356,6 +373,7 @@ let rec ds_op exp = match exp with
     end
   | EOp1 (p, Prim1 op, e) -> EOp1 (p, Prim1 op, ds_op e)
   | EOp2 (p, prim, e1, e2) -> EOp2 (p, prim, ds_op e1, ds_op e2)
+  | EOp3 (p, prim, e1, e2, e3) -> EOp3 (p, prim, ds_op e1, ds_op e2, ds_op e3)
   | EConst (p, c) -> EConst (p, c)
   | EId (p, x) -> EId (p, x)
   | EObject (p, internals, fields) -> 
@@ -391,6 +409,7 @@ let rec ds_op exp = match exp with
       ETryFinally (p, ds_op body, ds_op fin)
   | EThrow (p, e) -> EThrow (p, ds_op e)
   | ELambda (p, ids, body) -> ELambda (p, ids, ds_op body)
+  | _ -> failwith "Unmatched in ds_op"
 
 and numnum p op e1 e2 = 
     EOp2 (p, Prim2 op, 
@@ -413,6 +432,21 @@ and uint_uint p op e1 e2 =
           EApp (p, EId (p, "[[toUInt]]"), [ ds_op e2 ]))
 
 let rec ds_global exp env = match exp with
+  | EApp (p, EId (p', x), es) -> begin
+      try
+	if IdMap.find x env
+	then EApp (p, EId (p', x), map (fun e -> ds_global e env) es)
+	else ELet (p, "$funobj", EGetFieldSurface (p, EId (p, "[[global]]"), str p x),
+		   EApp (p, EId (p, "$funobj"), 
+			 [EId (p, "$funobj");
+			  args_obj p (map (fun e -> ds_global e env) es)]))
+      with Not_found -> ELet (p, "$funobj", EGetFieldSurface (p, EId (p, "[[global]]"), str p x),
+		   EApp (p, EId (p, "$funobj"), 
+			 [EId (p, "$funobj");
+			  args_obj p (map (fun e -> ds_global e env) es)]))
+    end
+  | EApp (p, e, es) ->
+      EApp (p, ds_global e env, map (fun e -> ds_global e env) es)
   | EId (p, x) -> begin
       try
 	if IdMap.find x env 
@@ -454,10 +488,11 @@ let rec ds_global exp env = match exp with
       EDeleteField (p, ds_global o env, ds_global f env)
   | EOp1 (p, op, e) -> EOp1 (p, op, ds_global e env)
   | EOp2 (p, op, e1, e2) -> EOp2 (p, op, ds_global e1 env, ds_global e2 env)
+  | EOp3 (p, op, e1, e2, e3) -> EOp3 (p, op, ds_global e1 env, 
+				      ds_global e2 env,
+				      ds_global e3 env)
   | EIf (p, c, t, e) -> 
       EIf (p, ds_global c env, ds_global t env, ds_global e env)
-  | EApp (p, e, es) ->
-      EApp (p, ds_global e env, map (fun e -> ds_global e env) es)
   | ESeq (p, e1, e2) -> ESeq (p, ds_global e1 env, ds_global e2 env)
   | ELabel (p, l, e) -> ELabel (p, l, ds_global e env)
   | EBreak (p, l, e) -> EBreak (p, l, ds_global e env)
@@ -467,5 +502,5 @@ let rec ds_global exp env = match exp with
   | EThrow (p, e) -> EThrow (p, ds_global e env)
 
 
-let rec ds_top expr = ds_global (ds expr) (IdMap.add "[[global]]" true IdMap.empty)
-let rec desugar expr = ds_op (ds_top expr)
+let rec ds_top expr = ds expr
+let rec desugar expr = ds_global (ds_op expr) IdMap.empty

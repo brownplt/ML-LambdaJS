@@ -52,7 +52,7 @@ let rename (x : id) (y : id) (exp : exp) : exp =
     | EUpdateFieldSurface (p, o, e1, e2) ->
 	EUpdateFieldSurface (p, ren o, ren e1, ren e2)
     | EUpdateField (p, o1, o2, e1, e2) -> 
-	EUpdateField (p, ren o1, ren o1, ren e1, ren e2)
+	EUpdateField (p, ren o1, ren o2, ren e1, ren e2)
     | EGetFieldSurface (p, o, e) ->
 	EGetFieldSurface (p, ren o, ren e)
     | EGetField (p, o1, o2, e) ->

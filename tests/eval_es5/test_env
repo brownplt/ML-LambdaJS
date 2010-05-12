@@ -1,0 +1,14 @@
+let [[assert]] = func(passed, testname) {
+    return
+    prim("print",testname);
+    if(passed === true) {
+	prim("print","Succeeded")
+    }
+    else {
+	prim("print", "Failed")
+    }
+}
+
+{
+    global["assert" = assert]
+}

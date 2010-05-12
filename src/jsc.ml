@@ -46,7 +46,7 @@ let load_js (path : string) : unit =
       | "es5" ->
 	  srcES5 := 
 	    ES5s.ESeq (p, !srcES5,
-		       ES5ds.desugar (Exprjs_syntax.from_javascript js))
+		       ES5ds.ds_top (Exprjs_syntax.from_javascript js))
       | _ -> failwith ("Unknown language: " ^ !lang)
 
 let load_lambdajs (path : string) : unit =
@@ -70,7 +70,7 @@ let load_file (path : string) : unit =
 let desugar () : unit =
   match !lang with
     | "ljs" -> srcLJS := Lambdajs_desugar.desugar_op !srcLJS
-    | "es5" -> srcES5 := !srcES5
+    | "es5" -> srcES5 := ES5ds.desugar !srcES5
     | _ -> failwith ("Unknown language: " ^ !lang)
 
 let set_env (s : string) =
@@ -92,7 +92,7 @@ let action_cps () : unit =
 
 let action_eval () : unit =
   match !lang with
-    | "es5" -> printf "%S" (ES5v.pretty_value (ES5eval.eval_expr !srcES5)); print_newline ()
+    | "es5" -> (ES5eval.eval_expr !srcES5); print_newline ()
     | _ -> failwith ("Not implemented for language: " ^ !lang)
 
 let action_operators () : unit =
