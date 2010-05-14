@@ -578,7 +578,10 @@ let [[instanceof]] = func(obj1, obj2) {
 
 let [[toPrimitive]] = func(val, hint) {
     return
-    if (hint === "string") {
+    if (prim("primitive?",val)) {
+	val
+    }
+    else if (hint === "string") {
 	ToString(val)
     }
     else {
