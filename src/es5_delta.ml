@@ -129,6 +129,15 @@ let is_extensible obj = match obj with
 	end
   | _ -> raise (Throw (str "is-extensible"))
 
+let prevent_extensions obj = match obj with
+  | ObjCell o ->
+      let (attrs, props) = !o in begin
+	  o := (IdMap.add "extensible" (bool false) attrs, props);
+	  obj
+	end
+  | _ -> raise (Throw (str "prevent-extensions"))
+	  
+
 let get_proto obj = match obj with
   | ObjCell o -> 
       let (attrs, _) = !o in begin try
@@ -136,6 +145,18 @@ let get_proto obj = match obj with
 	with Not_found -> undef
 	end
   | _ -> raise (Throw (str "get-proto"))
+
+let get_own_property_names obj = match obj with
+  | ObjCell o ->
+      let (_, props) = !o in
+      let add_name n x m = 
+	IdMap.add (string_of_int x) (IdMap.add "value" (str n) IdMap.empty) m in
+      let namelist = IdMap.fold (fun k v l -> (k :: l)) props [] in
+      let props = 
+	List.fold_right2 add_name namelist (iota (List.length namelist)) IdMap.empty
+      in
+	ObjCell (ref (IdMap.empty, props))
+  | _ -> raise (Throw (str "own-property-names"))
 
 let op1 op = match op with
   | "typeof" -> typeof
@@ -146,8 +167,10 @@ let op1 op = match op with
   | "prim->bool" -> prim_to_bool
   | "is-callable" -> is_callable
   | "is-extensible" -> is_extensible
+  | "prevent-extensions" -> prevent_extensions
   | "print" -> print
   | "get-proto" -> get_proto
+  | "own-property-names" -> get_own_property_names
   | _ -> failwith ("no implementation of unary operator: " ^ op)
 
 let arith i_op f_op v1 v2 = match v1, v2 with

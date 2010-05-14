@@ -617,6 +617,73 @@ let [[hasProperty]] = func(obj, field) {
     global["hasProperty" = has_property]
 }
 
+/* Used for both freeze and seal, which are quite similar */
+let [[sf]] = func(obj, f) {
+    return
+    if(typeof obj !== "object") {
+	throw type_error("Freeze/seal given non-object")
+    }
+    else {
+	prim("prevent-extensions", obj);
+	f(obj, 0, prim("own-property-names", obj))
+    }
+}
+
+/* 15.2.3.8 */
+let [[sealfun]] = fix sealfun func(obj, i, propnames) {
+    return
+    let (ix = ToString(i))
+
+    if (propnames[ix] === undefined) { /* done */
+	obj
+    }
+    else {
+	let (currprop = prim("get-own-property", obj, propnames[ix]))
+	{if (currprop["configurable"] === true) {
+	    currprop["configurable" = false]
+	}
+	 else { undefined }};
+	
+	prim("define-property", obj, propnames[ix], currprop);
+	sealfun(obj, prim("+",i,1), propnames)
+    }
+}
+
+/* 15.2.3.9 */
+let [[freezefun]] = fix freezefun func(obj, i, propnames) {
+    return
+    let (ix = ToString(i))
+
+    if (propnames[ix] === undefined) { /* done */
+	obj
+    }
+    else {
+	
+	let (currprop = prim("get-own-property", obj, propnames[ix]))
+	{if (currprop["configurable"] === true) {
+	    currprop["configurable" = false]
+	}
+	 else { undefined }};
+	
+	{if (currprop["writable"] === true) {
+	    currprop["writable" = false]
+	}
+	 else { undefined }};
+	
+	prim("define-property", obj, propnames[ix], currprop);
+	freezefun(obj, prim("+",i,1), propnames)
+    }
+}
+
+{
+    Object["seal" = function(obj) {
+	return sf(obj, sealfun)
+    }];
+
+    Object["freeze" = function(obj) {
+	return sf(obj, freezefun)
+    }]
+}
 /*[[toNumber]]
 [[toObject]]
 [[toPrimitive]]
