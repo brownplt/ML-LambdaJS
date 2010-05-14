@@ -161,7 +161,7 @@ and stmt (s : S.stmt) = match s with
                     (p2,"%continue-"^lbl,stmt body)),
               expr test)))
   | S.DoWhileStmt (p, body, test) -> LabelledExpr
-      (p, "%break", WhileExpr 
+      (p, "%break", DoWhileExpr 
            (p, LabelledExpr (p, "%continue", stmt body),
             expr test))
   | S.BreakStmt a -> BreakExpr (a,"%break", ConstExpr (a, S.CUndefined))
