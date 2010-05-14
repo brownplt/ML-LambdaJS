@@ -110,7 +110,7 @@ rule token = parse
    | "=" { parse_re := true; Assign }
    | ";" { parse_re := false; Semi }
    | "," { parse_re := true; Comma }
-   | "?" { parse_re := false; Ques }
+   | "?" { parse_re := true; Ques }
    | ":" { parse_re := true; Colon }
    | "||" { parse_re := true; LOr }
    | "&&" { parse_re := false; LAnd }
