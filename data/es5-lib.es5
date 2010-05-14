@@ -24,28 +24,26 @@ let [[toBoolean]] = func(x) {
 let [[ToString]] = func(obj) {
     return
     label ret :
-    {if (prim("primitive?", obj)) {
+    if (prim("primitive?", obj)) {
 	break ret prim("prim->str", obj)
-    }
-    else { undefined }};
+    };
+
 	
     let (ts = obj["toString"])
-    {if (prim("is-callable", ts)) {
+    if (prim("is-callable", ts)) {
 	let (str = ts(obj, {[]}))
 	if (prim("primitive?", str)) {
 	    break ret prim("prim->str",str)
 	}
-	else { undefined }
-    } else { undefined }};
+    };
     
     let (vo = obj["valueOf"])
-    {if (prim("is-callable", vo)) {
+    if (prim("is-callable", vo)) {
 	let (val = vo(obj, {[]}))
 	if (prim("primitive?", val)) {
 	    break ret prim("prim->str",val)
 	}
-	else { undefined }
-    } else { undefined }};
+    };
     
     throw "TypeError"
 }
@@ -54,10 +52,9 @@ let [[ToString]] = func(obj) {
 let [[ToNumber]] = func(obj) {
     return
     label ret :
-    {if(prim("primitive?", obj)) {
+    if(prim("primitive?", obj)) {
 	break ret prim("prim->num", obj)
-    }
-    else { undefined }};
+    };
 	
     let (vo = obj["valueOf"])
     if (prim("is-callable", vo)) {
@@ -65,8 +62,7 @@ let [[ToNumber]] = func(obj) {
 	if (prim("primitive?", val)) {
 	    break ret prim("prim->num",val)
 	}
-	else { undefined }
-    } else { undefined };
+    };
     
     let (ts = obj["toString"])
     if (prim("is-callable", ts)) {
@@ -74,8 +70,7 @@ let [[ToNumber]] = func(obj) {
 	if (prim("primitive?", str)) {
 	    break ret prim("prim->num",str)
 	}
-	else { undefined }
-    } else { undefined };
+    };
     
     throw "TypeError"
 }
@@ -389,7 +384,7 @@ let [[defineOwnProperty]] = func(obj, field, attr-obj) {
 	}
 	else { /* it definitely has the property */
 	    let (current-prop = prim("get-own-property", obj, field))
-	    {if (current-prop["configurable"] === false) {
+	    if (current-prop["configurable"] === false) {
 		if (attr-obj["configurable"] === true) {
 		    throw type_error("escalating configurable from false to true")
 		}
@@ -398,11 +393,8 @@ let [[defineOwnProperty]] = func(obj, field, attr-obj) {
 		       (current-prop["enumerable"] === false)) {
 			throw type_error("(defineOwnPoperty) Can't change enumerable of a non-configurable property")
 		    }
-		    else {
-			undefined
-		    }
 		}
-	    } else { undefined }};
+	    };
 	    
 	    {if ((isDataDescriptor(current-prop)) !== (isDataDescriptor(attr-obj))) {
 		if (current-prop["configurable"] === false) {
@@ -653,10 +645,9 @@ let [[sealfun]] = func(obj, name) {
     return
 
     let (currprop = prim("get-own-property", obj, name))
-    {if (currprop["configurable"] === true) {
+    if (currprop["configurable"] === true) {
 	currprop["configurable" = false]
-    }
-     else { undefined }};
+    };
     
     prim("define-property", obj, name, currprop)
 }
@@ -666,15 +657,13 @@ let [[freezefun]] = func(obj, name) {
     return
 
     let (currprop = prim("get-own-property", obj, name))
-    {if (currprop["configurable"] === true) {
+    if (currprop["configurable"] === true) {
 	currprop["configurable" = false]
-    }
-     else { undefined }};
+    };
     
-    {if (currprop["writable"] === true) {
+    if (currprop["writable"] === true) {
 	currprop["writable" = false]
-    }
-     else { undefined }};
+    };
     
     prim("define-property", obj, name, currprop)
 }
