@@ -617,6 +617,25 @@ let [[hasProperty]] = func(obj, field) {
     global["hasProperty" = has_property]
 }
 
+let [[forobj]] = func(obj, fun) {
+
+    return
+    let (propnames = prim("own-property-names", obj))
+    let (iter = fix iter func(obj, i) {
+	return
+	let (curr = propnames[ToString(i)])
+	if (curr === undefined) {
+	    obj
+	}
+	else {
+	    fun(obj, curr);
+	    iter(obj, prim("+",i,1))
+	}
+    })
+    iter(obj,0)
+
+}
+
 /* Used for both freeze and seal, which are quite similar */
 let [[sf]] = func(obj, f) {
     return
@@ -625,54 +644,39 @@ let [[sf]] = func(obj, f) {
     }
     else {
 	prim("prevent-extensions", obj);
-	f(obj, 0, prim("own-property-names", obj))
+	forobj(obj, f)
     }
 }
 
 /* 15.2.3.8 */
-let [[sealfun]] = fix sealfun func(obj, i, propnames) {
+let [[sealfun]] = func(obj, name) {
     return
-    let (ix = ToString(i))
 
-    if (propnames[ix] === undefined) { /* done */
-	obj
+    let (currprop = prim("get-own-property", obj, name))
+    {if (currprop["configurable"] === true) {
+	currprop["configurable" = false]
     }
-    else {
-	let (currprop = prim("get-own-property", obj, propnames[ix]))
-	{if (currprop["configurable"] === true) {
-	    currprop["configurable" = false]
-	}
-	 else { undefined }};
-	
-	prim("define-property", obj, propnames[ix], currprop);
-	sealfun(obj, prim("+",i,1), propnames)
-    }
+     else { undefined }};
+    
+    prim("define-property", obj, name, currprop)
 }
 
 /* 15.2.3.9 */
-let [[freezefun]] = fix freezefun func(obj, i, propnames) {
+let [[freezefun]] = func(obj, name) {
     return
-    let (ix = ToString(i))
 
-    if (propnames[ix] === undefined) { /* done */
-	obj
+    let (currprop = prim("get-own-property", obj, name))
+    {if (currprop["configurable"] === true) {
+	currprop["configurable" = false]
     }
-    else {
-	
-	let (currprop = prim("get-own-property", obj, propnames[ix]))
-	{if (currprop["configurable"] === true) {
-	    currprop["configurable" = false]
-	}
-	 else { undefined }};
-	
-	{if (currprop["writable"] === true) {
-	    currprop["writable" = false]
-	}
-	 else { undefined }};
-	
-	prim("define-property", obj, propnames[ix], currprop);
-	freezefun(obj, prim("+",i,1), propnames)
+     else { undefined }};
+    
+    {if (currprop["writable"] === true) {
+	currprop["writable" = false]
     }
+     else { undefined }};
+    
+    prim("define-property", obj, name, currprop)
 }
 
 {
