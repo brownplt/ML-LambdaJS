@@ -395,7 +395,7 @@ stmt :
 
   | Switch paren_expr LBrace cases RBrace 
       { SwitchStmt (($startpos, $endpos),$2,$4) }
-  | While paren_expr block
+  | While paren_expr stmt
       { WhileStmt (($startpos, $endpos),$2,$3) }
   | Do block While paren_expr Semi
       { DoWhileStmt (($startpos, $endpos),$2,$4) }
