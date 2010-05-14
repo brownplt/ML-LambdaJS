@@ -22,8 +22,8 @@ let int_c p d =
 let obj_proto p = EId (p, "[[Object_prototype]]")
 let fun_proto p = EId (p, "[[Function_prototype]]")
 
-let to_object e = e
-let to_string e = e
+let to_object p e = EApp (p, EId (p, "[[toObject]]"), [e])
+let to_string p e = EApp (p, EId (p, "[[ToString]]"), [e])
 
 let rec mk_val p v =
     [("value", v);
@@ -144,15 +144,15 @@ let rec ds expr =
     | IdExpr (p, x) -> EId (p, x)
 
   | BracketExpr (p, obj, f) ->
-      EGetFieldSurface (p, to_object (ds obj), to_string (ds f))
+      EGetFieldSurface (p, to_object p (ds obj), to_string p (ds f))
 
   | AssignExpr (p1, VarLValue (p2, x), e) ->
     ESet (p1, x, ds e)
 
   | AssignExpr (p1, PropLValue (p2, obj, f), e) ->
       EUpdateFieldSurface (p1, 
-			   to_object (ds obj),
-			   to_string (ds f), ds e)
+			   to_object p2 (ds obj),
+			   to_string p2 (ds f), ds e)
 
   (* 11.2.2 *)
   | NewExpr (p, e, args) ->

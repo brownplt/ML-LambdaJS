@@ -24,28 +24,28 @@ let [[toBoolean]] = func(x) {
 let [[ToString]] = func(obj) {
     return
     label ret :
-    if (prim("primitive?", obj)) {
-	prim("prim->str", obj)
+    {if (prim("primitive?", obj)) {
+	break ret prim("prim->str", obj)
     }
-    else { undefined };
+    else { undefined }};
 	
     let (ts = obj["toString"])
-    if (prim("is-callable", ts)) {
+    {if (prim("is-callable", ts)) {
 	let (str = ts(obj, {[]}))
 	if (prim("primitive?", str)) {
 	    break ret prim("prim->str",str)
 	}
 	else { undefined }
-    } else { undefined };
+    } else { undefined }};
     
     let (vo = obj["valueOf"])
-    if (prim("is-callable", vo)) {
+    {if (prim("is-callable", vo)) {
 	let (val = vo(obj, {[]}))
 	if (prim("primitive?", val)) {
 	    break ret prim("prim->str",val)
 	}
 	else { undefined }
-    } else { undefined };
+    } else { undefined }};
     
     throw "TypeError"
 }
@@ -89,12 +89,15 @@ let [[toUInt]] = func (n) {
 let [[in]] = func(obj, field) {
     return false
 }
-    
+
 let [[Object_prototype]] = 
     {[proto: null, extensible: true, class: "Object"]}
 
 let [[Function_prototype]] = 
     {[proto: Object_prototype, extensible: true, class: "Function"]}
+
+
+
 
 /* 15.11.2 */
 let [[Error]] = 
@@ -134,9 +137,10 @@ let [[makeNativeErrorPrototype]] = func(constr, name_str) {
 		   enumerable: false},
 	    message: {value: "",
 		   configurable: false,
-		   writable: false,
+		   writable: true,
 		   enumerable: false}}
 }
+
 
 let [[TypeError_prototype]] = {[]}
 
@@ -148,9 +152,16 @@ let [[TypeError]] = function(msg) {
 	obj
     }
     else {
-	obj["message" = ToString(msg)];
+	obj["message" = msg];
 	obj
     }
+}
+
+
+
+
+let [[type_error]] = func(msg) {
+    return TypeError(undefined, {[] "0": {value: msg}})
 }
 
 /* Use internally to call function objects that take no arguments */
@@ -161,11 +172,10 @@ let [[CallNoArgs]] = func(f) { return f(undefined, {[]}) }
     TypeError["prototype" = TypeError_prototype]
 }
 
-/* Algorithm 9.9 of ECMA-262, ed. 3.  if given an object, expects it to
-  be a (ERef (EObject)) it itself returns Refs */
+/* Algorithm 9.9 of ECMA-262, ed. 3. */
 let [[toObject]] = func (x) {
   return if (typeof x === "undefined") {
-    throw CallNoArgs(TypeError)
+    throw type_error("toObject given undefined")
   }
   else if (typeof x === "null") {
     throw CallNoArgs(TypeError)
@@ -304,6 +314,7 @@ let [[global]] = { [proto: null, class: "Lambda-JS global", extensible: true]
 		   "TypeError" : {value: TypeError}
 		 }
 
+
 {
     global["window" = global]
 }
@@ -320,13 +331,13 @@ let [[isAccessorField]] = func(obj, field) {
 }
 
 let [[isDataDescriptor]] = func(attr-obj) {
-    return (typeof attr-obj["value"] !== "undefined" ||
-	    typeof attr-obj["writable"] !== "undefined")
+    return (typeof (attr-obj["value"]) !== "undefined" ||
+	    typeof (attr-obj["writable"]) !== "undefined")
 }
 
 let [[isAccessorDescriptor]] = func(attr-obj) {
-    return (typeof attr-obj["set"] !== "undefined" ||
-	    typeof attr-obj["get"] !== "undefined")
+    return (typeof (attr-obj["set"]) !== "undefined" ||
+	    typeof (attr-obj["get"]) !== "undefined")
 }
 
 let [[isGenericDescriptor]] = func(attr-obj) {
@@ -334,19 +345,110 @@ let [[isGenericDescriptor]] = func(attr-obj) {
 	    isDataDescriptor(attr-obj) === false)
 }
 
+let [[copy-when-defined]] = func(obj1, obj2, s) {
+    return
+    if(obj2[s] !== undefined) {
+	obj1[s = obj2[s] ]
+    }
+    else { undefined }
+}
+
+let [[copy-data-desc]] = func(obj1, obj2) {
+    return
+    copy-when-defined(obj1, obj2, "configurable");
+    copy-when-defined(obj1, obj2, "enumerable");
+    copy-when-defined(obj1, obj2, "writable");
+    copy-when-defined(obj1, obj2, "value");
+    obj1[delete "get"];
+    obj1[delete "set"]
+
+}
+
+let [[copy-access-desc]] = func(obj1, obj2) {
+    return
+    copy-when-defined(obj1, obj2, "configurable");
+    copy-when-defined(obj1, obj2, "enumerable");
+    copy-when-defined(obj1, obj2, "set");
+    copy-when-defined(obj1, obj2, "get");
+    obj1[delete "value"];
+    obj1[delete "writable"]
+}
+
 /* 8.12.9 */
 let [[defineOwnProperty]] = func(obj, field, attr-obj) {
     return
-
-    let (current-config = prim("is-configurable", obj, field))
-    // if it's configurable or non-existent and extensible, go for it
-    if (current-config ||
-	(prim("is-extensible", obj) && 
-	 (prim("has-own-property", obj, field) === false))) {
-	prim("define_property", obj, field, attr-obj)
-    }
+    if (typeof obj !== "object") { throw type_error("defineOwnProperty didn't get object") }
     else {
-	throw CallNoArgs(TypeError)
+	let (fstr = ToString(field))
+	if (prim("has-own-property?", obj, fstr) === false) {
+	    if (prim("is-extensible", obj)) {
+		prim("define-property", obj, fstr, attr-obj);
+		true
+	    }
+	    else { throw type_error("(defineOwnProperty) Attempt to add a property to a non-extensible object.") }
+	}
+	else { /* it definitely has the property */
+	    let (current-prop = prim("get-own-property", obj, field))
+	    {if (current-prop["configurable"] === false) {
+		if (attr-obj["configurable"] === true) {
+		    throw type_error("escalating configurable from false to true")
+		}
+		else {
+		    if(attr-obj["enumerable"] ===
+		       (current-prop["enumerable"] === false)) {
+			throw type_error("(defineOwnPoperty) Can't change enumerable of a non-configurable property")
+		    }
+		    else {
+			undefined
+		    }
+		}
+	    } else { undefined }};
+	    
+	    {if ((isDataDescriptor(current-prop)) !== (isDataDescriptor(attr-obj))) {
+		if (current-prop["configurable"] === false) {
+		    throw type_error("(defineOwnProperty) Non-configurable property")
+		}
+		else {
+		    if (isDataDescriptor(current)) {
+			copy-data-desc(current-obj, attr-obj)
+		    }
+		    else {
+			copy-access-desc(current-obj, attr-obj)
+		    }
+		}
+	    }
+	    else if ((isDataDescriptor(current-prop)) && 
+		     (isDataDescriptor(attr-obj))) {
+		if (current-prop["configurable"] === false) {
+		    if (current-prop["writable"] === false) {
+			if (attr-obj["writable"] === true) {
+			    throw type_error("(defineOwnProperty) Cannot escalate writable from false to true.")
+			}
+			else {
+			    if (attr-obj["value"] !== current-prop["value"]) {
+				throw type_error("(defineOwnProperty) Cannot change a non-configurable value")
+			    }
+			    else { copy-data-desc(current-prop, attr-obj) }
+			}
+		    }
+		    else { copy-data-desc(current-prop, attr-obj) }
+		}
+		else { copy-data-desc(current-prop, attr-obj) }
+	    }
+	    else {
+		if (current-prop["configurable"] === false) {
+		    if (current-prop["set"] !== attr-obj["set"] ||
+			current-prop["get"] !== attr-obj["get"]) {
+			throw type_error("(defineOwnProperty) Cannot change setter or getter of non-configurable property.")
+		    }
+		    else { copy-access-desc(current-prop, attr-obj) }
+		}
+		else { copy-access-desc(current-prop, attr-obj) }
+	    }};
+
+	    prim("define-property", obj, field, current-prop);
+	    true
+	}
     }
 }
 
@@ -361,7 +463,7 @@ let [[newObject]] = func() {
 let [[getOwnPropertyDescriptor]] = func(obj, field) {
     return
     let (fstring = ToString(field))
-    if (typeof obj !== "object") { throw CallNoArgs(TypeError) }
+    if (typeof obj !== "object") { throw type_error("getOwnPD didn't get object") }
     else {
 	prim("get-own-property", obj, field)
     }
@@ -375,63 +477,63 @@ let [[getOwnPropertyDescriptor]] = func(obj, field) {
 	   function(obj, field, propobj) {
 	       return
 	       /* 8.10.5 checks */
+
 	       if ((typeof obj) !== "object") {
-		   throw CallNoArgs(TypeError)
+		   throw type_error("defineProperty didn't get object")
 	       }
 	       else {
-		   let (attrobj = {[]})
+		   let (attrobj = {[extensible: true]})
 		   let (enumerable = propobj["enumerable"])
-		   if ((typeof enumerable) !== "undefined") {
+		   {if ((typeof enumerable) !== "undefined") {
 		       attrobj["enumerable" = enumerable]
 		   }
-		   else { attrobj };
-		   
+		   else { attrobj }};
+
 		   let (configurable = propobj["configurable"])
-		   if ((typeof configurable) !== "undefined") {
+		   {if ((typeof configurable) !== "undefined") {
 		       attrobj["configurable" = configurable]
 		   }
-		   else { attrobj };
+		   else { attrobj }};
 		   
 		   let (writable = propobj["writable"])
-		   if ((typeof writable) !== "undefined") {
+		   {if ((typeof writable) !== "undefined") {
 		       attrobj["writable" = writable]
 		   }
-		   else { attrobj };
+		   else { attrobj }};
 		   
 		   let (value = propobj["value"])
-		   if ((typeof value) !== "undefined") {
+		   {if ((typeof value) !== "undefined") {
 		       attrobj["value" = value]
 		   }
-		   else { attrobj };
+		   else { attrobj }};
 		   
 		   let (get = propobj["get"])
-		   if ((typeof get) !== "undefined" && (typeof get) !== "function") {
-		       throw CallNoArgs(TypeError)
+		   {if ((typeof get) !== "undefined" && 
+			(prim("surface-typeof", get) !== "function")) {
+		       throw type_error("defineProperty given a non-function getter")
 		   }
 		   else {
 		       attrobj["get" = get]
-		   };
+		   }};
 		   
 		   let (set = propobj["set"])
-		   if (typeof set !== "undefined" && typeof set !== "function") {
-		       throw CallNoArgs(TypeError)
+		   {if (typeof set !== "undefined" && 
+			(prim("surface-typeof", set) !== "function")) {
+		       throw type_error("defineProperty given a non-function setter")
 		   }
 		   else {
 		       attrobj["set" = set]
-		   };
-		   
+		   }};
+
 		   /* 8.10.5, step 9 */
-		   if (((typeof value) !== "undefined" ||
-			(typeof writable) !== "undefined") &&
-		       ((typeof set) !== "undefined" ||
-			(typeof get) !== "undefined")) {
-		       throw CallNoArgs(TypeError)
+		   if (((typeof (attrobj["value"])) !== "undefined" ||
+			(typeof (attrobj["writable"])) !== "undefined") &&
+		       ((typeof (attrobj["set"])) !== "undefined" ||
+			(typeof (attrobj["get"])) !== "undefined")) {
+		       throw type_error("The attributes given to defineProperty were inconsistent")
 		   }
 		   else {
-		       prim("define_property",
-			    obj,
-			    field["toString"](field), 
-			    attrobj)
+		       defineOwnProperty(obj, field, attrobj)
 		   }
 	       }	   
 	   }]
@@ -498,6 +600,19 @@ let [[plus]] = func(arg1, arg2) {
     }
 }
 
+let [[hasProperty]] = func(obj, field) {
+    return if (typeof obj !== "object") {
+	CallNoArgs(TypeError)
+    }
+    else {
+	prim("has-property", obj, ToString(field))
+    }
+}
+
+
+{
+    global["hasProperty" = has_property]
+}
 
 /*[[toNumber]]
 [[toObject]]

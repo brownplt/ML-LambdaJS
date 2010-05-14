@@ -8,8 +8,8 @@ let rec apply func args = match func with
   | Closure c -> c args
   | _ -> failwith ("[interp] Applied non-function, was actually " ^ 
 		     pretty_value func)
-(*
-let rec args_object args =
+
+let rec args_obj args =
   let add_arg arg n m = IdMap.add (string_of_int n)
     (IdMap.add "value" arg 
        (IdMap.add "configurable" (Const (CBool false))
@@ -22,7 +22,7 @@ let rec args_object args =
     ObjCell (ref (attrs, 
 		  List.fold_right2 add_arg args
 		    (iota (List.length args)) IdMap.empty))
-*)
+
 let rec apply_obj o this args = match o with
   | ObjCell c -> 
       let (attrs, props) = !c in
@@ -48,7 +48,7 @@ let rec get_field obj1 obj2 field = match obj1 with
 	      with Not_found ->
 		try
 		  let getter = IdMap.find "get" prop_attrs in
-		    apply_obj getter obj2 []
+		    apply_obj getter obj2 [(args_obj [])]
 		with Not_found -> Const (CUndefined) (* No getting attributes *)
 	  with Not_found ->
 	    try
@@ -114,7 +114,7 @@ let rec update_field obj1 obj2 field newval = match obj1 with
 	  else begin try
 	    (* 8.12.5, step 5 *)
 	    let setter = IdMap.find "set" prop in
-	      apply_obj setter obj2 [newval]
+	      apply_obj setter obj2 [(args_obj [newval])]
 	  with Not_found -> 
 	    (* TODO: Make type error for strict. Not writable, no setter. *)
 	    Const CUndefined

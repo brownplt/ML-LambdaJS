@@ -47,7 +47,8 @@ let surface_typeof v = str begin match v with
       | CInt _ -> "number"
       | CBool _ -> "boolean"
     end
-  | ObjCell _ -> "object"
+  | ObjCell o -> let (attrs, _) = !o in
+      if (IdMap.mem "code" attrs) then "function" else "object"
   | _ -> raise (Throw (str "surface_typeof"))
 end
   
@@ -112,7 +113,7 @@ let print v = match v with
 let is_extensible obj = match obj with
   | ObjCell o ->
       let (attrs, props) = !o in begin try
-	bool (IdMap.find "extensible" attrs ==
+	bool (IdMap.find "extensible" attrs =
 		bool true)
 	with Not_found -> bool false
 	end
@@ -213,6 +214,17 @@ let abs_eq v1 v2 = bool begin
       | _ -> false
 end
 
+let rec has_property obj field = match obj, field with
+  | ObjCell o, Const (CString s) ->
+      let (attrs, props) = !o in
+	if (IdMap.mem s props) then bool true
+	else begin try
+	  let proto = IdMap.find "proto" attrs in
+	   has_property proto field 
+	with Not_found -> bool false
+	end
+  | _ -> bool false
+
 let has_own_property obj field = match obj, field with
   | ObjCell o, Const (CString s) -> 
       let (attrs, props) = !o in
@@ -275,6 +287,7 @@ let op2 op = match op with
   | ">=" -> arith_ge
   | "stx=" -> stx_eq
   | "abs=" -> abs_eq
+  | "has-property?" -> has_property
   | "has-own-property?" -> has_own_property
   | "get-own-property" -> get_own_property
   | "string+" -> string_plus
@@ -309,20 +322,12 @@ let define_property obj field attrobj = match obj, field, attrobj with
   | ObjCell ob, Const (CString s), ObjCell atts ->
       let (attrs, props) = !ob in
       let (attrs', props') = !atts in
-      let new_atts = 
-	begin try merge_atts (IdMap.find s props) (props_to_atts props')
-	with Not_found -> (props_to_atts props')
-	end in begin
-	  ob := (attrs, IdMap.add s new_atts props);
-	  bool true
+	begin
+	  ob := (attrs, (IdMap.add s (props_to_atts props') props));
+	  obj
 	end
   | _, _, _ -> raise (Throw (str "define_property"))
 
-
-	
-
-
-
 let op3 op = match op with
-  | "define_property" -> define_property
+  | "define-property" -> define_property
   | _ -> failwith ("no implementation of ternary operator: " ^ op)
