@@ -211,6 +211,8 @@ let abs_eq v1 v2 = bool begin
       | CBool b, CNum x -> x = (if b then 1.0 else 0.0)
       | CInt n, CBool b
       | CBool b, CInt n -> n = (if b then 1 else 0)
+      | CNum x1, CInt x2
+      | CInt x2, CNum x1 -> float_of_int x2 = x1
       | _ -> false
 end
 
