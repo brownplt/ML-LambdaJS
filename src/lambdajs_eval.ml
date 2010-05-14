@@ -316,9 +316,3 @@ let rec eval env exp = match exp with
         | SetRef, Cell c, v -> c := v; (Cell c)
         | Prim2 op, v1, v2 -> Delta.op2 op v1 v2
       end
-
-          
-
-        
-      
-
