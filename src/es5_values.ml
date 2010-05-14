@@ -22,7 +22,7 @@ let pretty_value v = match v with
   | Const c -> begin match c with
       | CInt d -> string_of_int d
       | CNum d -> string_of_float d
-      | CString s -> s
+      | CString s -> "\"" ^ s ^ "\""
       | CBool b -> string_of_bool b
       | CUndefined -> "undefined"
       | CNull -> "null"
