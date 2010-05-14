@@ -152,7 +152,7 @@ let [[TypeError]] = function(msg) {
 	obj
     }
     else {
-	obj["message" = msg];
+	obj["message" = ToString(msg)];
 	obj
     }
 }
