@@ -276,4 +276,8 @@ let rec eval exp env = match exp with
 
 and arity_mismatch_err p xs args = failwith ("Arity mismatch, supplied " ^ string_of_int (List.length args) ^ " arguments and expected " ^ string_of_int (List.length xs) ^ " at " ^ string_of_position p ^ ". Arg names were: " ^ (List.fold_right (^) (map (fun s -> " " ^ s ^ " ") xs) "") ^ ". Values were: " ^ (List.fold_right (^) (map (fun v -> " " ^ pretty_value v ^ " ") args) ""))
 
-let rec eval_expr expr = eval expr IdMap.empty
+let rec eval_expr expr = try 
+  eval expr IdMap.empty
+with
+  | Throw v -> failwith ("Uncaught exception of type " ^ pretty_value v)
+  | Break (l, v) -> failwith ("Broke to top of execution, missed label: " ^ l)
