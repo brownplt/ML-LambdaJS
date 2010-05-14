@@ -309,13 +309,6 @@ let props_to_atts props =
 	IdMap.empty
 
 
-let merge_atts atts atts' =
-  IdMap.mapi (fun key value -> begin try
-		IdMap.find key atts'
-	      with Not_found -> value
-	      end) atts
-
-
 (* This assumes that all checks have been done, and it is OK to
    overwrite/add the property named in field.  Specifically, the
    checks from [[defineOwnProperty]] (8.12.9) are defined in the
