@@ -217,6 +217,7 @@ and forInInit fii = match fii with
 
 and varDeclList p decls = match decls with
   | [] -> ConstExpr (p, S.CUndefined)
+  | [d] -> varDecl p d
   | d :: ds -> seq p (varDecl p d) (varDeclList p ds)
 
 and varDecl p (decl : S.varDecl) = match decl with
