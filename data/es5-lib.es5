@@ -54,16 +54,16 @@ let [[ToString]] = func(obj) {
 let [[ToNumber]] = func(obj) {
     return
     label ret :
-    if (prim("primitive?", obj)) {
-	prim("prim->str", obj)
+    {if(prim("primitive?", obj)) {
+	break ret prim("prim->num", obj)
     }
-    else { undefined };
+    else { undefined }};
 	
     let (vo = obj["valueOf"])
     if (prim("is-callable", vo)) {
 	let (val = vo(obj))
 	if (prim("primitive?", val)) {
-	    break ret prim("prim->str",val)
+	    break ret prim("prim->num",val)
 	}
 	else { undefined }
     } else { undefined };
@@ -72,7 +72,7 @@ let [[ToNumber]] = func(obj) {
     if (prim("is-callable", ts)) {
 	let (str = ts(obj))
 	if (prim("primitive?", str)) {
-	    break ret prim("prim->str",str)
+	    break ret prim("prim->num",str)
 	}
 	else { undefined }
     } else { undefined };
