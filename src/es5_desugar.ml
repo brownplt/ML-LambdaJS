@@ -210,7 +210,7 @@ let rec ds expr =
 
   | SeqExpr (p, e1, e2) -> ESeq (p, ds e1, ds e2)
 
-  | WhileExpr (p, body, check) ->
+  | WhileExpr (p, check, body) ->
     ELet (p, 
 	  "$check", 
 	  EFix (p, 
@@ -312,11 +312,11 @@ let rec ds_op exp = match exp with
           EOp1 (p, Prim1 "~",
                 EApp (p, EId (p, "[[toInt]]"), [ ds_op e ]))
       | "prefix:+" ->
-          EApp (p, EId (p, "[[toNumber]]"), [ ds_op e ])
+          EApp (p, EId (p, "[[ToNumber]]"), [ ds_op e ])
       | "prefix:-" ->
           EOp2 (p, Prim2 "-", 
                 num_c p 0.0,
-                EApp (p, EId (p, "[[toNumber]]"), [ ds_op e ]))
+                EApp (p, EId (p, "[[ToNumber]]"), [ ds_op e ]))
       | "typeof" ->
           EOp1 (p, Prim1 "typeof", ds_op e)
       | "prefix:typeof" ->
@@ -347,7 +347,7 @@ let rec ds_op exp = match exp with
       | "in" -> EApp (p, EId (p, "[[in]]"),
 		      [ ds_op e1; ds_op e2])
 	  (* The equality operators are implemented in \JS *)
-      | "==" -> EOp2 (p, Prim2 "==",
+      | "==" -> EOp2 (p, Prim2 "abs=",
 		      ds_op e1, ds_op e2)
       | "!=" -> EIf (p, EOp2 (p, Prim2 "==",
 			      ds_op e1, ds_op e2),
@@ -413,8 +413,8 @@ let rec ds_op exp = match exp with
 
 and numnum p op e1 e2 = 
     EOp2 (p, Prim2 op, 
-          EApp (p, EId (p, "[[toNumber]]"), [ ds_op e1 ]),
-          EApp (p, EId (p, "[[toNumber]]"), [ ds_op e2 ]))
+          EApp (p, EId (p, "[[ToNumber]]"), [ ds_op e1 ]),
+          EApp (p, EId (p, "[[ToNumber]]"), [ ds_op e2 ]))
 
 and int_int p op e1 e2 =
     EOp2 (p, Prim2 op, 
