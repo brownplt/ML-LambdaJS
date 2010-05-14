@@ -61,7 +61,7 @@ let [[ToNumber]] = func(obj) {
 	
     let (vo = obj["valueOf"])
     if (prim("is-callable", vo)) {
-	let (val = vo(obj))
+	let (val = vo(obj, {[]}))
 	if (prim("primitive?", val)) {
 	    break ret prim("prim->num",val)
 	}
@@ -70,7 +70,7 @@ let [[ToNumber]] = func(obj) {
     
     let (ts = obj["toString"])
     if (prim("is-callable", ts)) {
-	let (str = ts(obj))
+	let (str = ts(obj, {[]}))
 	if (prim("primitive?", str)) {
 	    break ret prim("prim->num",str)
 	}
