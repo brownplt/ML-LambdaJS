@@ -56,12 +56,22 @@ let is_primitive v = match v with
   | Const _ -> Const (CBool true)
   | _ -> Const (CBool false)
 
+let float_str n = 
+  if n == nan then "NaN"
+  else
+    if n == infinity then "Infinity"
+    else
+      if float_of_int (int_of_float n) = n
+      then string_of_int (int_of_float n) 
+      else string_of_float n
+
+
 let prim_to_str v = str begin match v with
   | Const c -> begin match c with
       | CUndefined -> "undefined"
       | CNull -> "null"
       | CString s -> s
-      | CNum n -> string_of_float n (* TODO: Fix for infs and nan (9.3.1) *)
+      | CNum n -> float_str n
       | CInt n -> string_of_int n
       | CBool b -> string_of_bool b
     end
