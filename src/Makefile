@@ -22,5 +22,5 @@ builddir:
 	@mkdir ../build 2> /dev/null || true
 
 install: lib
-	cd ../build && ocamlfind install LambdaJS ../src/META *.mli *.cmi LambdaJS.cma LambdaJS.cmxa LambdaJS.d.cma LambdaJS.p.cmxa
+	cd ../build && ocamlfind install LambdaJS ../src/META *.mli *.cmi LambdaJS.cma LambdaJS.cmxa LambdaJS.d.cma LambdaJS.p.cmxa LambdaJS.a LambdaJS.p.a
 
