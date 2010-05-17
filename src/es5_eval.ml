@@ -9,22 +9,6 @@ let rec apply func args = match func with
   | _ -> failwith ("[interp] Applied non-function, was actually " ^ 
 		     pretty_value func)
 
-(*
-let rec args_obj args =
-  let add_arg arg n m = IdMap.add (string_of_int n)
-    (IdMap.add "value" arg 
-       (IdMap.add "configurable" (Const (CBool false))
-	  (IdMap.add "enumerable" (Const (CBool true))
-	     (IdMap.add "writable" (Const (CBool false))
-		IdMap.empty)))) m in
-  let attrs = IdMap.add "Class" (Const (CString "Arguments"))
-    (IdMap.add "extensible" (Const (CBool false))
-       IdMap.empty) in
-    ObjCell (ref (attrs, 
-		  List.fold_right2 add_arg args
-		    (iota (List.length args)) IdMap.empty))
-*)
-
 (* args should always be a single args object *)
 let rec apply_obj o this args = match o with
   | ObjCell c -> 
