@@ -53,7 +53,7 @@ let [[ToString]] = func(obj) {
     }
 }
 
-/* 9.3, but uses 8.12.8: [[DefaultValue]] hint "string" */
+/* 9.3, but uses 8.12.8: [[DefaultValue]] hint "number" */
 let [[ToNumber]] = func(obj) {
     return
     if(prim("primitive?", obj)) {
@@ -86,14 +86,13 @@ let [[toUInt]] = func (n) {
     return ToNumber(n)
 }
 
-
-
 let [[in]] = func(obj, field) {
     return false
 }
 
 let [[Object_prototype]] = 
-    {[proto: null, extensible: true, class: "Object"]}
+    {[proto: null, extensible: true, class: "Object"]
+    toString: {value: function() { return prim("object-to-string", this) }}}
 
 let [[Function_prototype]] = 
     {[proto: Object_prototype, extensible: true, class: "Function"]}
@@ -292,7 +291,7 @@ let [[Object]] =
 
 let [[Array_prototype]] = {[proto: Object_prototype, extensible: true, class: "Array"]}
 
-let [[eval]] = function(s) { return throw "EVAL---BOOM" }
+let [[eval]] = function(s) { return throw "We do not account for eval." }
 
 let [[global]] = { [proto: null, class: "Lambda-JS global", extensible: true]
 		   "NaN": {value: NaN,
@@ -684,18 +683,3 @@ let [[freezefun]] = func(obj, name) {
 	return sf(obj, freezefun)
     }]
 }
-/*[[toNumber]]
-[[toObject]]
-[[toPrimitive]]
-[[getValue]]
-[[toInt]]
-[[>]]
-[[<]]
-[[Object.prototype]]
-[[Object]]
-[[Function]]
-[[Function.prototype]]
-[[Array]]
-[[Array.prototype]]
-[[instanceof]]
-[[in]]*/

@@ -158,6 +158,18 @@ let get_own_property_names obj = match obj with
 	ObjCell (ref (IdMap.empty, props))
   | _ -> raise (Throw (str "own-property-names"))
 
+(* Implement this here because there's no need to expose the class
+property outside of the delta function *)
+let object_to_string obj = match obj with
+  | ObjCell o -> let (attrs, props) = !o in begin try
+      match IdMap.find "class" attrs with
+	| Const (CString s) -> str ("[object " ^ s ^ "]")
+	| _ -> raise (Throw (str "object-to-string"))	
+    with Not_found -> raise (Throw (str "object-to-string"))
+    end
+  | _ -> raise (Throw (str "object-to-string"))	
+    
+
 let op1 op = match op with
   | "typeof" -> typeof
   | "surface-typeof" -> surface_typeof
@@ -171,6 +183,7 @@ let op1 op = match op with
   | "print" -> print
   | "get-proto" -> get_proto
   | "own-property-names" -> get_own_property_names
+  | "object-to-string" -> object_to_string
   | _ -> failwith ("no implementation of unary operator: " ^ op)
 
 let arith i_op f_op v1 v2 = match v1, v2 with

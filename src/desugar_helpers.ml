@@ -29,15 +29,17 @@ let rec mk_val p v =
    ("configurable", true_c p);
    ("writable", true_c p)]
 
-let rec mk_array (p, exps) = 
-  let mk_field n v = (p, string_of_int n, 
-		      mk_val p v) in
-    EObject (p, [("proto", EId (p, "[[Array_prototype]]"));
-		 ("extensible", true_c p)],
-	     List.map2 mk_field (iota (List.length exps)) exps)
-
 let rec mk_field (p, s, e) =
   (p, s, mk_val p e)
+
+let rec mk_array (p, exps) = 
+  let mk_num_field n v = (p, string_of_int n, 
+		      mk_val p v) in
+    EObject (p, [("proto", EId (p, "[[Array_prototype]]"));
+		 ("extensible", true_c p);
+		 ("class", str p "Array")],
+	     ((mk_field (p, "length", int_c p (List.length exps))) ::
+		List.map2 mk_num_field (iota (List.length exps)) exps))
 
 
 (* 10.6 *)
@@ -103,7 +105,7 @@ let rec func_object p ids lambda_exp =
 	EObject (p,
 		 [("proto", obj_proto p);
 		  ("extensible", true_c p);
-		  ("Class", EConst (p, S.CString ("Object")))],
+		  ("class", str p "Object")],
 		 [(p, "constructor", 
 		   [("value", EConst (p, S.CUndefined));
 		    ("writable", true_c p);
@@ -113,7 +115,8 @@ let rec func_object p ids lambda_exp =
 	      EObject (p,
 		       [("code", lambda_exp);
 			("proto", fun_proto p);
-			("extensible", true_c p)],
+			("extensible", true_c p);
+			("class", str p "Function")],
 		       [(p,"length", 
 			 [("value", EConst (p, S.CNum
 					      (float_of_int
@@ -136,5 +139,5 @@ let new_obj p proto_id =
   EObject (p,
 	   [("proto", EId (p, proto_id));
 	    ("extensible", true_c p);
-	    ("Class", str p "Object")],
+	    ("class", str p "Object")],
 	   [])

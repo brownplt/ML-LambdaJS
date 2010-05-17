@@ -16,7 +16,8 @@ let rec ds expr =
 	let ds_tuple (p,s,e) = (p,s,ds e) in
 	  EObject (p, 
 		   [("proto", obj_proto p);
-		    ("extensible", true_c p)],
+		    ("extensible", true_c p);
+		    ("class", str p "Object")],
 		   List.map mk_field (List.map ds_tuple exprs))
 	    
     | ThisExpr (p) -> EId (p, "this")
