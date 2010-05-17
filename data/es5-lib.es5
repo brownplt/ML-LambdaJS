@@ -1,3 +1,7 @@
+let [[global]] = {[]}
+let [[Object_prototype]] = {[]}
+let [[Function_prototype]] = {[]}
+
 let [[toBoolean]] = func(x) {
     return
     if (typeof x === "undefined") {
@@ -23,56 +27,59 @@ let [[toBoolean]] = func(x) {
 /* 9.8, but uses 8.12.8: [[DefaultValue]] hint "string" */
 let [[ToString]] = func(obj) {
     return
-    label ret :
-    if (prim("primitive?", obj)) {
-	break ret prim("prim->str", obj)
-    };
-
-	
-    let (ts = obj["toString"])
-    if (prim("is-callable", ts)) {
-	let (str = ts(obj, {[]}))
-	if (prim("primitive?", str)) {
-	    break ret prim("prim->str",str)
+    if(prim("primitive?", obj)) {
+	prim("prim->str", obj)
+    } 
+    else {
+	let (ts = obj["toString"])
+	if (prim("is-callable", ts)) {
+	    let (str = ts(obj, {[]}))
+	    if (prim("primitive?", str)) {
+		prim("prim->str",str)
+	    }
+	} 
+	else {
+	    let (vo = obj["valueOf"])
+	    if (prim("is-callable", vo)) {
+		let (val = vo(obj, {[]}))
+		if (prim("primitive?", val)) {
+		    prim("prim->str",val)
+		}
+	    } 
+	    else {
+		throw "TypeError"
+	    }
 	}
-    };
-    
-    let (vo = obj["valueOf"])
-    if (prim("is-callable", vo)) {
-	let (val = vo(obj, {[]}))
-	if (prim("primitive?", val)) {
-	    break ret prim("prim->str",val)
-	}
-    };
-    
-    throw "TypeError"
+    }
 }
 
 /* 9.3, but uses 8.12.8: [[DefaultValue]] hint "string" */
 let [[ToNumber]] = func(obj) {
     return
-    label ret :
     if(prim("primitive?", obj)) {
-	break ret prim("prim->num", obj)
-    };
-	
-    let (vo = obj["valueOf"])
-    if (prim("is-callable", vo)) {
-	let (val = vo(obj, {[]}))
-	if (prim("primitive?", val)) {
-	    break ret prim("prim->num",val)
+	prim("prim->num", obj)
+    } 
+    else {
+	let (vo = obj["valueOf"])
+	if (prim("is-callable", vo)) {
+	    let (val = vo(obj, {[]}))
+	    if (prim("primitive?", val)) {
+		prim("prim->num",val)
+	    }
+	} 
+	else {
+	    let (ts = obj["toString"])
+	    if (prim("is-callable", ts)) {
+		let (str = ts(obj, {[]}))
+		if (prim("primitive?", str)) {
+		    prim("prim->num",str)
+		}
+	    } 
+	    else {
+		throw "TypeError"
+	    }
 	}
-    };
-    
-    let (ts = obj["toString"])
-    if (prim("is-callable", ts)) {
-	let (str = ts(obj, {[]}))
-	if (prim("primitive?", str)) {
-	    break ret prim("prim->num",str)
-	}
-    };
-    
-    throw "TypeError"
+    }
 }
 
 let [[toUInt]] = func (n) { 

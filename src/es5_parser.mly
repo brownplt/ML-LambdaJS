@@ -2,12 +2,87 @@
 open Prelude
 open Es5_syntax
 open JavaScript_syntax
+open Desugar_helpers
 
 (* All free variables "x" in the environment are renamed to "[[x]]" *)
 let rename_env exp : exp  =
   let ren v exp = rename v ("[[" ^ v ^ "]]") exp in
   IdSet.fold ren (fv exp) exp
-%}
+
+(* Macros for expanding arguments objects and function objects (a
+little bit of desugaring)*)
+
+let rec mk_val p v =
+  [("value", v);
+   ("enumerable", true_c p);
+   ("configurable", true_c p);
+   ("writable", true_c p)]
+
+let rec mk_field (p, s, e) =
+  (p, s, mk_val p e)
+    
+let args_obj p arg_list = 
+  let mk_field n v = (p, string_of_int n, 
+		      mk_val p v) in
+    EObject 
+      (p, [("proto", EId (p, "Object_prototype"));
+	   ("class", str p "Arguments");
+	   ("extensible", false_c p)],
+       ((p, "length", [("value", int_c p (List.length arg_list));
+		       ("writable", false_c p);
+		       ("enumerable", false_c p);
+		       ("configurable", false_c p)]) ::
+	  (List.map2 mk_field (iota (List.length arg_list)) arg_list)))
+
+let rec func_expr_lambda p ids body =
+  let folder id ix e = 
+    ELet (p, 
+	  id,
+	  EGetFieldSurface (p, 
+			    EId (p, "args"), 
+			    EConst (p, S.CString (string_of_int ix)),
+			    args_obj p []),
+	  e) in
+    ELambda (p, 
+	     ["this"; "args"],
+	     List.fold_right2 folder ids (iota (List.length ids)) body)
+
+let rec func_object p ids lambda_exp =
+  ELet (p, "$prototype", 
+	EObject (p,
+		 [("proto", EId (p, "Object_prototype"));
+		  ("extensible", true_c p);
+		  ("Class", EConst (p, S.CString ("Object")))],
+		 [(p, "constructor", 
+		   [("value", EConst (p, S.CUndefined));
+		    ("writable", true_c p);
+		    ("enumerable", false_c p);
+		    ("configurable", true_c p)])]),
+	ELet (p, "$funobj", 
+	      EObject (p,
+		       [("code", lambda_exp);
+			("proto", EId (p, "Function_prototype"));
+			("extensible", true_c p)],
+		       [(p,"length", 
+			 [("value", EConst (p, S.CNum
+					      (float_of_int
+						 (List.length ids))));
+			  ("writable", false_c p);
+			  ("enumerable", false_c p);
+			  ("configurable", false_c p)]);
+			(p,"prototype",
+			 [("value", EId (p, "$prototype")); 
+			  ("writable", true_c p);
+			  ("configurable", false_c p);
+			  ("enumerable", false_c p)])]),
+	      ESeq (p, EUpdateFieldSurface (p, 
+					    EId (p, "$prototype"),
+					    EConst (p, S.CString ("constructor")),
+					    EId (p, "$funobj"),
+					    args_obj p [EId (p, "$funobj")]),
+		    EId (p, "$funobj"))))
+
+ %}
 
 %token <int> INT
 %token <float> NUM
@@ -91,55 +166,10 @@ atom :
  | func { $1 }
  | FUNCTION LPAREN ids RPAREN LBRACE RETURN seq_exp RBRACE
      {
-       let args = $3 in
+       let ids = $3 in
        let body = $7 in
-       let rec func_expr_lambda p ids body =
-	 let folder id ix e = 
-	   ELet (p, 
-		 id,
-		 EGetFieldSurface (p, 
-				   EId (p, "args"),
-				   EConst (p, CString (string_of_int ix))),
-		 e) in
-	   ELambda (p, 
-		    ["this"; "args"],
-		    List.fold_right2 folder ids (iota (List.length ids)) body) in
-       let true_c p = EConst (p, CBool (true)) in 
-       let false_c p = EConst (p, CBool (false)) in
        let p = ($startpos, $endpos) in
-	 ELet (p, "$prototype", 
-	       EObject (p,
-			[("proto", EId (p, "Object_prototype"));
-			 ("extensible", true_c p);
-			 ("Class", EConst (p, CString ("Object")))],
-			[(p, "constructor", 
-				   [("value", EConst (p, CUndefined));
-				    ("writable", true_c p);
-				    ("enumerable", false_c p);
-				    ("configurable", true_c p)])]),
-		     ELet (p, "$funobj", 
-			   EObject (p,
-				    [("code", func_expr_lambda p args body);
-				     ("proto", EId (p, "Function_prototype"));
-				     ("extensible", true_c p)],
-				    [(p,"length", 
-				      [("value", EConst 
-					  (p, 
-					   CNum (float_of_int
-						   (List.length args))));
-				       ("writable", false_c p);
-				       ("enumerable", false_c p);
-				       ("configurable", false_c p)]);
-				     (p,"prototype",
-				      [("value", EId (p, "$prototype")); 
-						("writable", true_c p);
-						("configurable", false_c p);
-						("enumerable", false_c p)])]),
-			   ESeq (p, EUpdateFieldSurface (p, 
-							 EId (p, "$prototype"),
-							 EConst (p, CString ("constructor")),
-						  EId (p, "$funobj")),
-				 EId (p, "$funobj"))))
+	 func_object p ids (func_expr_lambda p ids body)
      }
  | TYPEOF atom
      { EOp1 (($startpos, $endpos), Prim1 "typeof", $2) }
@@ -164,9 +194,14 @@ exp :
               EConst (p, CBool false),
               EConst (p, CBool true)) }
  | exp LBRACK seq_exp EQUALS seq_exp RBRACK
-   { EUpdateFieldSurface (($startpos, $endpos), $1, $3, $5) }
+   { let p = ($startpos, $endpos) in
+       ELet (p, "$newVal", $5,
+	     EUpdateFieldSurface (p, $1, $3, 
+				  EId (p, "$newVal"), 
+				  args_obj p [EId (p, "$newVal")])) }
  | exp LBRACK seq_exp RBRACK
-   { EGetFieldSurface (($startpos, $endpos), $1,  $3) }
+   { let p = ($startpos, $endpos) in
+     EGetFieldSurface (p, $1,  $3, args_obj p []) }
  | exp LBRACK DELETE seq_exp RBRACK
    { EDeleteField (($startpos, $endpos), $1, $4) }
 

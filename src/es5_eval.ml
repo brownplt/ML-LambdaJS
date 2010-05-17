@@ -9,6 +9,7 @@ let rec apply func args = match func with
   | _ -> failwith ("[interp] Applied non-function, was actually " ^ 
 		     pretty_value func)
 
+(*
 let rec args_obj args =
   let add_arg arg n m = IdMap.add (string_of_int n)
     (IdMap.add "value" arg 
@@ -22,21 +23,23 @@ let rec args_obj args =
     ObjCell (ref (attrs, 
 		  List.fold_right2 add_arg args
 		    (iota (List.length args)) IdMap.empty))
+*)
 
+(* args should always be a single args object *)
 let rec apply_obj o this args = match o with
   | ObjCell c -> 
       let (attrs, props) = !c in
 	begin
 	  try
 	    let code_attr = IdMap.find "code" attrs in
-	      apply code_attr (this :: args)
+	      apply code_attr [this; args]
 	  with Not_found ->
 	    failwith ("[interp] Applied an object with no code attr")
 	end
   | _ -> failwith ("[interp] apply_obj given non-object")
 	  
 
-let rec get_field obj1 obj2 field = match obj1 with
+let rec get_field obj1 obj2 field args = match obj1 with
   | Const (CNull) -> Const (CUndefined) (* nothing found *)
   | ObjCell c ->
       let (attrs, props) = !c in begin
@@ -48,11 +51,11 @@ let rec get_field obj1 obj2 field = match obj1 with
 	      with Not_found ->
 		try
 		  let getter = IdMap.find "get" prop_attrs in
-		    apply_obj getter obj2 [(args_obj [])]
+		    apply_obj getter obj2 args
 		with Not_found -> Const (CUndefined) (* No getting attributes *)
 	  with Not_found ->
 	    try
-	      get_field (IdMap.find "proto" attrs) obj2 field
+	      get_field (IdMap.find "proto" attrs) obj2 field args
 	    with Not_found ->
 	      Const (CUndefined) (* No prototype found *)
 	end
@@ -87,14 +90,14 @@ let rec not_writable prop =
 
 (* EUpdateField *)
 (* ES5 8.12.4, 8.12.5 *)
-let rec update_field obj1 obj2 field newval = match obj1 with
+let rec update_field obj1 obj2 field newval args = match obj1 with
     (* 8.12.4, step 4 *)
   | Const (CNull) -> add_field obj2 field newval
   | ObjCell c -> let (attrs, props) = !c in
       if (not (IdMap.mem field props)) then
 	if (IdMap.mem "proto" attrs) then
 	  (* EUpdateField-Proto *)
-	  update_field (IdMap.find "proto" attrs) obj2 field newval
+	  update_field (IdMap.find "proto" attrs) obj2 field newval args
 	else
 	  (* 8.12.4, step 4, sort of.  Handles if proto doesn't exist *)
 	  add_field obj2 field newval
@@ -114,7 +117,7 @@ let rec update_field obj1 obj2 field newval = match obj1 with
 	  else begin try
 	    (* 8.12.5, step 5 *)
 	    let setter = IdMap.find "set" prop in
-	      apply_obj setter obj2 [(args_obj [newval])]
+	      apply_obj setter obj2 args
 	  with Not_found -> 
 	    (* TODO: Make type error for strict. Not writable, no setter. *)
 	    Const CUndefined
@@ -133,7 +136,7 @@ let rec eval exp env = match exp with
 			     " at " ^ (string_of_position p) ^ 
 			     ", but found something else: " ^ pretty_value (IdMap.find x env))
       with Not_found ->
-	failwith ("[interp] Unbound identifier: " ^ x ^ " in get-field at " ^
+	failwith ("[interp] Unbound identifier: " ^ x ^ " in identifier lookup at " ^
 		    (string_of_position p))
     end
   | ESet (p, x, e) -> begin
@@ -144,7 +147,7 @@ let rec eval exp env = match exp with
 			     " at " ^ (string_of_position p) ^ 
 			     ", but found something else.")
       with Not_found ->
-	failwith ("[interp] Unbound identifier: " ^ x ^ " in set-field at " ^
+	failwith ("[interp] Unbound identifier: " ^ x ^ " in set! at " ^
 		    (string_of_position p))
     end
   | EObject (p, attrs, props) ->
@@ -153,24 +156,27 @@ let rec eval exp env = match exp with
 	IdMap.add name (fold_right eval_attr attrs IdMap.empty) m in
 	ObjCell (ref (fold_right eval_attr attrs IdMap.empty,
 		      fold_right eval_prop props IdMap.empty))
-  | EUpdateFieldSurface (p, obj, f, v) ->
+  | EUpdateFieldSurface (p, obj, f, v, args) ->
       let obj_value = eval obj env in
       let f_value = eval f env in
-      let v_value = eval v env in begin
+      let v_value = eval v env in 
+      let args_value = eval args env in begin
 	match (obj_value, f_value) with
 	  | (ObjCell o, Const (CString s)) ->
 	      update_field obj_value 
 		obj_value 
 		s
 		v_value
+		args_value
 	  | _ -> failwith ("[interp] Update field didn't get an object and a string")
 	end
-  | EGetFieldSurface (p, obj, f) ->
+  | EGetFieldSurface (p, obj, f, args) ->
       let obj_value = eval obj env in
-      let f_value = eval f env in begin
+      let f_value = eval f env in 
+      let args_value = eval args env in begin
 	match (obj_value, f_value) with
 	  | (ObjCell o, Const (CString s)) ->
-	      get_field obj_value obj_value s
+	      get_field obj_value obj_value s args_value
 	  | _ -> failwith ("[interp] Get field didn't get an object and a string at " ^ string_of_position p ^ ". Instead, it got " ^ pretty_value obj_value ^ " and " ^ pretty_value f_value)
 	end
   | EDeleteField (p, obj, f) ->
@@ -221,11 +227,12 @@ let rec eval exp env = match exp with
       let args_values = map (fun e -> eval e env) args in begin
 	match func_value with
 	  | ObjCell o -> 
-	      if List.length args_values < 1 then
-		failwith ("[interp] Need to provide at least a this-value at " ^ string_of_position p)
+	      if List.length args_values < 2 then
+		failwith ("[interp] Need to provide this and args for a call to a function object at " ^ string_of_position p)
 	      else
 		apply_obj func_value 
-		  (List.hd args_values) (List.tl args_values)
+		  (List.hd args_values) 
+		  (List.nth args_values 1)
 	  | Closure c -> apply func_value args_values
 	  | _ -> failwith ("[interp] Inapplicable value: " ^ pretty_value func_value ^ ", at " ^ string_of_position p)
 	end
@@ -271,8 +278,8 @@ let rec eval exp env = match exp with
 		       arity_mismatch_err p xs args
 		     else
 		     eval e (List.fold_right2 set_arg args xs env))
-  | EUpdateField (_,_,_,_,_) -> failwith ("Not implemented---EUpdateField")
-  | EGetField (_,_,_,_) -> failwith ("Not implemented---EGetField")
+  | EUpdateField (_,_,_,_,_,_) -> failwith ("Not implemented---EUpdateField")
+  | EGetField (_,_,_,_,_) -> failwith ("Not implemented---EGetField")
 
 and arity_mismatch_err p xs args = failwith ("Arity mismatch, supplied " ^ string_of_int (List.length args) ^ " arguments and expected " ^ string_of_int (List.length xs) ^ " at " ^ string_of_position p ^ ". Arg names were: " ^ (List.fold_right (^) (map (fun s -> " " ^ s ^ " ") xs) "") ^ ". Values were: " ^ (List.fold_right (^) (map (fun v -> " " ^ pretty_value v ^ " ") args) ""))
 

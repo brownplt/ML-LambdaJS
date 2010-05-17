@@ -17,10 +17,10 @@ type exp =
   | EId of pos * id
   | EObject of pos * (string * exp) list *
 	       (pos * string * (string * exp) list) list
-  | EUpdateFieldSurface of pos * exp * exp * exp
-  | EGetFieldSurface of pos * exp * exp
-  | EUpdateField of pos * exp * exp * exp * exp
-  | EGetField of pos * exp * exp * exp
+  | EUpdateFieldSurface of pos * exp * exp * exp * exp
+  | EGetFieldSurface of pos * exp * exp * exp
+  | EUpdateField of pos * exp * exp * exp * exp * exp
+  | EGetField of pos * exp * exp * exp * exp
   | EDeleteField of pos * exp * exp
   | ESet of pos * id * exp
   | EOp1 of pos * op1 * exp
@@ -49,14 +49,14 @@ let rename (x : id) (y : id) (exp : exp) : exp =
 	let ren_attr (name, value) = (name, ren value) in
 	let ren_field (p, name, attrs) = (p, name, map ren_attr attrs) in
 	  EObject (p, map ren_attr attrs, map ren_field fields)
-    | EUpdateFieldSurface (p, o, e1, e2) ->
-	EUpdateFieldSurface (p, ren o, ren e1, ren e2)
-    | EUpdateField (p, o1, o2, e1, e2) -> 
-	EUpdateField (p, ren o1, ren o2, ren e1, ren e2)
-    | EGetFieldSurface (p, o, e) ->
-	EGetFieldSurface (p, ren o, ren e)
-    | EGetField (p, o1, o2, e) ->
-	EGetField (p, ren o1, ren o2, ren e)
+    | EUpdateFieldSurface (p, o, e1, e2, args) ->
+	EUpdateFieldSurface (p, ren o, ren e1, ren e2, ren args)
+    | EUpdateField (p, o1, o2, e1, e2, args) -> 
+	EUpdateField (p, ren o1, ren o2, ren e1, ren e2, ren args)
+    | EGetFieldSurface (p, o, e, args) ->
+	EGetFieldSurface (p, ren o, ren e, ren args)
+    | EGetField (p, o1, o2, e, args) ->
+	EGetField (p, ren o1, ren o2, ren e, ren args)
     | EDeleteField (p, o, e) ->
 	EDeleteField (p, ren o, ren e)
     | EOp1 (p, o, e) -> EOp1 (p, o, ren e)
@@ -91,14 +91,14 @@ let rec fv (exp : exp) : IdSet.t = match exp with
       let field (p, name, attrs) = 
 	IdSetExt.unions (map attr attrs) in
 	IdSetExt.unions (List.append (map attr attrs) (map field fields))
-  | EUpdateField (_, o1, o2, e1, e2) -> 
-      IdSetExt.unions (map fv [o1; o2; e1; e2])
-  | EGetField (_, o1, o2, e) ->
-      IdSetExt.unions (map fv [o1; o2; e])
-  | EUpdateFieldSurface (_, o, e1, e2) -> 
-      IdSetExt.unions (map fv [o; e1; e2])
-  | EGetFieldSurface (_, o, e) ->
-      IdSetExt.unions (map fv [o; e])
+  | EUpdateField (_, o1, o2, e1, e2, args) -> 
+      IdSetExt.unions (map fv [o1; o2; e1; e2; args])
+  | EGetField (_, o1, o2, e, args) ->
+      IdSetExt.unions (map fv [o1; o2; e; args])
+  | EUpdateFieldSurface (_, o, e1, e2, args) -> 
+      IdSetExt.unions (map fv [o; e1; e2; args])
+  | EGetFieldSurface (_, o, e, args) ->
+      IdSetExt.unions (map fv [o; e; args])
   | EDeleteField (_, o, e) -> IdSet.union (fv o) (fv e)
   | EOp1 (_, _, e) -> fv e
   | EOp2 (_, _, e1, e2) -> IdSet.union (fv e1) (fv e2)
