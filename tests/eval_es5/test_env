@@ -1,4 +1,4 @@
-let [[assert]] = function(passed, testname) {
+let [[assert]] = func(passed, testname) {
     return
     prim("print",testname);
     if(passed === true) {
@@ -9,6 +9,12 @@ let [[assert]] = function(passed, testname) {
     }
 }
 
+let [[assertobj]] = function(passed, testname) {
+    return
+    assert(passed, testname)
+}
+
 {
-    global["assert" = assert]
+    global["assert" = assert];
+    global["assertobj" = assertobj]
 }

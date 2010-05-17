@@ -26,7 +26,7 @@ let rec ds expr =
     | IdExpr (p, x) -> EId (p, x)
 
     | BracketExpr (p, obj, f) ->
-	EGetFieldSurface (p, to_object p (ds obj), to_string p (ds f), args_obj p [])
+	EGetFieldSurface (p, to_object p (ds obj), to_string p (ds f), args_thunk p [])
 	  
     | AssignExpr (p1, VarLValue (p2, x), e) ->
 	ESet (p1, x, ds e)
@@ -37,7 +37,7 @@ let rec ds expr =
 				   to_object p2 (ds obj),
 				   to_string p2 (ds f), 
 				   EId (p1, "$newVal"),
-				   args_obj p1 [EId (p1, "$newVal")]))
+				   args_thunk p1 [EId (p1, "$newVal")]))
 
     (* 11.2.2 *)
     | NewExpr (p, e, args) ->
@@ -46,7 +46,7 @@ let rec ds expr =
 		    EGetFieldSurface (p,
 				      EId (p, "$constructor"),
 				      str p "prototype",
-				      args_obj p []),
+				      args_thunk p []),
 		    ELet (p,
 			  "$newObj", 
 			  new_obj p "$proto",
@@ -55,7 +55,7 @@ let rec ds expr =
 				EApp (p, 
 				      EId (p, "$constructor"),
 				      [EId (p, "$newObj");
-				       args_obj p (map ds args)]),
+				       args_obj p (map ds args) (EId (p, "$constructor"))]),
 				EIf (p, 
 				     EOp2 (p, 
 					   Prim2 ("stx="),
@@ -79,12 +79,14 @@ let rec ds expr =
 
     | AppExpr (p, BracketExpr (p', obj, prop), es) ->
 	ELet (p, "$obj", ds obj,
-	      ELet (p, "$fun", EGetFieldSurface (p', EId (p, "$obj"), ds prop, args_obj p []),
+	      ELet (p, "$fun", EGetFieldSurface (p', EId (p, "$obj"), ds prop, args_thunk p []),
 		    EApp (p, EId (p', "$fun"),
-			  [EId (p', "$obj"); args_obj p (map ds es)])))
+			  [EId (p', "$obj"); args_obj p (map ds es) (EId (p, "$fun"))])))
 	  
     | AppExpr (p, func, es) ->
-	EApp (p, ds func, map ds es)
+	ELet (p, "$fun", ds func,
+	      EApp (p, EId (p, "$fun"),
+		    [EId (p, "[[global]]"); args_obj p (map ds es) (EId (p, "$fun"))]))
 
     | FuncExpr (p, ids, body) ->
 	func_object p ids (func_expr_lambda p ids (var_lift body))
@@ -318,35 +320,15 @@ and uint_uint p op e1 e2 =
         EApp (p, EId (p, "[[toUInt]]"), [ ds_op e2 ]))
 
 let rec ds_global exp env = match exp with
-  | EApp (p, EId (p', x), es) -> begin
-      try
-	if IdMap.find x env
-	then EApp (p, EId (p', x), map (fun e -> ds_global e env) es)
-	else ELet (p, "$funobj", EGetFieldSurface (p, 
-						   EId (p, "[[global]]"), 
-						   str p x,
-						   args_obj p []),
-		   EApp (p, EId (p, "$funobj"), 
-			 [EId (p, "$funobj");
-			  args_obj p (map (fun e -> ds_global e env) es)]))
-      with Not_found -> ELet (p, "$funobj", 
-			      EGetFieldSurface (p, 
-						EId (p, "[[global]]"), 
-						str p x, 
-						args_obj p []),
-			      EApp (p, EId (p, "$funobj"), 
-				    [EId (p, "$funobj");
-				     args_obj p (map (fun e -> ds_global e env) es)]))
-    end
   | EApp (p, e, es) ->
       EApp (p, ds_global e env, map (fun e -> ds_global e env) es)
   | EId (p, x) -> begin
       try
 	if IdMap.find x env 
 	then EId (p, x)
-	else EGetFieldSurface (p, EId (p, "[[global]]"), str p x, args_obj p [])
+	else EGetFieldSurface (p, EId (p, "[[global]]"), str p x, args_thunk p [])
       with Not_found ->
-	EGetFieldSurface (p, EId (p, "[[global]]"), str p x, args_obj p [])
+	EGetFieldSurface (p, EId (p, "[[global]]"), str p x, args_thunk p [])
     end
   | ESet (p, x, e) -> begin
       try
@@ -358,14 +340,14 @@ let rec ds_global exp env = match exp with
 				     EId (p, "[[global]]"), 
 				     str p x, 
 				     EId (p, "$newVal"), 
-				     args_obj p [EId (p, "$newVal")]))
+				     args_thunk p [EId (p, "$newVal")]))
       with Not_found ->
 	ELet (p, "$newVal", ds_global e env,
 	      EUpdateFieldSurface (p, 
 				   EId (p, "[[global]]"), 
 				   str p x, 
 				   EId (p, "$newVal"), 
-				   args_obj p [EId (p, "$newVal")]))
+				   args_thunk p [EId (p, "$newVal")]))
     end
   | ELambda (p, ids, e) ->
       let new_env = fold_left (fun env x -> IdMap.add x true env) env ids in

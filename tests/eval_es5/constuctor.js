@@ -4,4 +4,4 @@ constr = function() {
 
 a = new constr();
 
-assert((a.x === 5 && a instanceof constr && a instanceof Object), "constructor");
+assertobj((a.x === 5 && a instanceof constr && a instanceof Object), "constructor");

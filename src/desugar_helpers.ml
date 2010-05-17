@@ -39,22 +39,38 @@ let rec mk_array (p, exps) =
 let rec mk_field (p, s, e) =
   (p, s, mk_val p e)
 
-let args_obj p arg_list = 
+
+(* 10.6 *)
+let args_obj p arg_list callee = 
   let mk_field n v = (p, string_of_int n, 
 		      mk_val p v) in
     EObject 
+      (* 10.6 steps 4, 6 *)
       (p, [("proto", obj_proto p);
 	   ("class", str p "Arguments");
 	   ("extensible", false_c p)],
+       (* 10.6 steps 1, 7 *)
        ((p, "length", [("value", int_c p (List.length arg_list));
 		       ("writable", false_c p);
 		       ("enumerable", false_c p);
-		       ("configurable", false_c p)]) ::
+		       ("configurable", false_c p)]);
+	(* 10.6 step 13a *)
+	(p, "callee", [("value", callee);
+		       ("configurable",  true_c p);
+		       ("enumerable", false_c p);
+		       ("writable", true_c p)])::
 	  (List.map2 mk_field (iota (List.length arg_list)) arg_list)))
+
+
+(* Used by getters and setters---the function will be known at
+runtime *)
+let args_thunk p arg_list = 
+  ELambda (p, ["func"],
+	   args_obj p arg_list (EId (p, "func")))
+
 
 (* Same idea as in original \JS --- use the args array *)
 (* In strict mode, we aren't supposed to access the args array... *)
-
 let rec func_expr_lambda p ids body =
   let folder id ix e = 
     ELet (p, 
@@ -62,7 +78,7 @@ let rec func_expr_lambda p ids body =
 	  EGetFieldSurface (p, 
 			    EId (p, "args"), 
 			    EConst (p, S.CString (string_of_int ix)),
-			    args_obj p []),
+			    args_thunk p []),
 	  e) in
     ELambda (p, 
 	     ["this"; "args"],
@@ -114,7 +130,7 @@ let rec func_object p ids lambda_exp =
 					    EId (p, "$prototype"),
 					    EConst (p, S.CString ("constructor")),
 					    EId (p, "$funobj"),
-					    args_obj p [EId (p, "$funobj")]),
+					    args_thunk p [EId (p, "$funobj")]),
 		    EId (p, "$funobj"))))
 let new_obj p proto_id = 
   EObject (p,

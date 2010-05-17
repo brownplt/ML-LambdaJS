@@ -21,7 +21,7 @@ let rec mk_val p v =
 let rec mk_field (p, s, e) =
   (p, s, mk_val p e)
     
-let args_obj p arg_list = 
+let args_obj p arg_list callee = 
   let mk_field n v = (p, string_of_int n, 
 		      mk_val p v) in
     EObject 
@@ -31,8 +31,21 @@ let args_obj p arg_list =
        ((p, "length", [("value", int_c p (List.length arg_list));
 		       ("writable", false_c p);
 		       ("enumerable", false_c p);
-		       ("configurable", false_c p)]) ::
+		       ("configurable", false_c p)]);
+		(* 10.6 step 13a *)
+	(p, "callee", [("value", callee);
+		       ("configurable",  true_c p);
+		       ("enumerable", false_c p);
+		       ("writable", true_c p)])::
 	  (List.map2 mk_field (iota (List.length arg_list)) arg_list)))
+
+
+(* Used by getters and setters---the function will be known at
+runtime *)
+let args_thunk p arg_list = 
+  ELambda (p, ["func"],
+	   args_obj p arg_list (EId (p, "func")))
+
 
 let rec func_expr_lambda p ids body =
   let folder id ix e = 
@@ -41,7 +54,7 @@ let rec func_expr_lambda p ids body =
 	  EGetFieldSurface (p, 
 			    EId (p, "args"), 
 			    EConst (p, S.CString (string_of_int ix)),
-			    args_obj p []),
+			    args_thunk p []),
 	  e) in
     ELambda (p, 
 	     ["this"; "args"],
@@ -79,7 +92,7 @@ let rec func_object p ids lambda_exp =
 					    EId (p, "$prototype"),
 					    EConst (p, S.CString ("constructor")),
 					    EId (p, "$funobj"),
-					    args_obj p [EId (p, "$funobj")]),
+					    args_thunk p [EId (p, "$funobj")]),
 		    EId (p, "$funobj"))))
 
  %}
@@ -198,10 +211,10 @@ exp :
        ELet (p, "$newVal", $5,
 	     EUpdateFieldSurface (p, $1, $3, 
 				  EId (p, "$newVal"), 
-				  args_obj p [EId (p, "$newVal")])) }
+				  args_thunk p [EId (p, "$newVal")])) }
  | exp LBRACK seq_exp RBRACK
    { let p = ($startpos, $endpos) in
-     EGetFieldSurface (p, $1,  $3, args_obj p []) }
+     EGetFieldSurface (p, $1,  $3, args_thunk p []) }
  | exp LBRACK DELETE seq_exp RBRACK
    { EDeleteField (($startpos, $endpos), $1, $4) }
 

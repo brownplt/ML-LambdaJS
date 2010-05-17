@@ -35,7 +35,7 @@ let rec get_field obj1 obj2 field args = match obj1 with
 	      with Not_found ->
 		try
 		  let getter = IdMap.find "get" prop_attrs in
-		    apply_obj getter obj2 args
+		    apply_obj getter obj2 (apply args [getter])
 		with Not_found -> Const (CUndefined) (* No getting attributes *)
 	  with Not_found ->
 	    try
@@ -101,7 +101,7 @@ let rec update_field obj1 obj2 field newval args = match obj1 with
 	  else begin try
 	    (* 8.12.5, step 5 *)
 	    let setter = IdMap.find "set" prop in
-	      apply_obj setter obj2 args
+	      apply_obj setter obj2 (apply args [setter])
 	  with Not_found -> 
 	    (* TODO: Make type error for strict. Not writable, no setter. *)
 	    Const CUndefined

@@ -8,4 +8,4 @@ test = function() {
 
 };
 
-assert(test(), "plus-simple");
+assertobj(test(), "plus-simple");
