@@ -96,9 +96,6 @@ let [[toUInt]] = func (n) {
     return ToNumber(n)
 }
 
-let [[in]] = func(obj, field) {
-    return false
-}
 
 let [[Object_prototype]] = 
     {[proto: null, extensible: true, class: "Object"]
@@ -618,6 +615,10 @@ let [[hasProperty]] = func(obj, field) {
     else {
 	prim("has-property", obj, ToString(field))
     }
+}
+
+let [[in]] = func(obj, field) {
+    return hasProperty(obj, field)
 }
 
 
