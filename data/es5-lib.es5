@@ -1,3 +1,13 @@
+/*  This file is written in a version of Lambda-JS designed for ES5.
+ *  It is parsed and used as the initial environment for desugared
+ *  JavaScript source.  It implements several built-in objects
+ *  (Chapter 15 of the specification), and also numerous other
+ *  functions defined in the spec, including type conversions and the
+ *  expansion of implicit behaviors in operators like +.  There are
+ *  also implementations of functions that exhibit the object model of
+ *  ES5, like defineProperty and getOwnPropertyDescriptor */
+
+
 let [[global]] = {[]}
 let [[Object_prototype]] = {[]}
 let [[Function_prototype]] = {[]}
@@ -683,3 +693,4 @@ let [[freezefun]] = func(obj, name) {
 	return sf(obj, freezefun)
     }]
 }
+
