@@ -4,4 +4,4 @@ do {
     x++;
 }while(x<5);
 
-assert(x == 5, "do-while");
+assertobj(x == 5, "do-while");

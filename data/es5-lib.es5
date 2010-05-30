@@ -1,3 +1,17 @@
+/*  This file is written in a version of Lambda-JS designed for ES5.
+ *  It is parsed and used as the initial environment for desugared
+ *  JavaScript source.  It implements several built-in objects
+ *  (Chapter 15 of the specification), and also numerous other
+ *  functions defined in the spec, including type conversions and the
+ *  expansion of implicit behaviors in operators like +.  There are
+ *  also implementations of functions that exhibit the object model of
+ *  ES5, like defineProperty and getOwnPropertyDescriptor */
+
+
+let [[global]] = {[]}
+let [[Object_prototype]] = {[]}
+let [[Function_prototype]] = {[]}
+
 let [[toBoolean]] = func(x) {
     return
     if (typeof x === "undefined") {
@@ -23,56 +37,59 @@ let [[toBoolean]] = func(x) {
 /* 9.8, but uses 8.12.8: [[DefaultValue]] hint "string" */
 let [[ToString]] = func(obj) {
     return
-    label ret :
-    if (prim("primitive?", obj)) {
-	break ret prim("prim->str", obj)
-    };
-
-	
-    let (ts = obj["toString"])
-    if (prim("is-callable", ts)) {
-	let (str = ts(obj, {[]}))
-	if (prim("primitive?", str)) {
-	    break ret prim("prim->str",str)
+    if(prim("primitive?", obj)) {
+	prim("prim->str", obj)
+    } 
+    else {
+	let (ts = obj["toString"])
+	if (prim("is-callable", ts)) {
+	    let (str = ts(obj, {[]}))
+	    if (prim("primitive?", str)) {
+		prim("prim->str",str)
+	    }
+	} 
+	else {
+	    let (vo = obj["valueOf"])
+	    if (prim("is-callable", vo)) {
+		let (val = vo(obj, {[]}))
+		if (prim("primitive?", val)) {
+		    prim("prim->str",val)
+		}
+	    } 
+	    else {
+		throw "TypeError"
+	    }
 	}
-    };
-    
-    let (vo = obj["valueOf"])
-    if (prim("is-callable", vo)) {
-	let (val = vo(obj, {[]}))
-	if (prim("primitive?", val)) {
-	    break ret prim("prim->str",val)
-	}
-    };
-    
-    throw "TypeError"
+    }
 }
 
-/* 9.3, but uses 8.12.8: [[DefaultValue]] hint "string" */
+/* 9.3, but uses 8.12.8: [[DefaultValue]] hint "number" */
 let [[ToNumber]] = func(obj) {
     return
-    label ret :
     if(prim("primitive?", obj)) {
-	break ret prim("prim->num", obj)
-    };
-	
-    let (vo = obj["valueOf"])
-    if (prim("is-callable", vo)) {
-	let (val = vo(obj, {[]}))
-	if (prim("primitive?", val)) {
-	    break ret prim("prim->num",val)
+	prim("prim->num", obj)
+    } 
+    else {
+	let (vo = obj["valueOf"])
+	if (prim("is-callable", vo)) {
+	    let (val = vo(obj, {[]}))
+	    if (prim("primitive?", val)) {
+		prim("prim->num",val)
+	    }
+	} 
+	else {
+	    let (ts = obj["toString"])
+	    if (prim("is-callable", ts)) {
+		let (str = ts(obj, {[]}))
+		if (prim("primitive?", str)) {
+		    prim("prim->num",str)
+		}
+	    } 
+	    else {
+		throw "TypeError"
+	    }
 	}
-    };
-    
-    let (ts = obj["toString"])
-    if (prim("is-callable", ts)) {
-	let (str = ts(obj, {[]}))
-	if (prim("primitive?", str)) {
-	    break ret prim("prim->num",str)
-	}
-    };
-    
-    throw "TypeError"
+    }
 }
 
 let [[toUInt]] = func (n) { 
@@ -80,13 +97,9 @@ let [[toUInt]] = func (n) {
 }
 
 
-
-let [[in]] = func(obj, field) {
-    return false
-}
-
 let [[Object_prototype]] = 
-    {[proto: null, extensible: true, class: "Object"]}
+    {[proto: null, extensible: true, class: "Object"]
+    toString: {value: function() { return prim("object-to-string", this) }}}
 
 let [[Function_prototype]] = 
     {[proto: Object_prototype, extensible: true, class: "Function"]}
@@ -285,7 +298,7 @@ let [[Object]] =
 
 let [[Array_prototype]] = {[proto: Object_prototype, extensible: true, class: "Array"]}
 
-let [[eval]] = function(s) { return throw "EVAL---BOOM" }
+let [[eval]] = function(s) { return throw "We do not account for eval." }
 
 let [[global]] = { [proto: null, class: "Lambda-JS global", extensible: true]
 		   "NaN": {value: NaN,
@@ -604,6 +617,10 @@ let [[hasProperty]] = func(obj, field) {
     }
 }
 
+let [[in]] = func(obj, field) {
+    return hasProperty(obj, field)
+}
+
 
 {
     global["hasProperty" = has_property]
@@ -677,18 +694,4 @@ let [[freezefun]] = func(obj, name) {
 	return sf(obj, freezefun)
     }]
 }
-/*[[toNumber]]
-[[toObject]]
-[[toPrimitive]]
-[[getValue]]
-[[toInt]]
-[[>]]
-[[<]]
-[[Object.prototype]]
-[[Object]]
-[[Function]]
-[[Function.prototype]]
-[[Array]]
-[[Array.prototype]]
-[[instanceof]]
-[[in]]*/
+

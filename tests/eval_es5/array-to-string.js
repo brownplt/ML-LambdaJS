@@ -1,0 +1,1 @@
+assertobj([]["toString"]() === "[object Array]", "array-to-string");

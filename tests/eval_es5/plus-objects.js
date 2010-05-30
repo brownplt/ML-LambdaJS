@@ -9,4 +9,4 @@ test = function() {
 	    ("5" + { toString: function() { return 6; }} == "56"));
 };
 
-assert(test(), "plus-objects.js");
+assertobj(test(), "plus-objects.js");
