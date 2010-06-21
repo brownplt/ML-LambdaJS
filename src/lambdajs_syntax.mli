@@ -45,6 +45,7 @@ val desugar : Exprjs_syntax.expr -> exp
 module Pretty : sig
   val p_op1 : op1 -> printer
   val p_op2 : op2 -> printer
+  val p_exp : exp -> printer
 end 
 
 val fv : exp -> IdSet.t

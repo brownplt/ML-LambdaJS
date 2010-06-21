@@ -198,7 +198,7 @@ module Pretty = struct
     
   let p_op1 op = match op with
     | Op1Prefix o -> text ("unsafe-" ^ o)
-    | Deref -> text "deref"
+    | Deref -> text "!"
     | Ref -> text "ref"
     | Prim1 s -> text s
 
@@ -207,8 +207,45 @@ module Pretty = struct
     | UnsafeGetField -> text "unsafe-get-field"
     | GetField -> text "get-field"
     | DeleteField -> text "delete-field"
-    | SetRef -> text "set-ref"
+    | SetRef -> text ":="
     | Prim2 s -> text s
+
+  let rec p_exp exp = match exp with
+    | EConst (_, c) -> JavaScript.Pretty.p_const c
+    | EId (_, x) -> text x
+    | EObject (_, flds) ->
+        let p_fld (_, s, e) = horz [ text s; text ":"; p_exp e ] in
+          braces (vert (map p_fld flds))
+    | EUpdateField (_, e1, e2, e3) ->
+        horz [ p_exp e1; brackets (horz [ p_exp e2; text "="; p_exp e3 ]) ]
+    | EOp1 (_, op, e) -> squish [ p_op1 op; p_exp e ]
+    | EOp2 (_, op, e1, e2) -> horz [ p_exp e1; p_op2 op; p_exp e2 ]
+    | EIf (_, e1, e2, e3) -> 
+        vert [ horz [ text "if"; parens (p_exp e1) ];
+               braces (p_exp e2);
+               braces (p_exp e3) ]
+  | EApp (_, e, es) -> 
+      horz [ p_exp e; parens (horz (map p_exp es)) ]
+  | ESeq (_, e1, e2) ->
+      vert [ squish [ p_exp e1; text ";" ]; p_exp e2 ]
+  | ELet (_, x, e1, e2) -> 
+      vert [ horz [ text "let"; text x; text "="; p_exp e1; text "in" ];
+             p_exp e2 ]
+  | EFix (_, binds, body) ->
+      let p_bind (x, e) = horz [ text x; text "="; p_exp e ] in
+        vert [ horz [ text "fix"; vert (map p_bind binds) ]; 
+               horz [ text "in"; p_exp body ] ]
+  | ELabel (_, x, e) ->  horz [ text x; text ":"; braces (p_exp e) ]
+  | EBreak (_, x, e) -> horz [ text "break"; text x; braces (p_exp e) ]
+  | ETryCatch (_, e1, e2) -> 
+      vert [ text "try"; braces (p_exp e1); text "catch"; braces (p_exp e2) ]
+  | ETryFinally (_, e1, e2) -> 
+      vert [ text "try"; braces (p_exp e1); text "catch"; braces (p_exp e2) ]
+  | EThrow (_, e) -> horz [ text "throw"; p_exp e ]
+  | ELambda (_, xs, e) ->
+      vert [ horz [ text "func"; parens (vert (map text xs)) ];
+             braces (p_exp e) ]
+
 
 end
     

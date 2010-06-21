@@ -39,12 +39,25 @@ let load_file (path : string) : unit =
 let desugar () : unit =
   srcLJS := Lambdajs_desugar.desugar_op !srcLJS
 
+let action_eval () : unit =
+  desugar ();
+  let _ = Lambdajs_eval.evaluate !srcLJS in
+    printf "Done.\n"
+
 let set_env (s : string) =
   srcLJS := enclose_in_env (parse_env (open_in s) s) !srcLJS
 
 let action_cps () : unit =
   let cpslambdajs = Lambdajs_cps.cps !srcLJS in
     Lambdajs_cps.p_cpsexp cpslambdajs std_formatter
+
+let action_fv () : unit =
+  desugar ();
+  let fv = Lambdajs_syntax.fv !srcLJS in
+    IdSetExt.p_set FormatExt.text fv std_formatter
+
+let action_pretty () : unit = 
+    Lambdajs_syntax.Pretty.p_exp !srcLJS std_formatter
 
 let action_operators () : unit =
   let ops = operators !srcLJS in
@@ -62,21 +75,18 @@ let main () : unit =
     [ 
       ("-js", Arg.String load_js,
        "<file> Load <file> as JavaScript");
-
       ("-jsl", Arg.String load_lambdajs,
        "Load <file> as LambdaJS");
-
       ("-env", Arg.String set_env,
       "<file> load <file> as environment");
-
       ("-full-desugar", Arg.Unit (set_action desugar), "like it says");
-
       ("-operators", Arg.Unit (set_action action_operators),
        "list operators used");
-
-       ("-cps", Arg.Unit (set_action action_cps),
+      ("-fv", Arg.Unit (set_action action_fv), "compute free variables");
+      ("-pp", Arg.Unit (set_action action_pretty), "pretty-print");
+      ("-cps", Arg.Unit (set_action action_cps),
        "convert program to CPS");
-
+      ("-eval", Arg.Unit (set_action action_eval), "like it says")
     ]
     load_file
     "Usage: jsc <action> [path] ...";;

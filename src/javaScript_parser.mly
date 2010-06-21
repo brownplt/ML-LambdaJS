@@ -81,7 +81,6 @@ catches
   : { [] }
   | catch catches { $1 :: $2 }
 
-
 ids
   : { [] }
   | Id { [$1] }

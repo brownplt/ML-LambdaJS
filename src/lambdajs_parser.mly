@@ -1,7 +1,7 @@
 %{
 open Prelude
 open Lambdajs_syntax
-open  JavaScript_syntax
+open JavaScript_syntax
 
 (* All free variables "x" in the environment are renamed to "[[x]]" *)
 let rename_env exp : exp  =

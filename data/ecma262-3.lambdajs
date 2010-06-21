@@ -173,8 +173,6 @@ fix [[getValue]] = func (x) {
 
 let [[toPrimitive]] = toPrimitive_Number
 
-let [[global]] = ref { }
-
 let [[Object_prototype]] = ref { 
   __proto__ : null,
   __class__ : "Object"
@@ -186,6 +184,8 @@ let [[Function_prototype]] = ref {
   __string__ : "function() { }",
   length : 0
 }
+
+let [[global]] = ref { }
 
 // Now that both Object_prototype and Function_prototype are bound, we can
 // use the function() { } syntax (instead of func() { }) to create function

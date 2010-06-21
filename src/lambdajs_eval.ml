@@ -211,10 +211,6 @@ module Delta = struct
     | "has-own-property?" -> has_own_property
     | _ -> failwith ("no implementation of binary operator: " ^ op)
 
-
-
-
-
 end
 
 let init_bind (x, _) env' = IdMap.add x (ref undef) env'
@@ -239,7 +235,11 @@ let rec eval env exp = match exp with
   | EConst (_, c) -> Const c
   | EId (p, x) ->
       begin try !(IdMap.find x env)
-      with Not_found -> failwith ("unbound identifier " ^ x)
+      with Not_found -> 
+        let env_str = FormatExt.to_string
+          (fun s -> FormatExt.horz (map FormatExt.text (IdMapExt.keys s)))
+          env in
+        failwith ("unbound identifier " ^ x ^ " in environment " ^ env_str)
       end
   | EObject (_, fields) ->
       let eval_field (_, x, e) map = IdMap.add x (eval env e) map in
@@ -316,3 +316,5 @@ let rec eval env exp = match exp with
         | SetRef, Cell c, v -> c := v; (Cell c)
         | Prim2 op, v1, v2 -> Delta.op2 op v1 v2
       end
+
+let evaluate exp = eval IdMap.empty exp
