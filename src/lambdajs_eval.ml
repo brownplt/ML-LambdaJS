@@ -302,6 +302,7 @@ let rec eval env exp = match exp with
       begin match op, eval env e with
         | Op1Prefix s, _ -> failwith ("unelaborated operator: " ^ s)
         | Deref, Cell c -> !c
+        | Deref, _ -> failwith "attempt to dereference a non-location"
         | Ref, v -> Cell (ref v)
         | Prim1 op, v -> Delta.op1 op v
       end

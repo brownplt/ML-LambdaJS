@@ -17,7 +17,7 @@ fails=0
 
 function run_test {
   tests=`expr $tests + 1`
-  $P/build/jsc.d.byte  -file $1 -env $P/data/ecma262-3.lambdajs -eval \
+  $P/build/jsc.d.byte  -js $1 -env $P/data/ecma262-3.lambdajs -eval \
     || fails=`expr $fails + 1`
 }
 
