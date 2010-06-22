@@ -6,6 +6,7 @@ type attr =
   | Setter
   | Config
   | Writable
+  | Enumerable
 
 type op1 = 
   | Op1Prefix of id

@@ -123,6 +123,7 @@ rule token = parse
    | ":getter" { GETTER }
    | ":writable" { WRITABLE }
    | ":value" { VALUE }
+   | ":enum" { ENUM }
 
    | ident as x { ID x }
  
