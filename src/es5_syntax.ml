@@ -6,7 +6,15 @@ type attr =
   | Setter
   | Config
   | Writable
-  | Enumerable
+  | Enum
+
+(* Borrowed from prelude *)
+module AttrOrderedType = struct
+  type t = attr
+  let compare = Pervasives.compare
+end
+
+module AttrMap = Map.Make (AttrOrderedType)
 
 type op1 = 
   | Op1Prefix of id
