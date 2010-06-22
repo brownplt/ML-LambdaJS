@@ -29,4 +29,3 @@ let pretty_value v = match v with
     end
   | Closure c -> "function"
   | ObjCell o -> "object"
-  | _ -> failwith ("Only prims defined")
