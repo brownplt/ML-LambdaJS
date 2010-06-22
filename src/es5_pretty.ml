@@ -5,6 +5,12 @@ module S = JavaScript_syntax
 open Format
 open FormatExt
 
+let pretty_attr a = match a with
+  | Writable -> ":writable"
+  | Setter -> ":setter"
+  | Getter -> ":getter"
+  | Value -> ":value"
+  | Config -> ":config"
 
 let rec exp e = match e with
   | EConst (_, c) -> const c
@@ -42,6 +48,19 @@ let rec exp e = match e with
 		 [text "delete-field";
 		 exp o1;
 		 exp f])
+  | EAttr (p, a, o, f) ->
+      parens (horz
+		[text "attr-get";
+		 text (pretty_attr a);
+		 exp o;
+		 exp f])
+  | ESetAttr (p, a, o, f, v) ->
+      parens (horz 
+		[text "attr-get";
+		 text (pretty_attr a);
+		 exp o;
+		 exp f;
+		 exp v])
   | ESet (p, x, e) ->
       parens (horz
 		[text "set!";

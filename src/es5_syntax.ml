@@ -1,5 +1,12 @@
 open Prelude
 
+type attr =
+  | Value
+  | Getter
+  | Setter
+  | Config
+  | Writable
+
 type op1 = 
   | Op1Prefix of id
   | Prim1 of string
@@ -16,9 +23,11 @@ type exp =
   | EConst of pos * JavaScript_syntax.const
   | EId of pos * id
   | EObject of pos * (string * exp) list *
-	       (pos * string * (string * exp) list) list
+      (pos * string * (string * exp) list) list
   | EUpdateFieldSurface of pos * exp * exp * exp * exp
   | EGetFieldSurface of pos * exp * exp * exp
+  | EAttr of pos * attr * exp * exp (* Never looks at proto *)
+  | ESetAttr of pos * attr * exp * exp * exp (* Always looks at proto *)
   | EUpdateField of pos * exp * exp * exp * exp * exp
   | EGetField of pos * exp * exp * exp * exp
   | EDeleteField of pos * exp * exp
@@ -59,6 +68,10 @@ let rename (x : id) (y : id) (exp : exp) : exp =
 	EGetField (p, ren o1, ren o2, ren e, ren args)
     | EDeleteField (p, o, e) ->
 	EDeleteField (p, ren o, ren e)
+    | EAttr (p, a, o, f) ->
+	EAttr (p, a, ren o, ren f)
+    | ESetAttr (p, a, o, f, v) ->
+	ESetAttr (p, a, ren o, ren f, ren v)
     | EOp1 (p, o, e) -> EOp1 (p, o, ren e)
     | EOp2 (p, o, e1, e2) -> EOp2 (p, o, ren e1, ren e2)
     | EOp3 (p, o, e1, e2, e3) -> EOp3 (p, o, ren e1, ren e2, ren e3)
@@ -100,6 +113,10 @@ let rec fv (exp : exp) : IdSet.t = match exp with
   | EGetFieldSurface (_, o, e, args) ->
       IdSetExt.unions (map fv [o; e; args])
   | EDeleteField (_, o, e) -> IdSet.union (fv o) (fv e)
+  | EAttr (_, _, o, f) ->
+      IdSetExt.unions (map fv [o; f])
+  | ESetAttr (_, _, o, f, v) ->
+      IdSetExt.unions (map fv [o; f; v])
   | EOp1 (_, _, e) -> fv e
   | EOp2 (_, _, e1, e2) -> IdSet.union (fv e1) (fv e2)
   | EOp3 (_, _, e1, e2, e3) -> IdSetExt.unions (map fv [e1; e2; e3])

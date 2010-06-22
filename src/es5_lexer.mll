@@ -89,6 +89,8 @@ rule token = parse
    | "delete" { DELETE }
    | "[" { LBRACK }
    | "]" { RBRACK }
+   | "<" { LT }
+   | ">" { GT }
    | "=" { EQUALS }
    | "," { COMMA }
    | "!" { DEREF }
@@ -116,6 +118,11 @@ rule token = parse
    | "||" { PIPEPIPE }
    | "return" { RETURN }
    | "function" { FUNCTION }
+   | ":config" { CONFIG }
+   | ":setter" { SETTER }
+   | ":getter" { GETTER }
+   | ":writable" { WRITABLE }
+   | ":value" { VALUE }
 
    | ident as x { ID x }
  

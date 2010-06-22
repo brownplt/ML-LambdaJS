@@ -105,7 +105,8 @@ let rec func_object p ids lambda_exp =
 %token UNDEFINED NULL FUNC LET DELETE LBRACE RBRACE LPAREN RPAREN LBRACK
   RBRACK EQUALS COMMA DEREF REF COLON COLONEQ PRIM IF ELSE SEMI
   LABEL BREAK TRY CATCH FINALLY THROW LLBRACK RRBRACK EQEQEQUALS TYPEOF
-  AMPAMP PIPEPIPE RETURN BANGEQEQUALS FUNCTION FIX
+  AMPAMP PIPEPIPE RETURN BANGEQEQUALS FUNCTION FIX WRITABLE GETTER SETTER
+  CONFIG VALUE LT GT
 
 
 %token EOF
@@ -144,6 +145,13 @@ attrs :
  | { [] }
  | attr { [$1] }
  | attr COMMA attrs { $1 :: $3 }
+
+prop_attr :
+ | WRITABLE { Writable }
+ | CONFIG { Config }
+ | VALUE { Value }
+ | SETTER { Setter }
+ | GETTER { Getter }
 
 prop :
  | STRING COLON LBRACE attrs RBRACE { (($startpos, $endpos), $1, $4) }
@@ -216,8 +224,11 @@ exp :
    { let p = ($startpos, $endpos) in
      EGetFieldSurface (p, $1,  $3, args_thunk p []) }
  | exp LBRACK DELETE seq_exp RBRACK
-   { EDeleteField (($startpos, $endpos), $1, $4) }
-
+     { EDeleteField (($startpos, $endpos), $1, $4) }
+ | exp LBRACK seq_exp LT prop_attr GT RBRACK
+     { EAttr (($startpos, $endpos), $5, $1, $3) }
+ | exp LBRACK seq_exp LT prop_attr GT EQUALS seq_exp RBRACK
+     { ESetAttr (($startpos, $endpos), $5, $1, $3, $8) }
  | exp AMPAMP exp
      { EIf (($startpos, $endpos), $1, 
             $3,

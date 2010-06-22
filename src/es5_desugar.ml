@@ -279,6 +279,10 @@ let rec ds_op exp = match exp with
       EGetFieldSurface (p, ds_op o, ds_op f, ds_op args)
   | EDeleteField (p, o, f) -> 
       EDeleteField (p, ds_op o, ds_op f)
+  | EAttr (p, a, o, f) ->
+      EAttr (p, a, ds_op o, ds_op f)
+  | ESetAttr (p, a, o, f, v) ->
+      ESetAttr (p, a, ds_op o, ds_op f, ds_op v)
   | ESet (p, x, v) -> 
       ESet (p, x, ds_op v)
   | EIf (p, c, t, e) -> 
@@ -376,6 +380,10 @@ let rec ds_global exp env = match exp with
       EGetField (p, ds_global o1 env, ds_global o2 env, ds_global f env, ds_global args env)
   | EDeleteField (p, o, f) ->
       EDeleteField (p, ds_global o env, ds_global f env)
+  | EAttr (p, a, o, f) ->
+      EAttr (p, a, ds_global o env, ds_global f env)
+  | ESetAttr (p, a, o, f, v) ->
+      ESetAttr (p, a, ds_global o env, ds_global f env, ds_global v env)
   | EOp1 (p, op, e) -> EOp1 (p, op, ds_global e env)
   | EOp2 (p, op, e1, e2) -> EOp2 (p, op, ds_global e1 env, ds_global e2 env)
   | EOp3 (p, op, e1, e2, e3) -> EOp3 (p, op, ds_global e1 env, 
