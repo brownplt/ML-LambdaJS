@@ -104,9 +104,6 @@ let [[Object_prototype]] =
 let [[Function_prototype]] = 
     {[proto: Object_prototype, extensible: true, class: "Function"]}
 
-
-
-
 /* 15.11.2 */
 let [[Error]] = 
     {[proto: Function_prototype]}
@@ -164,9 +161,6 @@ let [[TypeError]] = function(msg) {
 	obj
     }
 }
-
-
-
 
 let [[type_error]] = func(msg) {
     return TypeError(undefined, {[] "0": {value: msg}})
@@ -235,6 +229,8 @@ let [[getPrototypeOf]] = function(obj) {
     }
 }
 
+/* Not the make args array of the spec.  Used internally to make
+ * arguments lists from array-like objects */
 let [[mkArgsArray]] = func(alist) {
     return
     let (arr = {[extensible: true, proto: Object_prototype, class: "Arguments"]})
@@ -626,6 +622,10 @@ let [[in]] = func(obj, field) {
     global["hasProperty" = has_property]
 }
 
+/* Object (\String -> Any) -> Object
+ *
+ * Calls the function with the object and each own property name in
+ * the order returned from "own-property-names" */
 let [[forobj]] = func(obj, fun) {
 
     return
@@ -695,3 +695,48 @@ let [[freezefun]] = func(obj, name) {
     }]
 }
 
+let [[array-set]] = func(array-object, element-list) {
+    return forobj(element-list,
+		  func(obj, name) {
+		      return
+		      if(ToString(ToNumber(name)) === name) {
+			  let(element = element-list[name])
+			  array-object[name = element]
+		      }
+		  })
+}
+
+/* The biggest numeric property in the array?  */
+let [[length-getter]] = func(array) {
+    return
+    let (max = 0)
+    forobj(array,
+	   func(obj, name) {
+	       return
+	       if(ToString(ToNumber(name)) === name)
+		   if(prim(">", ToNumber(name), max))
+		       max := ToNumber(name)
+	       else {}
+	   });
+    max
+}
+
+let [[length-setter]] = func(array, len) {
+    return
+    let (curr-len = length-getter(array))
+    
+    
+}
+
+let [[Array]] = function(len) {
+    return
+    let (arr-obj = {[proto: Array_prototype,
+		     class: "Array",
+		     extensible: true]
+		    len_int: {value: args["length"],
+			      writable: true,
+			      enumerable: false,
+			      configurable: false},
+		    length: {get: function() { return this["len_init"] }}})
+    arr-obj
+}
