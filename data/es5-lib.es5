@@ -1,11 +1,11 @@
-/*  This file is written in a version of Lambda-JS designed for ES5.
- *  It is parsed and used as the initial environment for desugared
- *  JavaScript source.  It implements several built-in objects
- *  (Chapter 15 of the specification), and also numerous other
- *  functions defined in the spec, including type conversions and the
- *  expansion of implicit behaviors in operators like +.  There are
- *  also implementations of functions that exhibit the object model of
- *  ES5, like defineProperty and getOwnPropertyDescriptor */
+//  This file is written in a version of Lambda-JS designed for ES5.
+//  It is parsed and used as the initial environment for desugared
+//  JavaScript source.  It implements several built-in objects
+//  (Chapter 15 of the specification), and also numerous other
+//  functions defined in the spec, including type conversions and the
+//  expansion of implicit behaviors in operators like +.  There are
+//  also implementations of functions that exhibit the object model of
+//  ES5, like defineProperty and getOwnPropertyDescriptor
 
 
 let [[global]] = {[]}
@@ -34,7 +34,7 @@ let [[toBoolean]] = func(x) {
     }
 }
 
-/* 9.8, but uses 8.12.8: [[DefaultValue]] hint "string" */
+// 9.8, but uses 8.12.8: [[DefaultValue]] hint "string"
 let [[ToString]] = func(obj) {
     return
     if(prim("primitive?", obj)) {
@@ -63,7 +63,7 @@ let [[ToString]] = func(obj) {
     }
 }
 
-/* 9.3, but uses 8.12.8: [[DefaultValue]] hint "number" */
+// 9.3, but uses 8.12.8: [[DefaultValue]] hint "number"
 let [[ToNumber]] = func(obj) {
     return
     if(prim("primitive?", obj)) {
@@ -99,16 +99,16 @@ let [[toUInt]] = func (n) {
 
 let [[Object_prototype]] = 
     {[proto: null, extensible: true, class: "Object"]
-    toString: {value: function() { return prim("object-to-string", this) }}}
+     toString: {value: function() { return prim("object-to-string", this) }}}
 
 let [[Function_prototype]] = 
     {[proto: Object_prototype, extensible: true, class: "Function"]}
 
-/* 15.11.2 */
+// 15.11.2
 let [[Error]] = 
     {[proto: Function_prototype]}
 
-/* 15.11.4 */
+// 15.11.4
 let [[Error_prototype]] = 
     {[class: "Error", proto: Object_prototype, extensible: false]
      name: {value: "Error",
@@ -123,11 +123,11 @@ let [[Error_prototype]] =
      	       configurable: false,
 	       writable: false,
 	       enumerable: false }
-     /* have to define toString later, since there is a recursive
-      * dependency with TypeError */
+     //	have to define toString later, since there is a recursive
+     //	dependency with TypeError
 }
 
-/* 15.11.7.7-10 */
+// 15.11.7.7-10
 let [[makeNativeErrorPrototype]] = func(constr, name_str) {
     return {[proto: Error_prototype,
 	     class: "Error",
@@ -166,7 +166,7 @@ let [[type_error]] = func(msg) {
     return TypeError(undefined, {[] "0": {value: msg}})
 }
 
-/* Use internally to call function objects that take no arguments */
+// Use internally to call function objects that take no arguments
 let [[CallNoArgs]] = func(f) { return f(undefined, {[]}) }
 
 {
@@ -174,7 +174,7 @@ let [[CallNoArgs]] = func(f) { return f(undefined, {[]}) }
     TypeError["prototype" = TypeError_prototype]
 }
 
-/* Algorithm 9.9 of ECMA-262, ed. 3. */
+// Algorithm 9.9 of ECMA-262, ed. 3.
 let [[toObject]] = func (x) {
   return if (typeof x === "undefined") {
     throw type_error("toObject given undefined")
@@ -229,8 +229,8 @@ let [[getPrototypeOf]] = function(obj) {
     }
 }
 
-/* Not the make args array of the spec.  Used internally to make
- * arguments lists from array-like objects */
+// Not the make args array of the spec.  Used internally to make
+// arguments lists from array-like objects
 let [[mkArgsArray]] = func(alist) {
     return
     let (arr = {[extensible: true, proto: Object_prototype, class: "Arguments"]})
@@ -252,7 +252,7 @@ let [[call]] = function(thisarg) {
     return this(thisarg, args)
 }
 
-/* 15.3.4.2 */
+// 15.3.4.2
 let [[apply]] = function(thisarg, arglist) {
     return 
     if (arglist === undefined || arglist === null) {
@@ -471,9 +471,9 @@ let [[getOwnPropertyDescriptor]] = func(obj, field) {
 }
 
 {
-    /* 15.2.3.6, and 8.10.5 */
-    /* This does all of the sanity checks about the property object,
-       then defers to the primitive delta operation define_property */
+    // 15.2.3.6, and 8.10.5
+    // This does all of the sanity checks about the property object,
+    // then defers to the primitive delta operation define_property
     Object["defineProperty" =
 	   function(obj, field, propobj) {
 	       return
@@ -526,7 +526,7 @@ let [[getOwnPropertyDescriptor]] = func(obj, field) {
 		       attrobj["set" = set]
 		   }};
 
-		   /* 8.10.5, step 9 */
+		   // 8.10.5, step 9
 		   if (((typeof (attrobj["value"])) !== "undefined" ||
 			(typeof (attrobj["writable"])) !== "undefined") &&
 		       ((typeof (attrobj["set"])) !== "undefined" ||
@@ -591,7 +591,7 @@ let [[toPrimitive]] = func(val, hint) {
     // TODO: special case for Date
 }
 
-/* 11.6.1 */
+// 11.6.1
 let [[plus]] = func(arg1, arg2) {
     return
     let (lval = toPrimitive(arg1, undefined))
@@ -622,10 +622,9 @@ let [[in]] = func(obj, field) {
     global["hasProperty" = has_property]
 }
 
-/* Object (\String -> Any) -> Object
- *
- * Calls the function with the object and each own property name in
- * the order returned from "own-property-names" */
+// Object (\String -> Any) -> Object
+// Calls the function with the object and each own property name in
+// the order returned from "own-property-names"
 let [[forobj]] = func(obj, fun) {
 
     return
@@ -645,7 +644,7 @@ let [[forobj]] = func(obj, fun) {
 
 }
 
-/* Used for both freeze and seal, which are quite similar */
+// Used for both freeze and seal, which are quite similar
 let [[sf]] = func(obj, f) {
     return
     if(typeof obj !== "object") {
@@ -657,7 +656,7 @@ let [[sf]] = func(obj, f) {
     }
 }
 
-/* 15.2.3.8 */
+// 15.2.3.8
 let [[sealfun]] = func(obj, name) {
     return
 
@@ -669,7 +668,7 @@ let [[sealfun]] = func(obj, name) {
     prim("define-property", obj, name, currprop)
 }
 
-/* 15.2.3.9 */
+// 15.2.3.9
 let [[freezefun]] = func(obj, name) {
     return
 
@@ -702,11 +701,11 @@ let [[array-set]] = func(array-object, element-list) {
 		      if(ToString(ToNumber(name)) === name) {
 			  let(element = element-list[name])
 			  array-object[name = element]
-		      }
+		      } else { undefined }
 		  })
 }
 
-/* The biggest numeric property in the array?  */
+// The biggest numeric property in the array? 
 let [[length-getter]] = func(array) {
     return
     let (max = 0)
@@ -716,16 +715,9 @@ let [[length-getter]] = func(array) {
 	       if(ToString(ToNumber(name)) === name)
 		   if(prim(">", ToNumber(name), max))
 		       max := ToNumber(name)
-	       else {}
+	       else { undefined }
 	   });
     max
-}
-
-let [[length-setter]] = func(array, len) {
-    return
-    let (curr-len = length-getter(array))
-    
-    
 }
 
 let [[Array]] = function(len) {
