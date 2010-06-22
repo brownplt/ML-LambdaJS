@@ -21,9 +21,5 @@ let parse_env cin name : parsed_env =
                        (string_of_position 
                           (lexbuf.lex_curr_p, lexbuf.lex_curr_p)))
 
-let is_lambda (_, e) = match e with
-  | ELambda _ -> true
-  | _ -> false
-
 let rec enclose_in_env (env : parsed_env) (exp : exp) : exp =
   env exp
