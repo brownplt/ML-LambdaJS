@@ -8,6 +8,14 @@ type attr =
   | Writable
   | Enum
 
+let string_of_attr attr = match attr with
+  | Value -> ":value"
+  | Getter -> ":getter"
+  | Setter -> ":setter"
+  | Config -> ":config"
+  | Writable -> ":writable"
+  | Enum -> ":enum"
+
 (* Borrowed from prelude *)
 module AttrOrderedType = struct
   type t = attr
@@ -32,11 +40,13 @@ type exp =
   | EConst of pos * JavaScript_syntax.const
   | EId of pos * id
   | EObject of pos * (string * exp) list *
-      (pos * string * (string * exp) list) list
+      (pos * string * (attr * exp) list) list
+      (* object, field, new value, args object *)
   | EUpdateFieldSurface of pos * exp * exp * exp * exp
+      (* object, field, args object *)
   | EGetFieldSurface of pos * exp * exp * exp
-  | EAttr of pos * attr * exp * exp (* Never looks at proto *)
-  | ESetAttr of pos * attr * exp * exp * exp (* Always looks at proto *)
+  | EAttr of pos * attr * exp * exp
+  | ESetAttr of pos * attr * exp * exp * exp
   | EUpdateField of pos * exp * exp * exp * exp * exp
   | EGetField of pos * exp * exp * exp * exp
   | EDeleteField of pos * exp * exp

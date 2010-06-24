@@ -150,7 +150,7 @@ let get_own_property_names obj = match obj with
   | ObjCell o ->
       let (_, props) = !o in
       let add_name n x m = 
-	IdMap.add (string_of_int x) (IdMap.add "value" (str n) IdMap.empty) m in
+	IdMap.add (string_of_int x) (AttrMap.add Value (str n) AttrMap.empty) m in
       let namelist = IdMap.fold (fun k v l -> (k :: l)) props [] in
       let props = 
 	List.fold_right2 add_name namelist (iota (List.length namelist)) IdMap.empty
@@ -279,44 +279,6 @@ let has_own_property obj field = match obj, field with
 	bool (IdMap.mem s props)
   | _ -> raise (Throw (str "has-own-property?"))
 
-
-let default_attr value = 
-  IdMap.add "value" value
-    (IdMap.add "configurable" (bool true)
-       (IdMap.add "enumerable" (bool true)
-	  (IdMap.add "writable" (bool true)
-	     IdMap.empty)))
-
-let val_or_undefined name m = default_attr
-  begin try 
-    IdMap.find name m
-  with Not_found -> undef
-  end
-
-(* This is like calling FromPropertyDescriptor([[GetOwnProperty]]),
-   except that the object is a bare object (not like calling new
-   Object()). *)
-
-let get_own_property obj field = match obj, field with
-  | ObjCell ob, Const (CString s) ->
-      let (attrs, props) = !ob in
-      let prop = IdMap.find s props in
-      let startmap = IdMap.add "configurable" 
-	(val_or_undefined "configurable" prop)
-	(IdMap.add "enumerable" (val_or_undefined "enumerable" prop)
-	   IdMap.empty) in
-	if (IdMap.mem "value" prop or IdMap.mem "writable" prop) then
-	  ObjCell (ref (IdMap.empty,
-			IdMap.add "value" (val_or_undefined "value" prop)
-			  (IdMap.add "writable" (val_or_undefined "writable" prop)
-			     startmap)))
-	else 
-	  ObjCell (ref (IdMap.empty, IdMap.add "get" (val_or_undefined "get" prop)
-			  (IdMap.add "set" (val_or_undefined "set" prop)
-			     startmap)))
-  | _ -> raise (Throw (str "get_own_property"))	  
-
-
 let op2 op = match op with
   | "+" -> arith_sum
   | "-" -> arith_sub
@@ -337,38 +299,8 @@ let op2 op = match op with
   | "abs=" -> abs_eq
   | "has-property?" -> has_property
   | "has-own-property?" -> has_own_property
-  | "get-own-property" -> get_own_property
   | "string+" -> string_plus
   | _ -> failwith ("no implementation of binary operator: " ^ op)
 
-
-let props_to_atts props =
-  let add_att name m = 
-    begin try
-      (IdMap.add name (IdMap.find "value" (IdMap.find name props))
-	 m)
-    with Not_found -> m 
-    end in
-      List.fold_right 
-	add_att
-	["set"; "get"; "value"; "writable"; "enumerable"; "configurable"]
-	IdMap.empty
-
-
-(* This assumes that all checks have been done, and it is OK to
-   overwrite/add the property named in field.  Specifically, the
-   checks from [[defineOwnProperty]] (8.12.9) are defined in the
-   environment, not in the semantics *)
-let define_property obj field attrobj = match obj, field, attrobj with
-  | ObjCell ob, Const (CString s), ObjCell atts ->
-      let (attrs, props) = !ob in
-      let (attrs', props') = !atts in
-	begin
-	  ob := (attrs, (IdMap.add s (props_to_atts props') props));
-	  obj
-	end
-  | _, _, _ -> raise (Throw (str "define_property"))
-
 let op3 op = match op with
-  | "define-property" -> define_property
-  | _ -> failwith ("no implementation of ternary operator: " ^ op)
+  | _ -> failwith ("no ternary operators yet, so what's this: " ^ op)

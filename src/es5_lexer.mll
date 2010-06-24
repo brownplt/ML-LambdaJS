@@ -118,12 +118,12 @@ rule token = parse
    | "||" { PIPEPIPE }
    | "return" { RETURN }
    | "function" { FUNCTION }
-   | ":config" { CONFIG }
-   | ":setter" { SETTER }
-   | ":getter" { GETTER }
-   | ":writable" { WRITABLE }
-   | ":value" { VALUE }
-   | ":enum" { ENUM }
+   | "#configurable" { CONFIG }
+   | "#setter" { SETTER }
+   | "#getter" { GETTER }
+   | "#writable" { WRITABLE }
+   | "#value" { VALUE }
+   | "#enumerable" { ENUM }
 
    | ident as x { ID x }
  

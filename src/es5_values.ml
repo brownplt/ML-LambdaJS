@@ -1,5 +1,6 @@
 open Prelude
 open JavaScript_syntax
+open Es5_syntax
 
 type value =
   | Const of JavaScript_syntax.const
@@ -9,7 +10,7 @@ type value =
   | VarCell of value ref 
       (* Objects shouldn't have VarCells in them, but can have any of
       the other kinds of values *)
-  | ObjCell of (value IdMap.t * ((value IdMap.t) IdMap.t)) ref
+  | ObjCell of (value IdMap.t * ((value AttrMap.t) IdMap.t)) ref
   | Closure of (value list -> value)
 
 type env = value IdMap.t

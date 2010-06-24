@@ -5,13 +5,6 @@ module S = JavaScript_syntax
 open Format
 open FormatExt
 
-let pretty_attr a = match a with
-  | Writable -> ":writable"
-  | Setter -> ":setter"
-  | Getter -> ":getter"
-  | Value -> ":value"
-  | Config -> ":config"
-
 let rec exp e = match e with
   | EConst (_, c) -> const c
   | EId (p, x) -> text x
@@ -51,13 +44,13 @@ let rec exp e = match e with
   | EAttr (p, a, o, f) ->
       parens (horz
 		[text "attr-get";
-		 text (pretty_attr a);
+		 text (string_of_attr a);
 		 exp o;
 		 exp f])
   | ESetAttr (p, a, o, f, v) ->
       parens (horz 
-		[text "attr-get";
-		 text (pretty_attr a);
+		[text "attr-set";
+		 text (string_of_attr a);
 		 exp o;
 		 exp f;
 		 exp v])
@@ -118,7 +111,9 @@ and op3_string op = match op with
 and attr (name, value) = parens (horz [text ("\"" ^ name ^ "\""); exp value])
 
 and field (p, f, attrs) =
-  brackets (vert (text ("\"" ^ f ^ "\"") :: map attr attrs))
+  brackets (vert (text ("\"" ^ f ^ "\"") :: map prop_attr attrs))
+
+and prop_attr (name, value) = parens (horz [text (string_of_attr name); exp value])
 
 and const c = match c with
   | S.CString (s) -> text ("\"" ^ s ^ "\"")

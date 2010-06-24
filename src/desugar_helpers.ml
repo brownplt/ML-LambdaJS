@@ -24,10 +24,10 @@ let to_object p e = EApp (p, EId (p, "[[toObject]]"), [e])
 let to_string p e = EApp (p, EId (p, "[[ToString]]"), [e])
 
 let rec mk_val p v =
-  [("value", v);
-   ("enumerable", true_c p);
-   ("configurable", true_c p);
-   ("writable", true_c p)]
+  [(Value, v);
+   (Enum, true_c p);
+   (Config, true_c p);
+   (Writable, true_c p)]
 
 let rec mk_field (p, s, e) =
   (p, s, mk_val p e)
@@ -52,15 +52,15 @@ let args_obj p arg_list callee =
 	   ("class", str p "Arguments");
 	   ("extensible", false_c p)],
        (* 10.6 steps 1, 7 *)
-       ((p, "length", [("value", int_c p (List.length arg_list));
-		       ("writable", false_c p);
-		       ("enumerable", false_c p);
-		       ("configurable", false_c p)]);
+       ((p, "length", [(Value, int_c p (List.length arg_list));
+		       (Writable, false_c p);
+		       (Enum, false_c p);
+		       (Config, false_c p)]);
 	(* 10.6 step 13a *)
-	(p, "callee", [("value", callee);
-		       ("configurable",  true_c p);
-		       ("enumerable", false_c p);
-		       ("writable", true_c p)])::
+	(p, "callee", [(Value, callee);
+		       (Config,  true_c p);
+		       (Enum, false_c p);
+		       (Writable, true_c p)])::
 	  (List.map2 mk_field (iota (List.length arg_list)) arg_list)))
 
 
@@ -107,10 +107,10 @@ let rec func_object p ids lambda_exp =
 		  ("extensible", true_c p);
 		  ("class", str p "Object")],
 		 [(p, "constructor", 
-		   [("value", EConst (p, S.CUndefined));
-		    ("writable", true_c p);
-		    ("enumerable", false_c p);
-		    ("configurable", true_c p)])]),
+		   [(Value, EConst (p, S.CUndefined));
+		    (Writable, true_c p);
+		    (Enum, false_c p);
+		    (Config, true_c p)])]),
 	ELet (p, "$funobj", 
 	      EObject (p,
 		       [("code", lambda_exp);
@@ -118,17 +118,17 @@ let rec func_object p ids lambda_exp =
 			("extensible", true_c p);
 			("class", str p "Function")],
 		       [(p,"length", 
-			 [("value", EConst (p, S.CNum
+			 [(Value, EConst (p, S.CNum
 					      (float_of_int
 						 (List.length ids))));
-			  ("writable", false_c p);
-			  ("enumerable", false_c p);
-			  ("configurable", false_c p)]);
+			  (Writable, false_c p);
+			  (Enum, false_c p);
+			  (Config, false_c p)]);
 			(p,"prototype",
-			 [("value", EId (p, "$prototype")); 
-			  ("writable", true_c p);
-			  ("configurable", false_c p);
-			  ("enumerable", false_c p)])]),
+			 [(Value, EId (p, "$prototype")); 
+			  (Writable, true_c p);
+			  (Config, false_c p);
+			  (Enum, false_c p)])]),
 	      ESeq (p, EUpdateFieldSurface (p, 
 					    EId (p, "$prototype"),
 					    EConst (p, S.CString ("constructor")),

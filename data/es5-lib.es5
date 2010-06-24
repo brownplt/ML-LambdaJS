@@ -99,7 +99,7 @@ let [[toUInt]] = func (n) {
 
 let [[Object_prototype]] = 
     {[proto: null, extensible: true, class: "Object"]
-     toString: {value: function() { return prim("object-to-string", this) }}}
+     toString: {#value: function() { return prim("object-to-string", this) }}}
 
 let [[Function_prototype]] = 
     {[proto: Object_prototype, extensible: true, class: "Function"]}
@@ -111,18 +111,18 @@ let [[Error]] =
 // 15.11.4
 let [[Error_prototype]] = 
     {[class: "Error", proto: Object_prototype, extensible: false]
-     name: {value: "Error",
-	    configurable: false,
-	    writable: false,
-	    enumerable: false },
-     constructor: {value: Error,
-		   configurable: false,
-		   writable: false,
-		   enumerable: false },
-     message: {value: "",
-     	       configurable: false,
-	       writable: false,
-	       enumerable: false }
+     name: {#value: "Error",
+	    #configurable: false,
+	    #writable: false,
+	    #enumerable: false },
+     constructor: {#value: Error,
+		   #configurable: false,
+		   #writable: false,
+		   #enumerable: false },
+     message: {#value: "",
+     	       #configurable: false,
+	       #writable: false,
+	       #enumerable: false }
      //	have to define toString later, since there is a recursive
      //	dependency with TypeError
 }
@@ -132,18 +132,18 @@ let [[makeNativeErrorPrototype]] = func(constr, name_str) {
     return {[proto: Error_prototype,
 	     class: "Error",
 	     extensible: false]
-	    constructor: {value: constr,
-			  configurable: false,
-			  writable: false,
-			  enumerable: false},
-	    name: {value: name_str,
-		   configurable: false,
-		   writable: false,
-		   enumerable: false},
-	    message: {value: "",
-		   configurable: false,
-		   writable: true,
-		   enumerable: false}}
+	    constructor: {#value: constr,
+			  #configurable: false,
+			  #writable: false,
+			  #enumerable: false},
+	    name: {#value: name_str,
+		   #configurable: false,
+		   #writable: false,
+		   #enumerable: false},
+	    message: {#value: "",
+		   #configurable: false,
+		   #writable: true,
+		   #enumerable: false}}
 }
 
 
@@ -163,7 +163,7 @@ let [[TypeError]] = function(msg) {
 }
 
 let [[type_error]] = func(msg) {
-    return TypeError(undefined, {[] "0": {value: msg}})
+    return TypeError(undefined, {[] "0": {#value: msg}})
 }
 
 // Use internally to call function objects that take no arguments
@@ -185,26 +185,26 @@ let [[toObject]] = func (x) {
   else if (typeof x === "boolean") {
       { [proto: "Boolean_prototype",
          class: "Boolean"]
-	value: {value: x,
-		enumerable: true,
-		configurable: true,
-		writable: true}}
+	value: {#value: x,
+		#enumerable: true,
+		#configurable: true,
+		#writable: true}}
   }
   else if (typeof x === "number") {
       { [proto: "Number_prototype",
          class: "Number"]
-	value: {value: x,
-		enumerable: true,
-		configurable: true,
-		writable: true}}
+	value: {#value: x,
+		#enumerable: true,
+		#configurable: true,
+		#writable: true}}
   }
   else if (typeof x === "string") {
       { [proto: "String_prototype",
          class: "String"]
-	value: {value: x,
-		enumerable: true,
-		configurable: true,
-		writable: true}}
+	value: {#value: x,
+		#enumerable: true,
+		#configurable: true,
+		#writable: true}}
   }
   else {
     x
@@ -283,39 +283,39 @@ let [[Object]] =
       extensible: true, 
       class: "Function",
       code: undefined]
-     prototype: {value: Object_prototype,
-		 writable: false,
-		 enumerable: false,
-		 configurable: false},
-     getPrototypeOf: {value: getPrototypeOf,
-		      writable: false,
-		      configurable: false,
-		      enumerable: false}}
+     prototype: {#value: Object_prototype,
+		 #writable: false,
+		 #enumerable: false,
+		 #configurable: false},
+     getPrototypeOf: {#value: getPrototypeOf,
+		      #writable: false,
+		      #configurable: false,
+		      #enumerable: false}}
 
 let [[Array_prototype]] = {[proto: Object_prototype, extensible: true, class: "Array"]}
 
 let [[eval]] = function(s) { return throw "We do not account for eval." }
 
 let [[global]] = { [proto: null, class: "Lambda-JS global", extensible: true]
-		   "NaN": {value: NaN,
-			   writable: false,
-			   enumerable: false,
-			   configurable: false},
-		   "Infinity":  {value: +inf,
-				 writable: false,
-				 enumerable: false,
-				 configurable: false},
-		   "undefined": {value: undefined,
-				 writable: false,
-				 enumerable: false,
-				 configurable: false},
-		   "print": {value: print},
-		   "Object" : {value: Object},
-		   "Object_prototype" : {value: Object_prototype},
-		   "Function_prototype" : {value: Function_prototype},
-		   "Array_prototype" : {value: Array_prototype},
-		   "eval" : {value: eval},
-		   "TypeError" : {value: TypeError}
+		   "NaN": {#value: NaN,
+			   #writable: false,
+			   #enumerable: false,
+			   #configurable: false},
+		   "Infinity":  {#value: +inf,
+				 #writable: false,
+				 #enumerable: false,
+				 #configurable: false},
+		   "undefined": {#value: undefined,
+				 #writable: false,
+				 #enumerable: false,
+				 #configurable: false},
+		   "print": {#value: print},
+		   "Object" : {#value: Object},
+		   "Object_prototype" : {#value: Object_prototype},
+		   "Function_prototype" : {#value: Function_prototype},
+		   "Array_prototype" : {#value: Array_prototype},
+		   "eval" : {#value: eval},
+		   "TypeError" : {#value: TypeError}
 		 }
 
 
@@ -325,13 +325,18 @@ let [[global]] = { [proto: null, class: "Lambda-JS global", extensible: true]
 
 
 let [[isDataField]] = func(obj, field) {
-    return (prim("has-value",obj,field) ||
-	    prim("has-writable",obj,field))
+    return ((obj[field<#value>] !== undefined) ||
+	    (obj[field<#writable>] !== undefined))
 }
 
 let [[isAccessorField]] = func(obj, field) {
-    return (prim("has-setter",obj,field) ||
-	    prim("has-getter",obj,field))
+    return ((obj[field<#setter>] !== undefined) ||
+	    (obj[field<#getter>] !== undefined))
+}
+
+let [[isGenericField]] = func(obj, field) {
+    return (isDataField(obj, field) === false &&
+	    isAccessorField(obj, field) === false)
 }
 
 let [[isDataDescriptor]] = func(attr-obj) {
@@ -386,27 +391,41 @@ let [[defineOwnProperty]] = func(obj, field, attr-obj) {
 	let (fstr = ToString(field))
 	if (prim("has-own-property?", obj, fstr) === false) {
 	    if (prim("is-extensible", obj)) {
-		prim("define-property", obj, fstr, attr-obj);
+		// Do this to open it up for the other properties (will set these last)
+		obj[field<#configurable> = true];
+		obj[field<#writable> = true];
+
+		if(isDataDescriptor(current-prop)) {
+		    obj[field<#value> = current-prop["value"] ];
+		    obj[field<#writable> = current-prop["writable"] ]
+		}
+		else if(isAccessorDescriptor(current-prop)) {
+		    obj[field<#getter> = current-prop["get"] ];
+		    obj[field<#setter> = current-prop["set"] ]
+		}
+		else { undefined };
+
+		obj[field<#enumerable> = attr-obj["enumerable"] ];
+		obj[field<#configurable> = attr-obj["configurable"] ];
 		true
 	    }
 	    else { throw type_error("(defineOwnProperty) Attempt to add a property to a non-extensible object.") }
 	}
 	else { /* it definitely has the property */
-	    let (current-prop = prim("get-own-property", obj, field))
-	    if (current-prop["configurable"] === false) {
+	    if (obj[field<#configurable>] === false) {
 		if (attr-obj["configurable"] === true) {
 		    throw type_error("escalating configurable from false to true")
 		}
 		else {
 		    if(attr-obj["enumerable"] ===
-		       (current-prop["enumerable"] === false)) {
+		       (obj[field<#enumerable>] === false)) {
 			throw type_error("(defineOwnPoperty) Can't change enumerable of a non-configurable property")
 		    }
 		}
 	    };
 	    
 	    {if ((isDataDescriptor(current-prop)) !== (isDataDescriptor(attr-obj))) {
-		if (current-prop["configurable"] === false) {
+		if (obj[field<#configurable>] === false) {
 		    throw type_error("(defineOwnProperty) Non-configurable property")
 		}
 		else {
@@ -447,7 +466,19 @@ let [[defineOwnProperty]] = func(obj, field, attr-obj) {
 		else { copy-access-desc(current-prop, attr-obj) }
 	    }};
 
-	    prim("define-property", obj, field, current-prop);
+	    if(isDataDescriptor(current-prop)) {
+		obj[field<#value> = current-prop["value"] ];
+		obj[field<#writable> = current-prop["writable"] ]
+	    }
+	    else if(isAccessorDescriptor(current-prop)) {
+		obj[field<#getter> = current-prop["get"] ];
+		obj[field<#setter> = current-prop["set"] ]
+	    }
+	    else { undefined };
+	    
+	    obj[field<#enumerable> = current-prop["enumerable"] ];
+	    obj[field<#configurable> = current-prop["configurable"] ];
+
 	    true
 	}
     }
@@ -466,7 +497,13 @@ let [[getOwnPropertyDescriptor]] = func(obj, field) {
     let (fstring = ToString(field))
     if (typeof obj !== "object") { throw type_error("getOwnPD didn't get object") }
     else {
-	prim("get-own-property", obj, field)
+	{[proto: Object, extensible: true]
+	 get: {#value: obj[field<#getter>]},
+	 set: {#value: obj[field<#setter>]},
+	 value: {#value: obj[field<#value>]},
+	 writable: {#value: obj[field<#writable>]},
+	 enumerable: {#value: obj[field<#enumerable>]},
+	 configurable: {#value: obj[field<#configurable>]}}
     }
 }
 
@@ -660,28 +697,16 @@ let [[sf]] = func(obj, f) {
 let [[sealfun]] = func(obj, name) {
     return
 
-    let (currprop = prim("get-own-property", obj, name))
-    if (currprop["configurable"] === true) {
-	currprop["configurable" = false]
-    };
-    
-    prim("define-property", obj, name, currprop)
+    obj[name<#configurable> = false]
+
 }
 
 // 15.2.3.9
 let [[freezefun]] = func(obj, name) {
     return
 
-    let (currprop = prim("get-own-property", obj, name))
-    if (currprop["configurable"] === true) {
-	currprop["configurable" = false]
-    };
-    
-    if (currprop["writable"] === true) {
-	currprop["writable" = false]
-    };
-    
-    prim("define-property", obj, name, currprop)
+    obj[name<#configurable> = false];
+    obj[name<#writable> = false]
 }
 
 {
@@ -725,10 +750,10 @@ let [[Array]] = function(len) {
     let (arr-obj = {[proto: Array_prototype,
 		     class: "Array",
 		     extensible: true]
-		    len_int: {value: args["length"],
-			      writable: true,
-			      enumerable: false,
-			      configurable: false},
-		    length: {get: function() { return this["len_init"] }}})
+		    len_int: {#value: args["length"],
+			      #writable: true,
+			      #enumerable: false,
+			      #configurable: false},
+		    length: {#getter: function() { return this["len_init"] }}})
     arr-obj
 }

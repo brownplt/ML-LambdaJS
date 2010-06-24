@@ -13,10 +13,10 @@ let rename_env exp : exp  =
 little bit of desugaring)*)
 
 let rec mk_val p v =
-  [("value", v);
-   ("enumerable", true_c p);
-   ("configurable", true_c p);
-   ("writable", true_c p)]
+  [(Value, v);
+   (Enum, true_c p);
+   (Config, true_c p);
+   (Writable, true_c p)]
 
 let rec mk_field (p, s, e) =
   (p, s, mk_val p e)
@@ -28,15 +28,15 @@ let args_obj p arg_list callee =
       (p, [("proto", EId (p, "Object_prototype"));
 	   ("class", str p "Arguments");
 	   ("extensible", false_c p)],
-       ((p, "length", [("value", int_c p (List.length arg_list));
-		       ("writable", false_c p);
-		       ("enumerable", false_c p);
-		       ("configurable", false_c p)]);
+       ((p, "length", [(Value, int_c p (List.length arg_list));
+		       (Writable, false_c p);
+		       (Enum, false_c p);
+		       (Config, false_c p)]);
 		(* 10.6 step 13a *)
-	(p, "callee", [("value", callee);
-		       ("configurable",  true_c p);
-		       ("enumerable", false_c p);
-		       ("writable", true_c p)])::
+	(p, "callee", [(Value, callee);
+		       (Config,  true_c p);
+		       (Enum, false_c p);
+		       (Writable, true_c p)])::
 	  (List.map2 mk_field (iota (List.length arg_list)) arg_list)))
 
 
@@ -67,27 +67,27 @@ let rec func_object p ids lambda_exp =
 		  ("extensible", true_c p);
 		  ("Class", EConst (p, S.CString ("Object")))],
 		 [(p, "constructor", 
-		   [("value", EConst (p, S.CUndefined));
-		    ("writable", true_c p);
-		    ("enumerable", false_c p);
-		    ("configurable", true_c p)])]),
+		   [(Value, EConst (p, S.CUndefined));
+		    (Writable, true_c p);
+		    (Enum, false_c p);
+		    (Config, true_c p)])]),
 	ELet (p, "$funobj", 
 	      EObject (p,
 		       [("code", lambda_exp);
 			("proto", EId (p, "Function_prototype"));
 			("extensible", true_c p)],
 		       [(p,"length", 
-			 [("value", EConst (p, S.CNum
+			 [(Value, EConst (p, S.CNum
 					      (float_of_int
 						 (List.length ids))));
-			  ("writable", false_c p);
-			  ("enumerable", false_c p);
-			  ("configurable", false_c p)]);
+			  (Writable, false_c p);
+			  (Enum, false_c p);
+			  (Config, false_c p)]);
 			(p,"prototype",
-			 [("value", EId (p, "$prototype")); 
-			  ("writable", true_c p);
-			  ("configurable", false_c p);
-			  ("enumerable", false_c p)])]),
+			 [(Value, EId (p, "$prototype")); 
+			  (Writable, true_c p);
+			  (Config, false_c p);
+			  (Enum, false_c p)])]),
 	      ESeq (p, EUpdateFieldSurface (p, 
 					    EId (p, "$prototype"),
 					    EConst (p, S.CString ("constructor")),
@@ -146,7 +146,7 @@ attrs :
  | attr { [$1] }
  | attr COMMA attrs { $1 :: $3 }
 
-prop_attr :
+attr_name :
  | WRITABLE { Writable }
  | CONFIG { Config }
  | VALUE { Value }
@@ -154,9 +154,17 @@ prop_attr :
  | GETTER { Getter }
  | ENUM { Enum }
 
+prop_attr :
+ | attr_name COLON exp { ($1, $3) }
+
+prop_attrs :
+ | { [] }
+ | prop_attr { [$1] }
+ | prop_attr COMMA prop_attrs { $1 :: $3 }
+
 prop :
- | STRING COLON LBRACE attrs RBRACE { (($startpos, $endpos), $1, $4) }
- | ID COLON LBRACE attrs RBRACE { (($startpos, $endpos), $1, $4) }
+ | STRING COLON LBRACE prop_attrs RBRACE { (($startpos, $endpos), $1, $4) }
+ | ID COLON LBRACE prop_attrs RBRACE { (($startpos, $endpos), $1, $4) }
 
 props :
  | { [] }
@@ -226,9 +234,9 @@ exp :
      EGetFieldSurface (p, $1,  $3, args_thunk p []) }
  | exp LBRACK DELETE seq_exp RBRACK
      { EDeleteField (($startpos, $endpos), $1, $4) }
- | exp LBRACK seq_exp LT prop_attr GT RBRACK
+ | exp LBRACK seq_exp LT attr_name GT RBRACK
      { EAttr (($startpos, $endpos), $5, $1, $3) }
- | exp LBRACK seq_exp LT prop_attr GT EQUALS seq_exp RBRACK
+ | exp LBRACK seq_exp LT attr_name GT EQUALS seq_exp RBRACK
      { ESetAttr (($startpos, $endpos), $5, $1, $3, $8) }
  | exp AMPAMP exp
      { EIf (($startpos, $endpos), $1, 
