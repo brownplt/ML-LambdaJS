@@ -165,22 +165,23 @@ let rec set_attr attr obj field newval = match obj, field with
 	  (* 8.12.9: "If a field is absent, then its value is considered to be false" *)
 	let config = attr_or_false attr prop in
 	let writable = attr_or_false attr prop in
-	let new_prop = match attr, newval with
-	  | Enum, Const (CBool true) 
-	  | Enum, Const (CBool false) -> 
-	      if config then AttrMap.add Enum newval prop else prop
-	  | Config, Const (CBool true) 
-	  | Config, Const (CBool false) -> 
-	      if config then AttrMap.add Config newval prop else prop
-	  | Writable, Const (CBool true) 
-	  | Writable, Const (CBool false) -> 
-	      if config then AttrMap.add Writable newval (to_data prop) else prop
-	  | Value, v -> 
-	      if writable then AttrMap.add Value v (to_data prop) else prop
-	  | Setter, Closure _ -> 
-	      if config then AttrMap.add Setter newval (to_acc prop) else prop
-	  | Getter, Closure _ -> 
-	      if config then AttrMap.add Getter newval (to_acc prop) else prop
+	let new_prop = match attr, newval, config, writable with
+	  | Enum, Const (CBool true), true, _
+	  | Enum, Const (CBool false), true, _ -> 
+	      AttrMap.add Enum newval prop
+	  | Config, Const (CBool true) , true, _
+	  | Config, Const (CBool false), true, _ -> 
+	      AttrMap.add Config newval prop
+	  | Writable, Const (CBool true), true, _
+	  | Writable, Const (CBool false), true, _ -> 
+	      AttrMap.add Writable newval (to_data prop)
+	  | Value, v, _, true -> 
+	      AttrMap.add Value v (to_data prop)
+	  | Setter, Closure _, true, _ -> 
+	      AttrMap.add Setter newval (to_acc prop)
+	  | Getter, Closure _, true, _ -> 
+	      AttrMap.add Getter newval (to_acc prop)
+	  | _ -> prop
 	in begin
 	    c := (attrs, IdMap.add f_str new_prop props);
 	    newval
