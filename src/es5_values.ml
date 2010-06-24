@@ -19,7 +19,7 @@ type label = string
 exception Break of label * value
 exception Throw of value
 
-let pretty_value v = match v with 
+let rec pretty_value v = match v with 
   | Const c -> begin match c with
       | CInt d -> string_of_int d
       | CNum d -> string_of_float d
@@ -30,3 +30,5 @@ let pretty_value v = match v with
     end
   | Closure c -> "function"
   | ObjCell o -> "object"
+  | VarCell v -> "&<" ^ pretty_value !v ^ ">"
+
