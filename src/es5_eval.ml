@@ -195,15 +195,15 @@ let rec set_attr attr obj field newval = match obj, field with
 (* 8.10.5, steps 7/8 "If iscallable(getter) is false and getter is not
    undefined..." *)
 
-and fun_obj = match value with
+and fun_obj value = match value with
   | ObjCell c -> let (props, _) = !c in
       if IdMap.mem "code" props then
 	match IdMap.find "code" props with
 	  | Closure _ -> true
-	  | Const CUndefined -> true
 	  | _ -> false
       else
 	false
+  | Const CUndefined -> true
   | _ -> false
 	  
 
