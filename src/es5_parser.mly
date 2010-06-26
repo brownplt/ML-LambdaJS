@@ -65,7 +65,7 @@ let rec func_object p ids lambda_exp =
 	EObject (p,
 		 [("proto", EId (p, "Object_prototype"));
 		  ("extensible", true_c p);
-		  ("Class", EConst (p, S.CString ("Object")))],
+		  ("class", EConst (p, S.CString ("Object")))],
 		 [(p, "constructor", 
 		   [(Value, EConst (p, S.CUndefined));
 		    (Writable, true_c p);

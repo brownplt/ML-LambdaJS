@@ -18,12 +18,12 @@ let get_const v = match v with
 let to_int v = match v with
   | Const (CInt n) -> n
   | Const (CNum x) -> int_of_float x
-  | _ -> raise (Throw (str "expected number"))
+  | _ -> raise (Throw (str ("expected number, got " ^ pretty_value v)))
 
 let to_float v = match v with
   | Const (CInt n) -> float_of_int n
   | Const (CNum x) -> x
-  | _ -> raise (Throw (str "expected number"))
+  | _ -> raise (Throw (str ("expected number, got " ^ pretty_value v)))
 
 let typeof v = str begin match v with
   | Const c -> begin match c with
@@ -164,11 +164,25 @@ let object_to_string obj = match obj with
   | ObjCell o -> let (attrs, props) = !o in begin try
       match IdMap.find "class" attrs with
 	| Const (CString s) -> str ("[object " ^ s ^ "]")
-	| _ -> raise (Throw (str "object-to-string"))	
-    with Not_found -> raise (Throw (str "object-to-string"))
+	| _ -> raise (Throw (str "object-to-string, class wasn't a string"))	
+    with Not_found -> raise (Throw (str "object-to-string, didn't find class"))
     end
-  | _ -> raise (Throw (str "object-to-string"))	
-    
+  | _ -> raise (Throw (str "object-to-string, wasn't given object"))	
+
+let is_array obj = match obj with
+  | ObjCell o -> let (attrs, props) = !o in begin try
+      match IdMap.find "class" attrs with
+	| Const (CString "Array") -> Const (CBool true)
+	| _ -> Const (CBool false)
+    with Not_found -> raise (Throw (str "is-array"))
+    end
+  | _ -> raise (Throw (str "is-array"))	
+
+
+let to_int32 v = match v with
+  | Const (CInt d) -> v
+  | Const (CNum d) -> Const (CInt (int_of_float d))
+  | _ -> raise (Throw (str "to-int"))
 
 let op1 op = match op with
   | "typeof" -> typeof
@@ -184,6 +198,8 @@ let op1 op = match op with
   | "get-proto" -> get_proto
   | "own-property-names" -> get_own_property_names
   | "object-to-string" -> object_to_string
+  | "is-array" -> is_array
+  | "to-int32" -> to_int32
   | _ -> failwith ("no implementation of unary operator: " ^ op)
 
 let arith i_op f_op v1 v2 = match v1, v2 with

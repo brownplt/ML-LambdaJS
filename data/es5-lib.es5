@@ -92,10 +92,9 @@ let [[ToNumber]] = func(obj) {
     }
 }
 
-let [[toUInt]] = func (n) { 
-    return ToNumber(n)
+let [[ToUInt]] = func (n) { 
+    return prim("to-int32", ToNumber(n))
 }
-
 
 let [[Object_prototype]] = 
     {[proto: null, extensible: true, class: "Object"]
@@ -296,8 +295,6 @@ let [[Object]] =
 		      #writable: false,
 		      #configurable: false,
 		      #enumerable: false}}
-
-let [[Array_prototype]] = {[proto: Object_prototype, extensible: true, class: "Array"]}
 
 let [[eval]] = function(s) { return throw "We do not account for eval." }
 
@@ -732,6 +729,11 @@ let [[freezefun]] = func(obj, name) {
     }]
 }
 
+// **************************************************
+// Arrays (15.4)
+// **************************************************
+let [[Array_prototype]] = {[proto: Object_prototype, extensible: true, class: "Array"]}
+
 let [[array-set]] = func(array-object, element-list) {
     return forobj(element-list,
 		  func(obj, name) {
@@ -743,30 +745,83 @@ let [[array-set]] = func(array-object, element-list) {
 		  })
 }
 
-// The biggest numeric property in the array? 
-let [[length-getter]] = func(array) {
+let [[make-length-getter-setter]] = func() {
     return
-    let (max = 0)
-    forobj(array,
-	   func(obj, name) {
-	       return
-	       if(ToString(ToNumber(name)) === name)
-		   if(prim(">", ToNumber(name), max))
-		       max := ToNumber(name)
-	       else { undefined }
-	   });
-    max
+    let (possibly-larger-length = 0) 
+
+    // get the largest numeric property among the elements of array
+    let (length-getter = func(array) {
+	return
+	let (max = 0)
+	let (iter-func = func(arr-obj, name)  {
+	    return
+	    let(num = ToUInt(name))
+	    if((ToString(num) === name) && // definition of an array index (15.4)
+	       prim(">", num, max)) {
+		    max := num
+	    } else {undefined}
+	})
+	forobj(array, iter-func);
+	let (len = prim("+",max,1))
+
+	// If the length has been set longer, return that
+	if(prim("<", len, possibly-larger-length)) {
+	    possibly-larger-length
+	}
+	else {
+	    len
+	}
+    })
+
+    // Inspired by 15.4.5.1, but not exactly the same
+    let (length-setter = func(array, len) {
+	return
+	let (int32len = ToUInt(len))
+	if (if(prim("abs=",int32len,(ToNumber(len)))) false else true) { throw "RangeError" }
+	else { 
+	    // Use the getter to figure out what the current length should be
+	    let (curr-len = length-getter(array))
+	    if (prim(">=", int32len, curr-len)) {
+		possibly-larger-length := int32len
+	    }
+	    else {
+		// keep deleting until we can't, or we're down to the new length
+		let (iter-func = func(ix) {
+		    return
+		    if (prim("<", int32len, ix) && array[delete ToString(ix)]) {
+			    iter-func(prim("-",ix,1))
+		    }
+		    else {undefined}
+		})
+		iter-func(curr-len)
+	    }
+	}
+    })
+
+    {[] "length-getter": {#value: function() { return length-getter(this) }},
+	"length-setter": {#value: function(len) { return length-setter(this, len) }}}
 }
+
 
 let [[Array]] = function(len) {
     return
+    let (getter-setter = make-length-getter-setter())
     let (arr-obj = {[proto: Array_prototype,
 		     class: "Array",
 		     extensible: true]
-		    len_int: {#value: args["length"],
-			      #writable: true,
-			      #enumerable: false,
-			      #configurable: false},
-		    length: {#getter: function() { return this["len_init"] }}})
+		    length: {#getter: getter-setter["length-getter"],
+			     #setter: getter-setter["length-setter"],
+			     #configurable: false,
+			     #enumerable: false}})
     arr-obj
+}
+
+{
+    Array["isArray" = function(maybeArray) {
+	return (typeof maybeArray === "object") && prim("is-array", maybeArray)
+    }]
+}
+
+{
+    global["Array" = Array]
 }

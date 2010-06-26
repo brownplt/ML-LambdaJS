@@ -269,7 +269,7 @@ let rec eval exp env = match exp with
 	      let (attrs,props) = !c in
 		if IdMap.mem s props 
 		  && IdMap.mem "configurable" attrs
-		  && (IdMap.find "configurable" attrs) = Const (CBool true)
+		  && (IdMap.find "configurable" attrs) == Const (CBool true)
 		then begin
 		  c := (attrs, IdMap.remove s props);
 		  Const (CBool true)
@@ -325,7 +325,7 @@ let rec eval exp env = match exp with
 		  (List.hd args_values) 
 		  (List.nth args_values 1)
 	  | Closure c -> apply func_value args_values
-	  | _ -> failwith ("[interp] Inapplicable value: " ^ pretty_value func_value ^ ", at " ^ string_of_position p)
+	  | _ -> failwith ("[interp] Inapplicable value: " ^ pretty_value func_value ^ ", applied to " ^ pretty_value_list args_values ^ ", at " ^ string_of_position p)
 	end
   | ESeq (p, e1, e2) -> 
       eval e1 env;

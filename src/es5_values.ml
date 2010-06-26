@@ -32,3 +32,6 @@ let rec pretty_value v = match v with
   | ObjCell o -> "object"
   | VarCell v -> "&<" ^ pretty_value !v ^ ">"
 
+let rec pretty_value_list vs = match vs with
+  | (v::vs) -> pretty_value v ^ pretty_value_list vs
+  | [] -> ""

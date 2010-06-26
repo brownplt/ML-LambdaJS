@@ -63,7 +63,7 @@ let rec ds expr =
 					   EOp1 (p, 
 						 Op1Prefix ("typeof"),
 						 EId (p, "$resObj")),
-					   EConst (p, S.CString ("Object"))),
+					   EConst (p, S.CString ("object"))),
 				     EId (p, "$resObj"),
 				     EId (p, "$newObj"))))))
 	  
