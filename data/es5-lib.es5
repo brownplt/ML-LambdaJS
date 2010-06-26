@@ -122,10 +122,11 @@ let [[Error_prototype]] =
      message: {#value: "",
      	       #configurable: false,
 	       #writable: false,
-	       #enumerable: false }
+	       #enumerable: false },
+     toString: {#value: function() { return ToString(this["message"]) }}
      //	have to define toString later, since there is a recursive
      //	dependency with TypeError
-}
+    }
 
 // 15.11.7.7-10
 let [[makeNativeErrorPrototype]] = func(constr, name_str) {
@@ -147,7 +148,11 @@ let [[makeNativeErrorPrototype]] = func(constr, name_str) {
 }
 
 
-let [[TypeError_prototype]] = {[]}
+let [[TypeError_prototype]] = 
+    {[]
+     toString: {#value: function() {
+	 return ToString(this["message"])
+     }}}
 
 let [[TypeError]] = function(msg) {
     return
@@ -395,15 +400,15 @@ let [[defineOwnProperty]] = func(obj, field, attr-obj) {
 		obj[field<#configurable> = true];
 		obj[field<#writable> = true];
 
-		if(isDataDescriptor(current-prop)) {
-		    obj[field<#value> = current-prop["value"] ];
-		    obj[field<#writable> = current-prop["writable"] ]
+		{if(isDataDescriptor(attr-obj)) {
+		    obj[field<#value> = attr-obj["value"] ];
+		    obj[field<#writable> = attr-obj["writable"] ]
 		}
-		else if(isAccessorDescriptor(current-prop)) {
-		    obj[field<#getter> = current-prop["get"] ];
-		    obj[field<#setter> = current-prop["set"] ]
+		else if(isAccessorDescriptor(attr-obj)) {
+		    obj[field<#getter> = attr-obj["get"] ];
+		    obj[field<#setter> = attr-obj["set"] ]
 		}
-		else { undefined };
+		 else { undefined }};
 
 		obj[field<#enumerable> = attr-obj["enumerable"] ];
 		obj[field<#configurable> = attr-obj["configurable"] ];
@@ -497,13 +502,24 @@ let [[getOwnPropertyDescriptor]] = func(obj, field) {
     let (fstring = ToString(field))
     if (typeof obj !== "object") { throw type_error("getOwnPD didn't get object") }
     else {
-	{[proto: Object, extensible: true]
-	 get: {#value: obj[field<#getter>]},
-	 set: {#value: obj[field<#setter>]},
-	 value: {#value: obj[field<#value>]},
-	 writable: {#value: obj[field<#writable>]},
-	 enumerable: {#value: obj[field<#enumerable>]},
-	 configurable: {#value: obj[field<#configurable>]}}
+	if(isDataField(obj, field)) {
+	    {[proto: Object, extensible: true]
+	     value: {#value: obj[field<#value>]},
+	     writable: {#value: obj[field<#writable>]},
+	     enumerable: {#value: obj[field<#enumerable>]},
+	     configurable: {#value: obj[field<#configurable>]}}
+	}
+	else if(isAccessorField(obj, field)) {
+	    {[proto: Object, extensible: true]
+	     get: {#value: obj[field<#getter>]},
+	     set: {#value: obj[field<#setter>]},
+	     enumerable: {#value: obj[field<#enumerable>]},
+	     configurable: {#value: obj[field<#configurable>]}}
+	} else {
+	    {[proto: Object, extensible: true]
+	     enumerable: {#value: obj[field<#enumerable>]},
+	     configurable: {#value: obj[field<#configurable>]}}
+	}
     }
 }
 
@@ -564,10 +580,7 @@ let [[getOwnPropertyDescriptor]] = func(obj, field) {
 		   }};
 
 		   // 8.10.5, step 9
-		   if (((typeof (attrobj["value"])) !== "undefined" ||
-			(typeof (attrobj["writable"])) !== "undefined") &&
-		       ((typeof (attrobj["set"])) !== "undefined" ||
-			(typeof (attrobj["get"])) !== "undefined")) {
+		   if (isDataDescriptor(attrobj) && isAccessorDescriptor(attrobj)) {
 		       throw type_error("The attributes given to defineProperty were inconsistent")
 		   }
 		   else {
