@@ -163,8 +163,8 @@ let rec set_attr attr obj field newval = match obj, field with
       else
 	let prop = (IdMap.find f_str props) in
 	  (* 8.12.9: "If a field is absent, then its value is considered to be false" *)
-	let config = attr_or_false attr prop in
-	let writable = attr_or_false attr prop in
+	let config = attr_or_false Config prop in
+	let writable = attr_or_false Writable prop in
 	let new_prop = match attr, newval, config, writable with
 	  | Enum, Const (CBool true), true, _
 	  | Enum, Const (CBool false), true, _ -> 
@@ -177,16 +177,34 @@ let rec set_attr attr obj field newval = match obj, field with
 	      AttrMap.add Writable newval (to_data prop)
 	  | Value, v, _, true -> 
 	      AttrMap.add Value v (to_data prop)
-	  | Setter, Closure _, true, _ -> 
-	      AttrMap.add Setter newval (to_acc prop)
-	  | Getter, Closure _, true, _ -> 
-	      AttrMap.add Getter newval (to_acc prop)
+	  | Setter, value, true, _ -> 
+	      if fun_obj value then 
+		AttrMap.add Setter newval (to_acc prop) 
+	      else prop
+	  | Getter, value, true, _ -> 
+	      if fun_obj value then 
+		AttrMap.add Getter newval (to_acc prop) 
+	      else prop
 	  | _ -> prop
 	in begin
 	    c := (attrs, IdMap.add f_str new_prop props);
 	    newval
 	  end
   | _ -> failwith ("[interp] set-attr didn't get an object and a string")
+
+(* 8.10.5, steps 7/8 "If iscallable(getter) is false and getter is not
+   undefined..." *)
+
+and fun_obj = match value with
+  | ObjCell c -> let (props, _) = !c in
+      if IdMap.mem "code" props then
+	match IdMap.find "code" props with
+	  | Closure _ -> true
+	  | Const CUndefined -> true
+	  | _ -> false
+      else
+	false
+  | _ -> false
 	  
 
 let rec eval exp env = match exp with
