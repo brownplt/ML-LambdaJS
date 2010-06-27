@@ -8,9 +8,13 @@
 //  ES5, like defineProperty and getOwnPropertyDescriptor
 
 
-let [[global]] = {[]}
-let [[Object_prototype]] = {[]}
-let [[Function_prototype]] = {[]}
+
+let [[Object_prototype]] = {[extensible: true, class: "Object", proto: null]}
+let [[global]] = {[extensible: true, class: "LambdaJS global", proto: null]}
+let [[Function_prototype]] = {[extensible: true, class: "Object", proto: Object_prototype]}
+let [[String_prototype]] = {[extensible: true, class: "Object", proto: Object_prototype]}
+let [[Array_prototype]] = {[extensible: true, class: "Object", proto: Object_prototype]}
+
 
 let [[toBoolean]] = func(x) {
     return
@@ -282,6 +286,13 @@ let [[apply]] = function(thisarg, arglist) {
     }
 }
 
+let [[create]] = function(proto) {
+    return
+    {[proto: proto,
+      extensible: true,
+      class: "Object"]}
+}
+
 let [[Object]] = 
     {[proto: Object_prototype, 
       extensible: true, 
@@ -294,7 +305,11 @@ let [[Object]] =
      getPrototypeOf: {#value: getPrototypeOf,
 		      #writable: false,
 		      #configurable: false,
-		      #enumerable: false}}
+		      #enumerable: false},
+     create: {#value: create,
+	      #writable: false,
+	      #configurable: false,
+	      #enumerable: false}}
 
 let [[eval]] = function(s) { return throw "We do not account for eval." }
 
@@ -715,8 +730,8 @@ let [[sealfun]] = func(obj, name) {
 let [[freezefun]] = func(obj, name) {
     return
 
-    obj[name<#configurable> = false];
-    obj[name<#writable> = false]
+    obj[name<#writable> = false];
+    obj[name<#configurable> = false]
 }
 
 {
@@ -802,6 +817,29 @@ let [[make-length-getter-setter]] = func() {
 	"length-setter": {#value: function(len) { return length-setter(this, len) }}}
 }
 
+// 15.4.4.5
+let [[array-join]] = func(array, sep) {
+    return
+    let (array = toObject(array))
+    let (len = ToUInt(array["length"]))
+    let (sep = (if (sep === undefined) "," else ToString(sep)))
+    if (len === 0) { "" }
+    else {
+	let (el0 = array["0"])
+	let (R = if ((el0 === null) || (el0 === undefined)) "" else ToString(el0))
+	let (iter-func = fix iter-func func(k, R1) {
+	    return
+	    if(prim("<=", len, k)) { R1 }
+	    else {
+		let (S = prim("string+", R1, sep))
+		let (el = array[ToString(k)])
+		let (next = (if ((el === null) || (el === undefined)) "" else ToString(el)))
+		iter-func(prim("+", k, 1), prim("string+", S, next))
+	    }
+	})
+	iter-func(1, R)
+    }
+}
 
 let [[Array]] = function(len) {
     return
@@ -819,6 +857,16 @@ let [[Array]] = function(len) {
 {
     Array["isArray" = function(maybeArray) {
 	return (typeof maybeArray === "object") && prim("is-array", maybeArray)
+    }];
+
+    Array_prototype["join" = function(separator) {
+	return
+	array-join(this, separator)
+    }];
+
+    Array_prototype["toString" = function() {
+	return
+	this["join"](",")
     }]
 }
 
