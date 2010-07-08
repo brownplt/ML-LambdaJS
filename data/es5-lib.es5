@@ -96,6 +96,10 @@ let [[ToNumber]] = func(obj) {
     }
 }
 
+let [[ToInteger]] = func (n) {
+    return prim("to-int32", ToNumber(n))
+}
+
 let [[ToUInt]] = func (n) { 
     return prim("to-int32", ToNumber(n))
 }
@@ -841,6 +845,16 @@ let [[array-join]] = func(array, sep) {
     }
 }
 
+let [[max]] = func(n1, n2) {
+    return
+    if(prim(">", n1, n2)) n1 else n2
+}
+
+let [[min]] = func(n1, n2) {
+    return
+    if(prim(">", n1, n2)) n2 else n1
+}
+
 let [[Array]] = function(len) {
     return
     let (getter-setter = make-length-getter-setter())
@@ -854,20 +868,58 @@ let [[Array]] = function(len) {
     arr-obj
 }
 
+let [[array-slice]] = func(array, start, end) {
+    return
+    let (O = toObject(array))
+    let (A = CallNoArgs(Array))
+    let (lenVal = O["length"])
+    let (len = ToUInt(lenVal))
+    let (relativeStart = ToInteger(start))
+    let (k = (if (prim("<",relativeStart,0)) 
+	      { max(prim("+", len, relativeStart), 0) }
+	      else
+	      { min(relativeStart, len) }))
+    let (relativeEnd = (if (end === undefined)
+			{ len }
+			else
+			{ ToInteger(end) }))
+    let (final = (if (prim("<", relativeEnd, 0))
+		  { max(prim("+", len, relativeEnd), 0) }
+		  else
+		  { min(relativeEnd, len) }))
+    let (iter-func = fix iter-func func(k, n) {
+	return
+	if (prim("<", k, final)) {
+	    let (Pk = ToString(k))
+	    if (prim("has-property?", O, Pk))
+	    { A[ToString(n) = O[Pk] ];
+	      iter-func(prim("+", k, 1), prim("+", n, 1)) }
+	    else
+	    { iter-func(prim("+", k, 1), prim("+", n, 1)) }
+	}
+	else { undefined }
+    })
+    iter-func(k, 0);
+    A
+}
+
 {
     Array["isArray" = function(maybeArray) {
 	return (typeof maybeArray === "object") && prim("is-array", maybeArray)
     }];
 
     Array_prototype["join" = function(separator) {
-	return
-	array-join(this, separator)
+	return array-join(this, separator)
     }];
 
     Array_prototype["toString" = function() {
-	return
-	this["join"](",")
+	return this["join"](",")
+    }];
+
+    Array_prototype["slice" = function(start, end) { 
+	return array-slice(this, start, end) 
     }]
+
 }
 
 {
