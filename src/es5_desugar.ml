@@ -191,7 +191,7 @@ let rec ds_op exp = match exp with
       | "prefix:delete" -> begin match e with
 	  | EGetFieldSurface (p, obj, field, args) ->
 	      EDeleteField (p, obj, field)
-	  | _ -> true_c p
+	  | _ -> ESeq (p, e, true_c p)
 	end
       | "prefix:!" -> 
           EIf (p, EOp1 (p, Prim1 "prim->bool", ds_op e),
