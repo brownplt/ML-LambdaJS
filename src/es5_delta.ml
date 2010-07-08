@@ -159,7 +159,7 @@ let get_own_property_names obj = match obj with
   | _ -> raise (Throw (str "own-property-names"))
 
 (* Implement this here because there's no need to expose the class
-property outside of the delta function *)
+   property outside of the delta function *)
 let object_to_string obj = match obj with
   | ObjCell o -> let (attrs, props) = !o in begin try
       match IdMap.find "class" attrs with

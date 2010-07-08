@@ -135,7 +135,8 @@ let to_acc prop =
 let to_data prop = 
   AttrMap.remove Setter (AttrMap.remove Getter prop)
 
-(* The goal here is to maintain a few invariants (implied by 8.12.9
+(* 
+   The goal here is to maintain a few invariants (implied by 8.12.9
    and 8.10.5), while keeping things simple from a semantic
    standpoint.  The errors from 8.12.9 and 8.10.5 can be defined in
    the environment and enforced that way.  The invariants here make it
