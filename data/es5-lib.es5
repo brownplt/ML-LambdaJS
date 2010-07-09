@@ -8,13 +8,52 @@
 //  ES5, like defineProperty and getOwnPropertyDescriptor
 
 
-
 let [[Object_prototype]] = {[extensible: true, class: "Object", proto: null]}
+
+// *******************************************************************
+// Utilities
+//
+// These are functions that are used inside the implementation of the
+// libraries for convenience.  Sometimes they simulate real ES
+// behavior, and other times they just make grunge work easier.
+// *******************************************************************
+
+// Not the make args array of the spec.  Used internally to make
+// arguments lists from array-like objects
+let [[mkArgsArray]] = func(alist) {
+    return
+    let (arr = {[extensible: true, proto: Object_prototype, class: "Arguments"]})
+    let (add_arg = 
+	 fix aa func(ar-acc, curr-index) {
+	     return 
+	     let (str-index = prim("prim->str", curr-index))
+	     if (prim("has-own-property?", alist, str-index)) { 
+		 let (nextval = alist[str-index])
+		 ar-acc[str-index = nextval];
+		 aa(ar-acc, prim("+", curr-index, 1))
+	     }
+	     else { 
+		 ar-acc 
+	     }
+	 })
+    add_arg(arr, 0)
+}
+
+// Simpler forms to use internally
+let [[oneArg]] = func(arg) {
+    return mkArgsArray({[] "0": {#value: arg}})
+}
+
+let [[twoArgs]] = func(arg1, arg2) {
+    return mkArgsArray({[] 
+			"0": {#value: arg1},
+			"1": {#value: arg2}})
+}
+
 let [[global]] = {[extensible: true, class: "LambdaJS global", proto: null]}
-let [[Function_prototype]] = {[extensible: true, class: "Object", proto: Object_prototype]}
+let [[Function_prototype]] = {[extensible: true, class: "Function", proto: Object_prototype]}
 let [[String_prototype]] = {[extensible: true, class: "Object", proto: Object_prototype]}
 let [[Array_prototype]] = {[extensible: true, class: "Object", proto: Object_prototype]}
-
 
 let [[toBoolean]] = func(x) {
     return
@@ -104,12 +143,10 @@ let [[ToUInt]] = func (n) {
     return prim("to-int32", ToNumber(n))
 }
 
-let [[Object_prototype]] = 
-    {[proto: null, extensible: true, class: "Object"]
-     toString: {#value: function() { return prim("object-to-string", this) }}}
-
-let [[Function_prototype]] = 
-    {[proto: Object_prototype, extensible: true, class: "Function"]}
+{
+    Object_prototype["toString" = 
+		     function() { return prim("object-to-string", this) }]
+}
 
 // 15.11.2
 let [[Error]] = 
@@ -239,25 +276,6 @@ let [[getPrototypeOf]] = function(obj) {
     else {
 	prim("get-proto", obj)
     }
-}
-
-// Not the make args array of the spec.  Used internally to make
-// arguments lists from array-like objects
-let [[mkArgsArray]] = func(alist) {
-    return
-    let (arr = {[extensible: true, proto: Object_prototype, class: "Arguments"]})
-    let (len = alist["length"])
-    let (add_arg = 
-	 fix aa func(ar-acc, curr-index) {
-	     return 
-	     if (curr-index === len) { ar-acc } 
-	     else { 
-		 let (nextval = alist[curr-index])
-		 ar-acc[curr-index = nextval];
-		 aa(ar-acc, prim("+", curr-index, 1))
-	     }
-	 })
-    add_arg(arr, 0)
 }
 
 let [[call]] = function(thisarg) {
@@ -751,7 +769,6 @@ let [[freezefun]] = func(obj, name) {
 // **************************************************
 // Arrays (15.4)
 // **************************************************
-let [[Array_prototype]] = {[proto: Object_prototype, extensible: true, class: "Array"]}
 
 let [[array-set]] = func(array-object, element-list) {
     return forobj(element-list,
@@ -913,13 +930,12 @@ let [[array-slice]] = func(array, start, end) {
     }];
 
     Array_prototype["toString" = function() {
-	return this["join"](",")
+	return this["join"](this, oneArg(","))
     }];
 
     Array_prototype["slice" = function(start, end) { 
 	return array-slice(this, start, end) 
     }]
-
 }
 
 {
