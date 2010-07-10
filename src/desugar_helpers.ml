@@ -20,7 +20,7 @@ let int_c p d =
 let obj_proto p = EId (p, "[[Object_prototype]]")
 let fun_proto p = EId (p, "[[Function_prototype]]")
 
-let to_object p e = EApp (p, EId (p, "[[toObject]]"), [e])
+let to_object p e = EApp (p, EId (p, "[[ToObject]]"), [e])
 let to_string p e = EApp (p, EId (p, "[[ToString]]"), [e])
 
 let rec mk_val p v =

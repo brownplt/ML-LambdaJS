@@ -7,7 +7,6 @@
 //  also implementations of functions that exhibit the object model of
 //  ES5, like defineProperty and getOwnPropertyDescriptor
 
-
 let [[Object_prototype]] = {[extensible: true, class: "Object", proto: null]}
 
 // *******************************************************************
@@ -20,7 +19,7 @@ let [[Object_prototype]] = {[extensible: true, class: "Object", proto: null]}
 
 // Not the make args array of the spec.  Used internally to make
 // arguments lists from array-like objects
-let [[mkArgsArray]] = func(alist) {
+let [[args-array]] = func(alist) {
     return
     let (arr = {[extensible: true, proto: Object_prototype, class: "Arguments"]})
     let (add_arg = 
@@ -39,21 +38,27 @@ let [[mkArgsArray]] = func(alist) {
     add_arg(arr, 0)
 }
 
+// Use internally to call function objects that take no arguments
+let [[call-no-args]] = func(f) { return f(undefined, {[]}) }
+
 // Simpler forms to use internally
-let [[oneArg]] = func(arg) {
-    return mkArgsArray({[] "0": {#value: arg}})
+let [[one-arg]] = func(arg) {
+    return args-array({[] "0": {#value: arg}})
 }
 
-let [[twoArgs]] = func(arg1, arg2) {
-    return mkArgsArray({[] 
+let [[two-args]] = func(arg1, arg2) {
+    return args-array({[] 
 			"0": {#value: arg1},
 			"1": {#value: arg2}})
 }
 
+let [[max]] = func(n1, n2) { return if(prim(">", n1, n2)) n1 else n2 }
+let [[min]] = func(n1, n2) { return if(prim(">", n1, n2)) n2 else n1 }
+
 let [[global]] = {[extensible: true, class: "LambdaJS global", proto: null]}
 let [[Function_prototype]] = {[extensible: true, class: "Function", proto: Object_prototype]}
 let [[String_prototype]] = {[extensible: true, class: "Object", proto: Object_prototype]}
-let [[Array_prototype]] = {[extensible: true, class: "Object", proto: Object_prototype]}
+let [[Array_prototype]] = {[extensible: true, class: "Array", proto: Object_prototype]}
 
 let [[toBoolean]] = func(x) {
     return
@@ -168,8 +173,8 @@ let [[Error_prototype]] =
 	       #writable: false,
 	       #enumerable: false },
      toString: {#value: function() { return ToString(this["message"]) }}
-     //	have to define toString later, since there is a recursive
-     //	dependency with TypeError
+     //	should really to define toString later, since there is a
+     //	recursive dependency with TypeError
     }
 
 // 15.11.7.7-10
@@ -215,21 +220,18 @@ let [[type_error]] = func(msg) {
     return TypeError(undefined, {[] "0": {#value: msg}})
 }
 
-// Use internally to call function objects that take no arguments
-let [[CallNoArgs]] = func(f) { return f(undefined, {[]}) }
-
 {
     TypeError_prototype := makeNativeErrorPrototype(TypeError, "TypeError");
     TypeError["prototype" = TypeError_prototype]
 }
 
-// Algorithm 9.9 of ECMA-262, ed. 3.
-let [[toObject]] = func (x) {
+// 9.9
+let [[ToObject]] = func (x) {
   return if (typeof x === "undefined") {
     throw type_error("toObject given undefined")
   }
   else if (typeof x === "null") {
-    throw CallNoArgs(TypeError)
+    throw call-no-args(TypeError)
   }
   else if (typeof x === "boolean") {
       { [proto: "Boolean_prototype",
@@ -271,7 +273,7 @@ let [[print]] = function(s) {
 let [[getPrototypeOf]] = function(obj) {
     return
     if (typeof obj !== "object") {
-	throw CallNoArgs(TypeError)
+	throw call-no-args(TypeError)
     }
     else {
 	prim("get-proto", obj)
@@ -286,23 +288,23 @@ let [[call]] = function(thisarg) {
 let [[apply]] = function(thisarg, arglist) {
     return 
     if (arglist === undefined || arglist === null) {
-	this(thisarg, mkArgsArray({[]}))
+	this(thisarg, args-array({[]}))
     }
     else if (typeof arglist !== "object") {
-	throw CallNoArgs(TypeError)
+	throw call-no-args(TypeError)
     }
     else {
 	let (len = arglist["length"])
 	if (len === null || len === undefined) {
-	    throw CallNoArgs(TypeError)
+	    throw call-no-args(TypeError)
 	}
 	else {
 	    let (n = ToUInt(len))
 	    if (ToNumber(len) !== n) {
-		throw CallNoArgs(TypeError)
+		throw call-no-args(TypeError)
 	    }
 	    else {
-		this(thisargs, mkArgsArray(arglist))
+		this(thisargs, args-array(arglist))
 	    }
 	}
     }
@@ -639,12 +641,12 @@ let [[getOwnPropertyDescriptor]] = func(obj, field) {
 let [[instanceof]] = func(obj1, obj2) {
     return
     if(typeof obj1 !== "object") {
-	throw CallNoArgs(TypeError)
+	throw call-no-args(TypeError)
     }
     else {
 	let (o = obj2["prototype"])
 	if (typeof o !== "object") {
-	    throw CallNoArgs(TypeError)
+	    throw call-no-args(TypeError)
 	}
 	else {
 	    let (repeat = fix rep func(proto) {
@@ -690,7 +692,7 @@ let [[plus]] = func(arg1, arg2) {
 
 let [[hasProperty]] = func(obj, field) {
     return if (typeof obj !== "object") {
-	CallNoArgs(TypeError)
+	call-no-args(TypeError)
     }
     else {
 	prim("has-property", obj, ToString(field))
@@ -701,7 +703,6 @@ let [[in]] = func(obj, field) {
     return hasProperty(obj, field)
 }
 
-
 {
     global["hasProperty" = has_property]
 }
@@ -710,7 +711,6 @@ let [[in]] = func(obj, field) {
 // Calls the function with the object and each own property name in
 // the order returned from "own-property-names"
 let [[forobj]] = func(obj, fun) {
-
     return
     let (propnames = prim("own-property-names", obj))
     let (iter = fix iter func(obj, i) {
@@ -725,7 +725,6 @@ let [[forobj]] = func(obj, fun) {
 	}
     })
     iter(obj,0)
-
 }
 
 // Used for both freeze and seal, which are quite similar
@@ -743,15 +742,12 @@ let [[sf]] = func(obj, f) {
 // 15.2.3.8
 let [[sealfun]] = func(obj, name) {
     return
-
     obj[name<#configurable> = false]
-
 }
 
 // 15.2.3.9
 let [[freezefun]] = func(obj, name) {
     return
-
     obj[name<#writable> = false];
     obj[name<#configurable> = false]
 }
@@ -841,7 +837,7 @@ let [[make-length-getter-setter]] = func() {
 // 15.4.4.5
 let [[array-join]] = func(array, sep) {
     return
-    let (array = toObject(array))
+    let (array = ToObject(array))
     let (len = ToUInt(array["length"]))
     let (sep = (if (sep === undefined) "," else ToString(sep)))
     if (len === 0) { "" }
@@ -862,16 +858,6 @@ let [[array-join]] = func(array, sep) {
     }
 }
 
-let [[max]] = func(n1, n2) {
-    return
-    if(prim(">", n1, n2)) n1 else n2
-}
-
-let [[min]] = func(n1, n2) {
-    return
-    if(prim(">", n1, n2)) n2 else n1
-}
-
 let [[Array]] = function(len) {
     return
     let (getter-setter = make-length-getter-setter())
@@ -887,8 +873,8 @@ let [[Array]] = function(len) {
 
 let [[array-slice]] = func(array, start, end) {
     return
-    let (O = toObject(array))
-    let (A = CallNoArgs(Array))
+    let (O = ToObject(array))
+    let (A = call-no-args(Array))
     let (lenVal = O["length"])
     let (len = ToUInt(lenVal))
     let (relativeStart = ToInteger(start))
@@ -930,7 +916,7 @@ let [[array-slice]] = func(array, start, end) {
     }];
 
     Array_prototype["toString" = function() {
-	return this["join"](this, oneArg(","))
+	return this["join"](this, one-arg(","))
     }];
 
     Array_prototype["slice" = function(start, end) { 

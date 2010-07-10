@@ -251,7 +251,7 @@ let rec eval exp env = match exp with
 		s
 		v_value
 		args_value
-	  | _ -> failwith ("[interp] Update field didn't get an object and a string" ^ string_of_position )
+	  | _ -> failwith ("[interp] Update field didn't get an object and a string" ^ string_of_position p)
 	end
   | EGetFieldSurface (p, obj, f, args) ->
       let obj_value = eval obj env in
