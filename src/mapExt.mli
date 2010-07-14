@@ -24,6 +24,8 @@ module type S = sig
 
   val diff : 'a t -> 'a t -> 'a t
 
+  val filter : (key -> 'a -> bool) -> 'a t -> 'a t
+
 end
 
 module Make : functor (Ord : Map.OrderedType) -> 

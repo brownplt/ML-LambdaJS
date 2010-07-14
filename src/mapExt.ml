@@ -12,6 +12,7 @@ module type S = sig
   val join : (key -> 'a -> 'a -> 'a) -> 'a t -> 'a t -> 'a t
   val p_map : (key -> printer) -> ('a -> printer) -> 'a t -> printer
   val diff : 'a t -> 'a t -> 'a t
+  val filter : (key -> 'a -> bool) -> 'a t -> 'a t
 end
 
 module Make (Ord: Map.OrderedType) (Map : Map.S with type key = Ord.t) = struct
@@ -54,6 +55,10 @@ module Make (Ord: Map.OrderedType) (Map : Map.S with type key = Ord.t) = struct
     let fn key v acc =
       if Map.mem key m2 then acc else Map.add key v acc in
       Map.fold fn m1 Map.empty
+
+  let filter f m = 
+    let g k v m' = if f k v then Map.add k v m' else m' in
+      Map.fold g m Map.empty
      
 
 end
