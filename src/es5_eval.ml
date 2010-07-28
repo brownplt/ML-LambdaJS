@@ -4,6 +4,9 @@ open JavaScript_syntax
 open Es5_values
 open Es5_delta
 
+let rec interp_error pos message =
+  "[interp] (" ^ string_of_position pos ^ ") " ^ message
+
 let rec apply func args = match func with
   | Closure c -> c args
   | _ -> failwith ("[interp] Applied non-function, was actually " ^ 
@@ -23,7 +26,7 @@ let rec apply_obj o this args = match o with
   | _ -> failwith ("[interp] apply_obj given non-object")
 	  
 
-let rec get_field obj1 obj2 field args = match obj1 with
+let rec get_field p obj1 obj2 field args = match obj1 with
   | Const (CNull) -> Const (CUndefined) (* nothing found *)
   | ObjCell c ->
       let (attrs, props) = !c in begin
@@ -39,11 +42,15 @@ let rec get_field obj1 obj2 field args = match obj1 with
 		with Not_found -> Const (CUndefined) (* Nothing to get *)
 	  with Not_found ->
 	    try
-	      get_field (IdMap.find "proto" attrs) obj2 field args
+	      get_field p (IdMap.find "proto" attrs) obj2 field args
 	    with Not_found ->
 	      Const (CUndefined) (* No prototype found *)
 	end
-  | _ -> failwith ("[interp] get_field received (or found) a non-object.  The call was (get-field " ^ pretty_value obj1 ^ " " ^ pretty_value obj2 ^ " " ^ field)
+  | _ -> failwith (interp_error p 
+		     "get_field received (or reached) a non-object.  The expression was (get-field " 
+		   ^ pretty_value obj1 
+		   ^ " " ^ pretty_value obj2 
+		   ^ " " ^ field ^ ")")
 
 
 (* EUpdateField-Add *)
@@ -235,14 +242,14 @@ let rec eval exp env = match exp with
   | EObject (p, attrs, props) ->
       let eval_obj_attr (name, e) m = IdMap.add name (eval e env) m in
       let eval_prop_attr (name, e) m = AttrMap.add name (eval e env) m in
-      let eval_prop (p, name, attrs) m = 
+      let eval_prop (name, attrs) m = 
 	IdMap.add name (fold_right eval_prop_attr attrs AttrMap.empty) m in
 	ObjCell (ref (fold_right eval_obj_attr attrs IdMap.empty,
 		      fold_right eval_prop props IdMap.empty))
   | EUpdateFieldSurface (p, obj, f, v, args) ->
       let obj_value = eval obj env in
       let f_value = eval f env in
-      let v_value = eval v env in 
+      let v_value = eval v env in
       let args_value = eval args env in begin
 	match (obj_value, f_value) with
 	  | (ObjCell o, Const (CString s)) ->
@@ -251,7 +258,8 @@ let rec eval exp env = match exp with
 		s
 		v_value
 		args_value
-	  | _ -> failwith ("[interp] Update field didn't get an object and a string" ^ string_of_position p)
+	  | _ -> failwith ("[interp] Update field didn't get an object and a string" 
+			   ^ string_of_position p)
 	end
   | EGetFieldSurface (p, obj, f, args) ->
       let obj_value = eval obj env in
@@ -259,8 +267,13 @@ let rec eval exp env = match exp with
       let args_value = eval args env in begin
 	match (obj_value, f_value) with
 	  | (ObjCell o, Const (CString s)) ->
-	      get_field obj_value obj_value s args_value
-	  | _ -> failwith ("[interp] Get field didn't get an object and a string at " ^ string_of_position p ^ ". Instead, it got " ^ pretty_value obj_value ^ " and " ^ pretty_value f_value)
+	      get_field p obj_value obj_value s args_value
+	  | _ -> failwith ("[interp] Get field didn't get an object and a string at " 
+			   ^ string_of_position p 
+			   ^ ". Instead, it got " 
+			   ^ pretty_value obj_value 
+			   ^ " and " 
+			   ^ pretty_value f_value)
 	end
   | EDeleteField (p, obj, f) ->
       let obj_val = eval obj env in

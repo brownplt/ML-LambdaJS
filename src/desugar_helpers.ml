@@ -1,7 +1,8 @@
 open Prelude
 open Es5_syntax
-module S = JavaScript_syntax
+open Exprjs_syntax
 
+module S = JavaScript_syntax
 
 let true_c p = EConst (p, S.CBool (true))
 let false_c p = EConst (p, S.CBool (false))
@@ -30,10 +31,11 @@ let rec mk_val p v =
    (Writable, true_c p)]
 
 let rec mk_field (p, s, e) =
-  (p, s, mk_val p e)
+  match e with
+    | _ -> (s, mk_val p e)
 
 let rec mk_array (p, exps) = 
-  let mk_num_field n v = (p, string_of_int n, 
+  let mk_num_field n v = (string_of_int n, 
 		      mk_val p v) in
     EObject (p, [("proto", EId (p, "[[Array_prototype]]"));
 		 ("extensible", true_c p);
@@ -41,10 +43,9 @@ let rec mk_array (p, exps) =
 	     ((mk_field (p, "length", int_c p (List.length exps))) ::
 		List.map2 mk_num_field (iota (List.length exps)) exps))
 
-
 (* 10.6 *)
 let args_obj p arg_list callee = 
-  let mk_field n v = (p, string_of_int n, 
+  let mk_field n v = (string_of_int n, 
 		      mk_val p v) in
     EObject 
       (* 10.6 steps 4, 6 *)
@@ -52,12 +53,12 @@ let args_obj p arg_list callee =
 	   ("class", str p "Arguments");
 	   ("extensible", false_c p)],
        (* 10.6 steps 1, 7 *)
-       ((p, "length", [(Value, int_c p (List.length arg_list));
+       (("length", [(Value, int_c p (List.length arg_list));
 		       (Writable, false_c p);
 		       (Enum, false_c p);
 		       (Config, false_c p)]);
 	(* 10.6 step 13a *)
-	(p, "callee", [(Value, callee);
+	("callee", [(Value, callee);
 		       (Config,  true_c p);
 		       (Enum, false_c p);
 		       (Writable, true_c p)])::
@@ -106,7 +107,7 @@ let rec func_object p ids lambda_exp =
 		 [("proto", obj_proto p);
 		  ("extensible", true_c p);
 		  ("class", str p "Object")],
-		 [(p, "constructor", 
+		 [("constructor", 
 		   [(Value, EConst (p, S.CUndefined));
 		    (Writable, true_c p);
 		    (Enum, false_c p);
@@ -117,14 +118,14 @@ let rec func_object p ids lambda_exp =
 			("proto", fun_proto p);
 			("extensible", true_c p);
 			("class", str p "Function")],
-		       [(p,"length", 
+		       [("length", 
 			 [(Value, EConst (p, S.CNum
 					      (float_of_int
 						 (List.length ids))));
 			  (Writable, false_c p);
 			  (Enum, false_c p);
 			  (Config, false_c p)]);
-			(p,"prototype",
+			("prototype",
 			 [(Value, EId (p, "$prototype")); 
 			  (Writable, true_c p);
 			  (Config, false_c p);

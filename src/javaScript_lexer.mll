@@ -168,6 +168,8 @@ rule token = parse
    | "with" { parse_re := false; With  }
    | "continue" { parse_re := false; Continue  }
    | "instanceof" { parse_re := false; Instanceof  }
+   | "get" { parse_re := false; Get }
+   | "set" { parse_re := false; Set }
    | ident as x { parse_re := false; Id x }
    | eof { EOF }
 

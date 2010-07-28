@@ -9,12 +9,12 @@ type attr =
   | Enum
 
 let string_of_attr attr = match attr with
-  | Value -> ":value"
-  | Getter -> ":getter"
-  | Setter -> ":setter"
-  | Config -> ":config"
-  | Writable -> ":writable"
-  | Enum -> ":enum"
+  | Value -> "#value"
+  | Getter -> "#getter"
+  | Setter -> "#setter"
+  | Config -> "#config"
+  | Writable -> "#writable"
+  | Enum -> "#enum"
 
 (* Borrowed from prelude *)
 module AttrOrderedType = struct
@@ -40,10 +40,10 @@ type exp =
   | EConst of pos * JavaScript_syntax.const
   | EId of pos * id
   | EObject of pos * (string * exp) list *
-      (pos * string * (attr * exp) list) list
-      (* object, field, new value, args object *)
+      (string * (attr * exp) list) list
+      (** object, field, new value, args object *)
   | EUpdateFieldSurface of pos * exp * exp * exp * exp
-      (* object, field, args object *)
+      (** object, field, args object *)
   | EGetFieldSurface of pos * exp * exp * exp
   | EAttr of pos * attr * exp * exp
   | ESetAttr of pos * attr * exp * exp * exp
@@ -75,7 +75,7 @@ let rename (x : id) (y : id) (exp : exp) : exp =
     | EId (p, z) -> EId (p, if z = x then y else z)
     | EObject (p, attrs, fields) -> 
 	let ren_attr (name, value) = (name, ren value) in
-	let ren_field (p, name, attrs) = (p, name, map ren_attr attrs) in
+	let ren_field (name, attrs) = (name, map ren_attr attrs) in
 	  EObject (p, map ren_attr attrs, map ren_field fields)
     | EUpdateFieldSurface (p, o, e1, e2, args) ->
 	EUpdateFieldSurface (p, ren o, ren e1, ren e2, ren args)
@@ -120,7 +120,7 @@ let rec fv (exp : exp) : IdSet.t = match exp with
   | EId (_, x) -> IdSet.singleton x
   | EObject (_, attrs, fields) -> 
       let attr (name, value) = fv value in
-      let field (p, name, attrs) = 
+      let field (name, attrs) = 
 	IdSetExt.unions (map attr attrs) in
 	IdSetExt.unions (List.append (map attr attrs) (map field fields))
   | EUpdateField (_, o1, o2, e1, e2, args) -> 

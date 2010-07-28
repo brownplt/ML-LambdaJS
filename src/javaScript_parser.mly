@@ -28,7 +28,7 @@ let rec expr_to_lvalue (e : expr) : lvalue =  match e with
 
 %token If Else True False New Instanceof This Null Function Typeof Void
  Delete Switch Default Case While Do Break Var In For Try Catch Finally Throw
- Return With Continue 
+ Return With Continue Set Get
 
 %token LBrace RBrace LParen RParen Assign
  Semi Comma Ques Colon LOr LAnd BOr BXor BAnd StrictEq AbstractEq
@@ -87,9 +87,13 @@ ids
   | Id { [$1] }
   | Id Comma ids { $1 :: $3 }
 
+(* How silly is this hack for dealing with get/set as keywords as well
+as get/set property names? *)
 prop
   : Id { PropId $1 }  %prec GreaterThanColon
   | String { PropString $1 }
+  | Get { PropString "get" }
+  | Set { PropString "set" }
 
 fields
   : { [] }
@@ -97,10 +101,19 @@ fields
     { [ (($startpos($1), $startpos($3)), $1, $3) ] }
   | prop Colon expr Comma fields  
       { (($startpos($1), $startpos($3)), $1, $3) :: $5 }
+  | Get prop LParen RParen LBrace stmt RBrace
+      { [ (($startpos, $endpos), $2, GetterExpr (($startpos, $endpos), $6)) ] }
+  | Get prop LParen RParen LBrace stmt RBrace Comma fields
+      { (($startpos, $endpos), $2, GetterExpr (($startpos, $endpos), $6)) :: $9 }
+  | Set prop LParen Id RParen LBrace stmt RBrace
+      { [ (($startpos, $endpos), $2, SetterExpr (($startpos, $endpos), $4, $7)) ] }
+  | Set prop LParen Id RParen LBrace stmt RBrace Comma fields
+      { (($startpos, $endpos), $2, SetterExpr (($startpos, $endpos), $4, $7)) :: $10 }
+
 
 varDecls
   : varDecl { [$1] }
-  | varDecl Comma varDecls { $1::$3 } 
+  | varDecl Comma varDecls { $1::$3 }
 
 varDecls_noin
   : varDecl_noin { [$1] }

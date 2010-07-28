@@ -22,23 +22,23 @@ let rec mk_field (p, s, e) =
   (p, s, mk_val p e)
     
 let args_obj p arg_list callee = 
-  let mk_field n v = (p, string_of_int n, 
+  let mk_field n v = (string_of_int n, 
 		      mk_val p v) in
     EObject 
       (p, [("proto", EId (p, "Object_prototype"));
 	   ("class", str p "Arguments");
 	   ("extensible", false_c p)],
-       ((p, "length", [(Value, int_c p (List.length arg_list));
-		       (Writable, false_c p);
-		       (Enum, false_c p);
-		       (Config, false_c p)]);
-		(* 10.6 step 13a *)
-	(p, "callee", [(Value, callee);
-		       (Config,  true_c p);
-		       (Enum, false_c p);
-		       (Writable, true_c p)])::
+       (("length", [(Value, int_c p (List.length arg_list));
+		    (Writable, false_c p);
+		    (Enum, false_c p);
+		    (Config, false_c p)]);
+	(* 10.6 step 13a *)
+	("callee", [(Value, callee);
+		    (Config,  true_c p);
+		    (Enum, false_c p);
+		    (Writable, true_c p)])::
 	  (List.map2 mk_field (iota (List.length arg_list)) arg_list)))
-
+      
 
 (* Used by getters and setters---the function will be known at
 runtime *)
@@ -66,7 +66,7 @@ let rec func_object p ids lambda_exp =
 		 [("proto", EId (p, "Object_prototype"));
 		  ("extensible", true_c p);
 		  ("class", EConst (p, S.CString ("Object")))],
-		 [(p, "constructor", 
+		 [("constructor", 
 		   [(Value, EConst (p, S.CUndefined));
 		    (Writable, true_c p);
 		    (Enum, false_c p);
@@ -76,14 +76,14 @@ let rec func_object p ids lambda_exp =
 		       [("code", lambda_exp);
 			("proto", EId (p, "Function_prototype"));
 			("extensible", true_c p)],
-		       [(p,"length", 
+		       [("length", 
 			 [(Value, EConst (p, S.CNum
 					      (float_of_int
 						 (List.length ids))));
 			  (Writable, false_c p);
 			  (Enum, false_c p);
 			  (Config, false_c p)]);
-			(p,"prototype",
+			("prototype",
 			 [(Value, EId (p, "$prototype")); 
 			  (Writable, true_c p);
 			  (Config, false_c p);
@@ -163,8 +163,8 @@ prop_attrs :
  | prop_attr COMMA prop_attrs { $1 :: $3 }
 
 prop :
- | STRING COLON LBRACE prop_attrs RBRACE { (($startpos, $endpos), $1, $4) }
- | ID COLON LBRACE prop_attrs RBRACE { (($startpos, $endpos), $1, $4) }
+ | STRING COLON LBRACE prop_attrs RBRACE { ($1, $4) }
+ | ID COLON LBRACE prop_attrs RBRACE { ($1, $4) }
 
 props :
  | { [] }

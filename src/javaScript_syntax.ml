@@ -111,6 +111,8 @@ and expr =
   | ListExpr of pos * expr * expr
   | CallExpr of pos * expr * expr list
   | FuncExpr of pos * id list * stmt
+  | GetterExpr of pos * stmt
+  | SetterExpr of pos * id * stmt
   | NamedFuncExpr of pos * id * id list * stmt
   | HintExpr of pos * string * expr
 

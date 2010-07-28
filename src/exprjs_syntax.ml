@@ -15,6 +15,8 @@ type expr
   | AssignExpr of pos * lvalue * expr
   | AppExpr of pos * expr * expr list
   | FuncExpr of pos * id list * expr
+  | GetterExpr of pos * expr
+  | SetterExpr of pos * expr
   | LetExpr of pos * id * expr * expr
   | SeqExpr of pos * expr * expr
   | WhileExpr of pos * expr * expr
@@ -108,6 +110,10 @@ let rec expr (e : S.expr) = match e with
   | S.CallExpr (a,func,args) -> AppExpr (a,expr func,map expr args)
   | S.FuncExpr (a, args, body) ->
       FuncExpr (a, args, LabelledExpr (a, "%return", stmt body))
+  | S.GetterExpr (a, body) ->
+      GetterExpr (a, FuncExpr (a, [], LabelledExpr (a, "%return", stmt body)))
+  | S.SetterExpr (a, arg, body) ->
+      SetterExpr (a, FuncExpr (a, [arg], LabelledExpr (a, "%return", stmt body)))
   | S.HintExpr (p, text, e) -> HintExpr (p, text, expr e)      
   | S.NamedFuncExpr (a, name, args, body) ->
       (* INFO: This translation is absurd and makes typing impossible.

@@ -110,7 +110,7 @@ and op3_string op = match op with
     
 and attr (name, value) = parens (horz [text ("\"" ^ name ^ "\""); exp value])
 
-and field (p, f, attrs) =
+and field (f, attrs) =
   brackets (vert (text ("\"" ^ f ^ "\"") :: map prop_attr attrs))
 
 and prop_attr (name, value) = parens (horz [text (string_of_attr name); exp value])

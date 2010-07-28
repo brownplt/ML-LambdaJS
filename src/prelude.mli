@@ -2,6 +2,8 @@ type id = string
 
 type pos = Lexing.position * Lexing.position
 
+val dummy_pos : Lexing.position * Lexing.position
+
 module Pos : sig
   type t = pos
   val compare : t -> t -> int
@@ -43,7 +45,6 @@ module IdMap : Map.S
 module IdMapExt : MapExt.S
   with type key = id
   with type +'a t = 'a IdMap.t
-
 
 val fold_left : ('a -> 'b -> 'a) -> 'a -> 'b list -> 'a
 

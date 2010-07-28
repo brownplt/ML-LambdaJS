@@ -5,6 +5,8 @@ type id = string
 (** We track the start and end position of each syntactic form. *)
 type pos = Lexing.position * Lexing.position 
 
+let dummy_pos = (Lexing.dummy_pos, Lexing.dummy_pos)
+
 module IdOrderedType = struct
   type t = id
   let compare = Pervasives.compare

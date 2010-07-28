@@ -27,6 +27,8 @@ type expr
   | AssignExpr of pos * lvalue * expr
   | AppExpr of pos * expr * expr list
   | FuncExpr of pos * id list * expr
+  | GetterExpr of pos * expr
+  | SetterExpr of pos * expr
   | LetExpr of pos * id * expr * expr 
       (** We need let-expressions to simplify statements. *)
   | SeqExpr of pos * expr * expr

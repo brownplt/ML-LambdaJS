@@ -6,6 +6,7 @@ module S = JavaScript_syntax
 
 type env = bool IdMap.t
 
+
 let rec ds expr =
   match expr with
     | ConstExpr (p,c) -> EConst (p,c)
@@ -18,7 +19,7 @@ let rec ds expr =
 		   [("proto", obj_proto p);
 		    ("extensible", true_c p);
 		    ("class", str p "Object")],
-		   List.map mk_field (List.map ds_tuple exprs))
+		   ds_fields exprs)
 	    
     | ThisExpr (p) -> EId (p, "this")
 	
@@ -139,6 +140,33 @@ let rec ds expr =
     | ThrowExpr (p, e) ->
 	EThrow (p, ds e)
     | HintExpr (p, e1, e2) -> str p "NYI---Hints"
+
+and ds_fields fields = 
+  let defaults = 
+    AttrMap.add Config (true_c dummy_pos)
+      (AttrMap.add Writable (true_c dummy_pos)
+	 (AttrMap.add Enum (true_c dummy_pos) AttrMap.empty)) in
+  let collect_fields fields = 
+    let folder (p, name, e) map = 
+      let curr = if IdMap.mem name map then IdMap.find name map else [] in
+	IdMap.add name ((p, e) :: curr) map
+    in
+      List.fold_right folder fields IdMap.empty
+  in
+  let mk_attr_field attrs = 
+    let folder (p, exp) map = match exp with 
+      | GetterExpr (p, e) -> AttrMap.add Getter (ds e) map
+      | SetterExpr (p, e) -> AttrMap.add Setter (ds e) map
+      | e -> AttrMap.add Value (ds e) map
+    in
+      AttrMap.fold (fun k v l -> ((k,v)::l)) 
+	(List.fold_right folder attrs defaults) []
+  in
+  let attr_fields = collect_fields fields in
+  let folder name attr_exps new_fields =
+    ((name, (mk_attr_field attr_exps)) :: new_fields)
+  in
+    IdMap.fold folder attr_fields []
 
 and var_lift expr =
   let folder (p,id) e = 
@@ -267,7 +295,7 @@ let rec ds_op exp = match exp with
   | EId (p, x) -> EId (p, x)
   | EObject (p, internals, fields) -> 
       let ds_op_attr (name, value) = (name, ds_op value) in
-      let ds_op_field (p, name, attrs) = (p, name, map ds_op_attr attrs) in
+      let ds_op_field (name, attrs) = (name, map ds_op_attr attrs) in
 	EObject (p, map ds_op_attr internals, map ds_op_field fields)
   | EUpdateField (p, o1, o2, f, v, args) -> 
       EUpdateField (p, ds_op o1, ds_op o2, ds_op f, ds_op v, ds_op args)
@@ -364,7 +392,7 @@ let rec ds_global exp env = match exp with
   | EConst (p, c) -> exp
   | EObject (p, attrs, props) ->
       let attr (name, value) = (name, ds_global value env) in
-      let prop (p, name, attrs) = (p, name, map attr attrs) in
+      let prop (name, attrs) = (name, map attr attrs) in
 	EObject (p, map attr attrs, map prop props)
   | EUpdateFieldSurface (p, o, f, e, args) ->
       EUpdateFieldSurface (p, ds_global o env, 
