@@ -12,7 +12,7 @@ let rec apply func args = match func with
   | _ -> failwith ("[interp] Applied non-function, was actually " ^ 
 		     pretty_value func)
 
-(* args should always be a single args object *)
+(* args is the "arguments" object *)
 let rec apply_obj o this args = match o with
   | ObjCell c -> 
       let (attrs, props) = !c in
