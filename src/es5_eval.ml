@@ -180,7 +180,8 @@ let rec set_attr attr obj field newval = match obj, field with
 	  | Config, Const (CBool false), true, _ -> 
 	      AttrMap.add Config newval prop
 	  | Writable, Const (CBool true), true, _
-	  | Writable, Const (CBool false), true, _ -> 
+	  | Writable, Const (CBool false), true, _ 
+	  | Writable, Const (CBool false), _, true ->
 	      AttrMap.add Writable newval (to_data prop)
 	  | Value, v, _, true -> 
 	      AttrMap.add Value v (to_data prop)
