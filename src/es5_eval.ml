@@ -141,6 +141,10 @@ let to_acc prop =
 let to_data prop = 
   AttrMap.remove Setter (AttrMap.remove Getter prop)
 
+let is_acc prop =
+  AttrMap.mem Writable prop || AttrMap.mem Value prop &&
+    not (AttrMap.mem Setter prop || AttrMap.mem Getter prop)
+
 (* 
    The goal here is to maintain a few invariants (implied by 8.12.9
    and 8.10.5), while keeping things simple from a semantic
@@ -151,8 +155,9 @@ let to_data prop =
 
    1.  Has to be either an accessor or a data property, and;
 
-   2.  Can't change attributes when Config is false (except for Value,
-       which checks Writable)
+   2.  Can't change attributes when Config is false, except for 
+       a. Value, which checks Writable
+       b. Writable, which can change true->false
 *)
 let rec set_attr attr obj field newval = match obj, field with
   | ObjCell c, Const (CString f_str) -> let (attrs, props) = !c in
@@ -180,9 +185,10 @@ let rec set_attr attr obj field newval = match obj, field with
 	  | Config, Const (CBool false), true, _ -> 
 	      AttrMap.add Config newval prop
 	  | Writable, Const (CBool true), true, _
-	  | Writable, Const (CBool false), true, _ 
-	  | Writable, Const (CBool false), _, true ->
+	  | Writable, Const (CBool false), true, _ ->
 	      AttrMap.add Writable newval (to_data prop)
+	  | Writable, Const (CBool false), _, true ->
+	      if is_acc prop then AttrMap.add Writable newval prop else prop
 	  | Value, v, _, true -> 
 	      AttrMap.add Value v (to_data prop)
 	  | Setter, value, true, _ -> 
