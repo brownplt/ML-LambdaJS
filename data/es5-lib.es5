@@ -285,8 +285,6 @@ let [[ToObject]] = func (x) {
   }
 }
 
-
-
 let [[print]] = function(s) {
     return 
     prim("print",ToString(s));
@@ -308,7 +306,7 @@ let [[call]] = function(thisarg) {
 }
 
 {
-    Function_prototype["call" = [[call]]]
+    Function_prototype["call" = call]
 }
 
 // 15.3.4.2
