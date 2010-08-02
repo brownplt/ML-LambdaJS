@@ -184,6 +184,10 @@ let to_int32 v = match v with
   | Const (CNum d) -> Const (CInt (int_of_float d))
   | _ -> raise (Throw (str "to-int"))
 
+let fail v = match v with
+  | Fail _ -> Const (CBool true)
+  | _ -> Const (CBool false)
+
 let op1 op = match op with
   | "typeof" -> typeof
   | "surface-typeof" -> surface_typeof
@@ -200,6 +204,7 @@ let op1 op = match op with
   | "object-to-string" -> object_to_string
   | "is-array" -> is_array
   | "to-int32" -> to_int32
+  | "fail?" -> fail
   | _ -> failwith ("no implementation of unary operator: " ^ op)
 
 let arith i_op f_op v1 v2 = match v1, v2 with

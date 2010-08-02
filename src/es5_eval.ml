@@ -21,9 +21,9 @@ let rec apply_obj o this args = match o with
 	    let code_attr = IdMap.find "code" attrs in
 	      apply code_attr [this; args]
 	  with Not_found ->
-	    failwith ("[interp] Applied an object with no code attr")
+	    Fail "Applying inapplicable object!"
 	end
-  | _ -> failwith ("[interp] apply_obj given non-object: " ^ (pretty_value o))
+  | _ -> Fail "Applying non-object!"
 	  
 
 let rec get_field p obj1 obj2 field args = match obj1 with
@@ -111,8 +111,7 @@ let rec update_field obj1 obj2 field newval args = match obj1 with
 	    let setter = AttrMap.find Setter prop in
 	      apply_obj setter obj2 (apply args [setter])
 	  with Not_found -> 
-	    (* TODO: Make type error for strict. Not writable, no setter. *)
-	    Const CUndefined
+	    Fail "Field not writable!"
 	  end
   | _ -> failwith ("[interp] set_field received (or found) a non-object.  The call was (set-field " ^ pretty_value obj1 ^ " " ^ pretty_value obj2 ^ " " ^ field ^ " " ^ pretty_value newval ^ ")" )
 

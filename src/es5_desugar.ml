@@ -34,12 +34,20 @@ let rec ds expr =
 	ESet (p1, x, ds e)
 
     | AssignExpr (p1, PropLValue (p2, obj, f), e) ->
-	ELet (p1, "$newVal", ds e,
-	      EUpdateFieldSurface (p1, 
-				   to_object p2 (ds obj),
-				   to_string p2 (ds f), 
-				   EId (p1, "$newVal"),
-				   args_thunk p1 [EId (p1, "$newVal")]))
+	ELet (p1, 
+	      "$newVal", 
+	      ds e,
+	      ELet (p1, 
+		    "$set-field-result", 
+		    EUpdateFieldSurface (p1, 
+					 to_object p2 (ds obj),
+					 to_string p2 (ds f), 
+					 EId (p1, "$newVal"),
+					 args_thunk p1 [EId (p1, "$newVal")]),
+		    EIf (p1, 
+			 EOp1 (p1, Prim1 ("fail?"), EId (p1, "$set-field-result")),
+			 EApp (p1, EId (p1, "[[ThrowTypeError]]"), [undef_c p1; str p1 ((string_of_position p1) ^ "unable to set")]),
+			 EId (p1, "$set-field-result"))))
 
     (* 11.2.2 *)
     | NewExpr (p, e, args) ->

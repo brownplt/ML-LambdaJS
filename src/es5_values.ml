@@ -12,6 +12,7 @@ type value =
       the other kinds of values *)
   | ObjCell of (value IdMap.t * ((value AttrMap.t) IdMap.t)) ref
   | Closure of (value list -> value)
+  | Fail of string
 
 type env = value IdMap.t
 type label = string
@@ -31,6 +32,7 @@ let rec pretty_value v = match v with
   | Closure c -> "function"
   | ObjCell o -> "object"
   | VarCell v -> "&<" ^ pretty_value !v ^ ">"
+  | Fail s -> "[fail: " ^ s ^ "]"
 
 let rec pretty_value_list vs = match vs with
   | (v::vs) -> pretty_value v ^ ", " ^ pretty_value_list vs
