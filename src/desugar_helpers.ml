@@ -30,11 +30,11 @@ let rec mk_val p v =
    (Config, true_c p);
    (Writable, true_c p)]
 
-let rec mk_field (p, s, e) =
+and mk_field (p, s, e) =
   match e with
     | _ -> (s, mk_val p e)
 
-let rec mk_array (p, exps) = 
+and mk_array (p, exps) = 
   let mk_num_field n v = (string_of_int n, 
 		      mk_val p v) in
     EObject (p, [("proto", EId (p, "[[Array_prototype]]"));
@@ -44,7 +44,7 @@ let rec mk_array (p, exps) =
 		List.map2 mk_num_field (iota (List.length exps)) exps))
 
 (* 10.6 *)
-let args_obj p arg_list callee = 
+and args_obj p arg_list = 
   let mk_field n v = (string_of_int n, 
 		      mk_val p v) in
     EObject 
@@ -54,37 +54,44 @@ let args_obj p arg_list callee =
 	   ("extensible", false_c p)],
        (* 10.6 steps 1, 7 *)
        (("length", [(Value, int_c p (List.length arg_list));
-		       (Writable, false_c p);
-		       (Enum, false_c p);
-		       (Config, false_c p)]);
-	(* 10.6 step 13a *)
-	("callee", [(Value, callee);
-		       (Config,  true_c p);
-		       (Enum, false_c p);
-		       (Writable, true_c p)])::
+		     (Writable, true_c p);
+		     (Enum, false_c p);
+		     (Config, true_c p)])::
+	 (* 10.6 step 13a *)
+	 ("callee", [(Getter, 
+		      EId (p, "[[ThrowTypeError]]"));
+		     (Setter, 
+		      EId (p, "[[ThrowTypeError]]"));
+		     (Enum, false_c p);
+		     (Config, false_c p)])::
+	 ("caller", [(Getter, 
+		      EId (p, "[[ThrowTypeError]]"));
+		     (Setter, 
+		      EId (p, "[[ThrowTypeError]]"));
+		     (Enum, false_c p);
+		     (Config, false_c p)])::
 	  (List.map2 mk_field (iota (List.length arg_list)) arg_list)))
 
 
 (* Used by getters and setters---the function will be known at
 runtime *)
-let args_thunk p arg_list = 
+and args_thunk p arg_list = 
   ELambda (p, ["func"],
-	   args_obj p arg_list (EId (p, "func")))
+	   args_obj p arg_list)
 
 
 (* Same idea as in original \JS --- use the args array *)
-(* In strict mode, we aren't supposed to access the args array... *)
-let rec func_expr_lambda p ids body =
+and func_expr_lambda p ids body =
   let folder id ix e = 
     ELet (p, 
 	  id,
 	  EGetFieldSurface (p, 
-			    EId (p, "args"), 
+			    EId (p, "arguments"),
 			    EConst (p, S.CString (string_of_int ix)),
 			    args_thunk p []),
 	  e) in
     ELambda (p, 
-	     ["this"; "args"],
+	     ["this"; "arguments"],
 	     List.fold_right2 folder ids (iota (List.length ids)) body)
 
 
@@ -92,16 +99,14 @@ let rec func_expr_lambda p ids body =
    not considered the repercussions of functions with the same name as
    an argument. *)
 
-let rec func_stmt_lambda p func_name ids body =
-  ELet (p, 
+and func_stmt_lambda p func_name ids body = func_expr_lambda p ids body
+(*  ELet (p, 
 	func_name, 
 	EId (p, "$funobj"),
-	func_expr_lambda p ids body)
+	func_expr_lambda p ids body) *)
     
 (* 13.2 *)
-(* for strict mode add getter and setter errors for "caller" and
-   "arguments" *)
-let rec func_object p ids lambda_exp =
+and func_object p ids lambda_exp =
   ELet (p, "$prototype", 
 	EObject (p,
 		 [("proto", obj_proto p);
@@ -126,7 +131,7 @@ let rec func_object p ids lambda_exp =
 			  (Enum, false_c p);
 			  (Config, false_c p)]);
 			("prototype",
-			 [(Value, EId (p, "$prototype")); 
+			 [(Value, EId (p, "$prototype"));
 			  (Writable, true_c p);
 			  (Config, false_c p);
 			  (Enum, false_c p)])]),
@@ -136,7 +141,7 @@ let rec func_object p ids lambda_exp =
 					    EId (p, "$funobj"),
 					    args_thunk p [EId (p, "$funobj")]),
 		    EId (p, "$funobj"))))
-let new_obj p proto_id = 
+and new_obj p proto_id = 
   EObject (p,
 	   [("proto", EId (p, proto_id));
 	    ("extensible", true_c p);

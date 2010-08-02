@@ -7,6 +7,7 @@
 //  also implementations of functions that exhibit the object model of
 //  ES5, like defineProperty and getOwnPropertyDescriptor
 
+//  Need this for nearly everything
 let [[Object_prototype]] = {[extensible: true, class: "Object", proto: null]}
 
 // *******************************************************************
@@ -153,10 +154,6 @@ let [[ToUInt]] = func (n) {
 		     function() { return prim("object-to-string", this) }]
 }
 
-// 15.11.2
-let [[Error]] = 
-    {[proto: Function_prototype]}
-
 // 15.11.4
 let [[Error_prototype]] = 
     {[class: "Error", proto: Object_prototype, extensible: false]
@@ -176,6 +173,18 @@ let [[Error_prototype]] =
      //	should really to define toString later, since there is a
      //	recursive dependency with TypeError
     }
+
+// 15.11.2
+let [[Error]] = function(msg) {
+    return {[proto: Error_prototype,
+	     class: "Error",
+	     extensible: true,]
+	    message: 
+	    {#value: (if (typeof msg === "undefined") { "" } else { ToString(msg) }),
+	     #configurable: true,
+	     #enumerable: true,
+	     #writable: true}}
+}
 
 // 15.11.7.7-10
 let [[makeNativeErrorPrototype]] = func(constr, name_str) {
@@ -223,6 +232,20 @@ let [[type_error]] = func(msg) {
 {
     TypeError_prototype := makeNativeErrorPrototype(TypeError, "TypeError");
     TypeError["prototype" = TypeError_prototype]
+}
+
+/* 13.2.3 */
+let [[ThrowTypeError]] = {
+    [class: "Function",
+     proto: Function_prototype,
+     code: func(this, arguments) {
+	 return throw type_error("ThrowTypeError")
+     },
+     extensible: false]
+    length: {#value: 0,
+	     #enumerable: false,
+	     #writable: false,
+	     #configurable: false}
 }
 
 // 9.9
@@ -282,6 +305,10 @@ let [[getPrototypeOf]] = function(obj) {
 
 let [[call]] = function(thisarg) {
     return this(thisarg, args)
+}
+
+{
+    Function_prototype["call" = [[call]]]
 }
 
 // 15.3.4.2
@@ -356,7 +383,8 @@ let [[global]] = { [proto: null, class: "Lambda-JS global", extensible: true]
 		   "Function_prototype" : {#value: Function_prototype},
 		   "Array_prototype" : {#value: Array_prototype},
 		   "eval" : {#value: eval},
-		   "TypeError" : {#value: TypeError}
+		   "TypeError" : {#value: TypeError},
+		   "Error" : {#value: Error}
 		 }
 
 

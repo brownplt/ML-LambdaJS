@@ -29,14 +29,21 @@ let args_obj p arg_list callee =
 	   ("class", str p "Arguments");
 	   ("extensible", false_c p)],
        (("length", [(Value, int_c p (List.length arg_list));
-		    (Writable, false_c p);
+		    (Writable, true_c p);
 		    (Enum, false_c p);
-		    (Config, false_c p)]);
-	(* 10.6 step 13a *)
-	("callee", [(Value, callee);
-		    (Config,  true_c p);
+		    (Config, true_c p)])::
+	("callee", [(Getter, 
+		     EId (p, "[[ThrowTypeError]]"));
+		    (Setter, 
+		     EId (p, "[[ThrowTypeError]]"));
 		    (Enum, false_c p);
-		    (Writable, true_c p)])::
+		    (Config, false_c p)])::
+	("caller", [(Getter, 
+		     EId (p, "[[ThrowTypeError]]"));
+		    (Setter, 
+		     EId (p, "[[ThrowTypeError]]"));
+		    (Enum, false_c p);
+		    (Config, false_c p)])::
 	  (List.map2 mk_field (iota (List.length arg_list)) arg_list)))
       
 
@@ -52,12 +59,12 @@ let rec func_expr_lambda p ids body =
     ELet (p, 
 	  id,
 	  EGetFieldSurface (p, 
-			    EId (p, "args"), 
+			    EId (p, "arguments"), 
 			    EConst (p, S.CString (string_of_int ix)),
 			    args_thunk p []),
 	  e) in
     ELambda (p, 
-	     ["this"; "args"],
+	     ["this"; "arguments"],
 	     List.fold_right2 folder ids (iota (List.length ids)) body)
 
 let rec func_object p ids lambda_exp =

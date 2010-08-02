@@ -23,7 +23,7 @@ let rec apply_obj o this args = match o with
 	  with Not_found ->
 	    failwith ("[interp] Applied an object with no code attr")
 	end
-  | _ -> failwith ("[interp] apply_obj given non-object")
+  | _ -> failwith ("[interp] apply_obj given non-object: " ^ (pretty_value o))
 	  
 
 let rec get_field p obj1 obj2 field args = match obj1 with
@@ -391,5 +391,17 @@ and arity_mismatch_err p xs args = failwith ("Arity mismatch, supplied " ^ strin
 let rec eval_expr expr = try 
   eval expr IdMap.empty
 with
-  | Throw v -> failwith ("Uncaught exception of type " ^ pretty_value v)
+  | Throw v ->
+      let err_msg = 
+	match v with
+	  | ObjCell c ->
+	      let (attrs, props) = !c in
+		begin try
+		  let msg = IdMap.find "message" props in
+		  let msg_val = AttrMap.find Value msg in
+		    (pretty_value msg_val)
+		with Not_found -> (pretty_value v)
+		end
+	  | v -> (pretty_value v) in
+	failwith ("Uncaught exception: " ^ err_msg)
   | Break (l, v) -> failwith ("Broke to top of execution, missed label: " ^ l)

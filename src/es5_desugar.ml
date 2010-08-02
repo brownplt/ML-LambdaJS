@@ -57,7 +57,7 @@ let rec ds expr =
 				EApp (p, 
 				      EId (p, "$constructor"),
 				      [EId (p, "$newObj");
-				       args_obj p (map ds args) (EId (p, "$constructor"))]),
+				       args_obj p (map ds args)]),
 				EIf (p, 
 				     EOp2 (p, 
 					   Prim2 ("stx="),
@@ -83,18 +83,21 @@ let rec ds expr =
 	ELet (p, "$obj", ds obj,
 	      ELet (p, "$fun", EGetFieldSurface (p', EId (p, "$obj"), ds prop, args_thunk p []),
 		    EApp (p, EId (p', "$fun"),
-			  [EId (p', "$obj"); args_obj p (map ds es) (EId (p, "$fun"))])))
+			  [EId (p', "$obj"); args_obj p (map ds es)])))
 	  
     | AppExpr (p, func, es) ->
 	ELet (p, "$fun", ds func,
 	      EApp (p, EId (p, "$fun"),
-		    [EId (p, "[[global]]"); args_obj p (map ds es) (EId (p, "$fun"))]))
+		    [EId (p, "[[global]]"); args_obj p (map ds es)]))
 
     | FuncExpr (p, ids, body) ->
 	func_object p ids (func_expr_lambda p ids (var_lift body))
 
     | FuncStmtExpr (p, func_name, ids, body) ->
-	func_object p ids (func_stmt_lambda p func_name ids (var_lift body))
+	ESeq (p, 
+	      ESet (p, func_name, 
+		    func_object p ids (func_stmt_lambda p func_name ids (var_lift body))),
+	      EId (p, func_name))
 
     | LetExpr (p, x, e1, e2) -> ELet (p, x, ds e1, ds e2)
 
@@ -184,7 +187,7 @@ and vars_in expr = match expr with
   | VarDeclExpr (p,x,e) -> [(p,x)]
       (* don't go inside functions *)
   | FuncExpr (_, _, _) -> []
-  | FuncStmtExpr (_,_,_,_) -> []
+  | FuncStmtExpr (p,name,_,_) -> [(p,name)]
       (* the rest is boilerplate *)
   | ConstExpr (_, _) -> []
   | ArrayExpr (_, elts) -> List.concat (map vars_in elts)
