@@ -239,7 +239,7 @@ let [[ThrowTypeError]] = {
     [class: "Function",
      proto: Function_prototype,
      code: func(this, arguments) {
-	 return throw type_error("ThrowTypeError")
+	 return throw type_error(arguments)
      },
      extensible: false]
     length: {#value: 0,
@@ -952,4 +952,45 @@ let [[array-slice]] = func(array, start, end) {
 
 {
     global["Array" = Array]
+}
+
+let [[Math]] = {
+    [proto: Object,
+     extensible: false,
+     class: "Math"]
+    E: {#value: 2.718281828459045,
+	#writable: false,
+	#configurable: false,
+	#enumerable: false},
+    LN10: {#value: 2.302585092994046,
+	   #writable: false,
+	   #configurable: false,
+	   #enumerable: false},
+    LN2: {#value: 0.6931471805599453,
+	  #writable: false,
+	  #configurable: false,
+	  #enumerable: false},
+    LOG2E: {#value: 1.4426950408889634,
+	    #writable: false,
+	    #configurable: false,
+	    #enumerable: false},
+    LOG10E: {#value: 0.4342944819032518,
+	     #writable: false,
+	     #configurable: false,
+	     #enumerable: false},
+    PI: {#value: 3.1415926535897932,
+	 #writable: false,
+	 #configurable: false,
+	 #enumerable: false},
+    SQRT1_2: {#value: 0.7071067811865476,
+	      #writable: false,
+	      #configurable: false,
+	      #enumerable: false},
+    SQRT2: {#value: 1.4142135623730951,
+	    #writable: false,
+	    #configurable: false,
+	    #enumerable: false}}
+
+{
+    global["Math" = Math]
 }
