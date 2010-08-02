@@ -141,7 +141,7 @@ let to_acc prop =
 let to_data prop = 
   AttrMap.remove Setter (AttrMap.remove Getter prop)
 
-let is_acc prop =
+let is_data prop =
   AttrMap.mem Writable prop || AttrMap.mem Value prop &&
     not (AttrMap.mem Setter prop || AttrMap.mem Getter prop)
 
@@ -188,7 +188,7 @@ let rec set_attr attr obj field newval = match obj, field with
 	  | Writable, Const (CBool false), true, _ ->
 	      AttrMap.add Writable newval (to_data prop)
 	  | Writable, Const (CBool false), _, true ->
-	      if is_acc prop then AttrMap.add Writable newval prop else prop
+	      if is_data prop then AttrMap.add Writable newval prop else prop
 	  | Value, v, _, true -> 
 	      AttrMap.add Value v (to_data prop)
 	  | Setter, value, true, _ -> 
