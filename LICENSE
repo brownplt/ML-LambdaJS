@@ -1,5 +1,5 @@
-LambdaJS Compiler and Related Tools.
-Copyright (c) 2010 PLT Scheme Inc.
+ML-LambdaJS
+Copyright (c) 2010 Arjun Guha and Claudiu Saftoiu 
 All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
@@ -167,4 +167,3 @@ incurred by, or claims asserted against, such Contributor by reason of your
 accepting any such warranty or additional liability.
 
 END OF TERMS AND CONDITIONS
-
