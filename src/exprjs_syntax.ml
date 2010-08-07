@@ -225,10 +225,11 @@ and varDecl p (decl : S.varDecl) = match decl with
   | S.VarDecl (a, x, e) -> VarDeclExpr (a, x, expr e)
 
 and collectClauseExprs exprs clauses = match clauses with
-  | S.CaseClause (p, e, S.EmptyStmt _) :: rest ->
-      collectClauseExprs (expr e :: exprs) rest
-  | S.CaseClause (p, e, s) :: rest ->
-      (p, expr e :: exprs, s, rest)
+  | S.CaseClause (p, e, s) :: rest -> begin match stmt s with
+      | ConstExpr (_, S.CUndefined) ->
+        collectClauseExprs (expr e :: exprs) rest
+      | s' -> (p, expr e :: exprs, s', rest)
+  end
   | _ -> failwith "collectClauseExprs expected non-empty list"
 
 and caseClauses p (clauses : S.caseClause list) = match clauses with
@@ -237,17 +238,17 @@ and caseClauses p (clauses : S.caseClause list) = match clauses with
   | clauses ->
       let (p, es, body, rest) = collectClauseExprs [] clauses in
       let f e acc =
-        LetExpr (p, "%c", e, IfExpr (p, IdExpr (p, "%c"), IdExpr (p, "%c"),
-                                     acc)) in
-        LetExpr
-          (p, "%t",
-           fold_right f es (IdExpr (p, "%t")),
-           SeqExpr 
-             (p,
-              IfExpr (p, IdExpr (p,"%t"),
-                      stmt body,
-                      ConstExpr (p, S.CUndefined)),
-                        caseClauses p clauses))
+        LetExpr (p, "%t", IfExpr (p, IdExpr (p, "%t"),
+                                  IdExpr (p, "%t"),
+                                  InfixExpr (p, "===", IdExpr (p, "%v"), e)),
+                 acc) in
+      fold_right f (List.rev es) 
+        (SeqExpr 
+           (p,
+            IfExpr (p, IdExpr (p,"%t"),
+                    body,
+                    ConstExpr (p, S.CUndefined)),
+            caseClauses p rest))
 
 and prop pr =  match pr with
     (p, S.PropId x,e) -> (p, x, expr e)
