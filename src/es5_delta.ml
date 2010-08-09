@@ -254,6 +254,9 @@ let string_plus v1 v2 = match v1, v2 with
   | _ -> raise (Throw (str "string concatenation"))
 
 let stx_eq v1 v2 = bool begin match v1, v2 with
+  | Const (CNum x1), Const (CInt x2) 
+  | Const (CInt x2), Const (CNum x1) -> 
+      float_of_int x2 = x1
   | Const c1, Const c2 -> c1 = c2 (* syntactic on primitives *)
   | _ -> v1 == v2 (* otherwise, pointer equality *)
 end
