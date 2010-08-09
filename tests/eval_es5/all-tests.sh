@@ -4,7 +4,6 @@ P=`dirname $0`
 
 echo "****************************************"
 echo ".js tests:"
-echo ""
 
 for FILE in $P/*.js
 do

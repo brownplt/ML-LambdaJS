@@ -141,7 +141,8 @@ let rec ds expr =
 	ELabel (p, l, ds e)
     | BreakExpr (p, l, e) ->
 	EBreak (p, l, ds e)
-    | ForInExpr (p, x, obj, body) -> str p "NYI---ForInExpr"
+    | ForInExpr (p, x, obj, body) -> 
+	EThrow (p, str p "ForIn NYI")
     | VarDeclExpr (p, x, e) ->
 	ESet (p, x, ds e)
     | TryCatchExpr (p, body, x, catch) ->
