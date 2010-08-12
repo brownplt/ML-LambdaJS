@@ -1,0 +1,13 @@
+let (o1 = {[proto: null] 
+	   f: {#value: 10, #enumerable: true},
+	   z: {#value: "foo", #enumerable: true},
+	   a: {#value: null, #enumerable: false}})
+let (o = {[proto: o1] 
+	  f: {#value: 45, 
+	      #enumerable: true}})
+let (names = prim("property-names", o))
+
+assert(names["0"] === "f" && 
+       names["1"] === "z" &&
+       names["2"] === undefined, 
+       "get-prop-names")

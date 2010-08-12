@@ -146,6 +146,43 @@ let get_proto obj = match obj with
 	end
   | _ -> raise (Throw (str "get-proto"))
 
+
+(* All the enumerable property names of an object *)
+let rec get_property_names obj = match obj with
+  | ObjCell o ->
+      let protos = all_protos obj in
+      let folder o set = begin match o with
+	| ObjCell o' ->
+	    let (attrs, props) = !o' in
+	      IdMap.fold (fun k v s -> 
+			    if enum v then IdSet.add k s else s) props set
+	| _ -> set (* non-object prototypes don't contribute *) 
+      end in
+      let name_set = List.fold_right folder protos IdSet.empty in
+      let name_list= IdSet.elements name_set in
+      let prop_folder num name props = 
+	IdMap.add (string_of_int num) 
+	  (AttrMap.add Value (Const (CString name)) AttrMap.empty) props in
+      let name_props = List.fold_right2 prop_folder 
+	(iota (List.length name_list))
+	name_list
+	IdMap.empty in
+	ObjCell (ref (IdMap.empty, name_props))
+  | _ -> raise (Throw (str "get-property-names"))
+
+and all_protos o = 
+  match o with
+    | ObjCell c ->
+	let (attrs, props) = !c in begin try
+	    let proto = (IdMap.find "proto" attrs) in
+	      proto::(all_protos proto)
+	  with Not_found -> []
+	  end
+    | _ -> []
+
+and enum prop = AttrMap.mem Enum prop && 
+  (AttrMap.find Enum prop = Const (CBool true))
+
 let get_own_property_names obj = match obj with
   | ObjCell o ->
       let (_, props) = !o in
@@ -200,6 +237,7 @@ let op1 op = match op with
   | "prevent-extensions" -> prevent_extensions
   | "print" -> print
   | "get-proto" -> get_proto
+  | "property-names" -> get_property_names
   | "own-property-names" -> get_own_property_names
   | "object-to-string" -> object_to_string
   | "is-array" -> is_array
@@ -213,7 +251,6 @@ let arith i_op f_op v1 v2 = match v1, v2 with
   | Const (CNum x), Const (CInt n) -> Const (CNum (f_op x (float_of_int n)))
   | Const (CInt m), Const (CNum y) -> Const (CNum (f_op (float_of_int m) y))
   | _ -> raise (Throw (str "arithmetic operator"))
-
 
 let arith_sum = arith (+) (+.)
 
