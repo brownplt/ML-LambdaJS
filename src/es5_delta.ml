@@ -150,7 +150,7 @@ let get_proto obj = match obj with
 (* All the enumerable property names of an object *)
 let rec get_property_names obj = match obj with
   | ObjCell o ->
-      let protos = all_protos obj in
+      let protos = obj::(all_protos obj) in
       let folder o set = begin match o with
 	| ObjCell o' ->
 	    let (attrs, props) = !o' in
