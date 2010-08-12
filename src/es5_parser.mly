@@ -82,7 +82,8 @@ let rec func_object p ids lambda_exp =
 	      EObject (p,
 		       [("code", lambda_exp);
 			("proto", EId (p, "Function_prototype"));
-			("extensible", true_c p)],
+			("extensible", true_c p);
+			("class", str p "Function")],
 		       [("length", 
 			 [(Value, EConst (p, S.CNum
 					      (float_of_int
