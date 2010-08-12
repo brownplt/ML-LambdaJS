@@ -141,8 +141,10 @@ let rec ds expr =
 	ELabel (p, l, ds e)
     | BreakExpr (p, l, e) ->
 	EBreak (p, l, ds e)
-    | ForInExpr (p, x, obj, body) -> 
-	EThrow (p, str p "ForIn NYI")
+    | ForInExpr (p, x, obj, body) ->
+	let body_fun = ELambda (p, [], ds body) in
+	let set_fun = ELambda (p, ["%new-index"], ESet (p, x, EId (p, "%new-index"))) in
+	  EApp (p, EId (p, "[[forin]]"), [ds obj; set_fun; body_fun])
     | VarDeclExpr (p, x, e) ->
 	ESet (p, x, ds e)
     | TryCatchExpr (p, body, x, catch) ->
