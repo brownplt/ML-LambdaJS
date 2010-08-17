@@ -71,6 +71,7 @@ type prop =
 type varDecl =
   | VarDeclNoInit of pos * id
   | VarDecl of pos * id * expr
+  | HintVarDecl of pos * string * id
 
 and forInit =
   | NoForInit

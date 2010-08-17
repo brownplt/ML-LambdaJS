@@ -150,7 +150,7 @@ module Pretty = struct
   let rec varDecl decl = match decl with
       VarDeclNoInit (_,x) -> text x
     | VarDecl (_,x,e) -> horz [text x; text "="; expr e]
-
+    | HintVarDecl (_,s,x) -> horz [text x; text s]
 
   and caseClause clause = match clause with
       CaseClause (_,e,s) -> sep [expr e; text ":"; stmt s]

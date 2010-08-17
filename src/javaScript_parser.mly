@@ -28,7 +28,7 @@ let rec expr_to_lvalue (e : expr) : lvalue =  match e with
 
 %token If Else True False New Instanceof This Null Function Typeof Void
  Delete Switch Default Case While Do Break Var In For Try Catch Finally Throw
- Return With Continue 
+ Return With Continue
 
 %token LBrace RBrace LParen RParen Assign
  Semi Comma Ques Colon LOr LAnd BOr BXor BAnd StrictEq AbstractEq
@@ -99,7 +99,7 @@ fields
 
 varDecls
   : varDecl { [$1] }
-  | varDecl Comma varDecls { $1::$3 } 
+  | varDecl Comma varDecls { $1::$3 }
 
 varDecls_noin
   : varDecl_noin { [$1] }
@@ -339,10 +339,12 @@ expr_noin
 varDecl
   : Id { VarDeclNoInit (($startpos, $endpos),$1) }
   | Id Assign assign_expr { VarDecl (($startpos, $endpos),$1,$3) }
+  | Id HINT { HintVarDecl (($startpos, $endpos), $2, $1) }
 
 varDecl_noin
   : Id { VarDeclNoInit (($startpos, $endpos),$1) }
   | Id Assign assign_noin_expr { VarDecl (($startpos, $endpos),$1,$3) }
+  | Id HINT { HintVarDecl (($startpos, $endpos), $2, $1) }
 
 case
   : Case expr Colon stmts 
