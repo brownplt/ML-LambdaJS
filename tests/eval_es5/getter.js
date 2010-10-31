@@ -2,7 +2,7 @@ var o = {get a() { return 5; }};
 
 assertobj(o.a === 5, "getter1");
 
-var o2 = {a : 10, set a(v) { this.a = 12; }};
+var o2 = {_a : 10, get a() { return this._a; }, set a(v) { this._a = v; }};
 
 var old_a = o2.a;
 

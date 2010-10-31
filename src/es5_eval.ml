@@ -246,12 +246,12 @@ let rec eval exp env = match exp with
 		    (string_of_position p))
     end
   | EObject (p, attrs, props) ->
-      let eval_obj_attr (name, e) m = IdMap.add name (eval e env) m in
-      let eval_prop_attr (name, e) m = AttrMap.add name (eval e env) m in
-      let eval_prop (name, attrs) m = 
-	IdMap.add name (fold_right eval_prop_attr attrs AttrMap.empty) m in
-	ObjCell (ref (fold_right eval_obj_attr attrs IdMap.empty,
-		      fold_right eval_prop props IdMap.empty))
+      let eval_obj_attr m (name, e) = IdMap.add name (eval e env) m in
+      let eval_prop_attr m (name, e) = AttrMap.add name (eval e env) m in
+      let eval_prop m (name, attrs) = 
+	IdMap.add name (fold_left eval_prop_attr AttrMap.empty attrs) m in
+	ObjCell (ref (fold_left eval_obj_attr IdMap.empty attrs,
+		      fold_left eval_prop IdMap.empty props))
   | EUpdateFieldSurface (p, obj, f, v, args) ->
       let obj_value = eval obj env in
       let f_value = eval f env in
@@ -385,7 +385,7 @@ let rec eval exp env = match exp with
 		     if (List.length args) != (List.length xs) then
 		       arity_mismatch_err p xs args
 		     else
-		     eval e (List.fold_right2 set_arg args xs env))
+		       eval e (List.fold_right2 set_arg args xs env))
   | EUpdateField (_,_,_,_,_,_) -> failwith ("Use EUpdateFieldSurface")
   | EGetField (_,_,_,_,_) -> failwith ("Use EGetFieldSurface")
 

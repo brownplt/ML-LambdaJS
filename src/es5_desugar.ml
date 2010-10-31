@@ -6,6 +6,10 @@ module S = JavaScript_syntax
 
 type env = bool IdMap.t
 
+let id_counter = ref 0
+let mk_id s = 
+  id_counter := !id_counter + 1;
+  s ^ (string_of_int !id_counter)
 
 let rec ds expr =
   match expr with
@@ -13,13 +17,13 @@ let rec ds expr =
 	
     | ArrayExpr (p,expr_list) -> mk_array (p, map ds expr_list)
 
-    | ObjectExpr (p,exprs) -> 
-	let ds_tuple (p,s,e) = (p,s,ds e) in
-	  EObject (p, 
-		   [("proto", obj_proto p);
-		    ("extensible", true_c p);
-		    ("class", str p "Object")],
-		   ds_fields exprs)
+    | ObjectExpr (p, exprs) -> 
+        let (binder, obj_fields) = ds_fields exprs in
+	  binder (EObject (p, 
+		           [("proto", obj_proto p);
+		           ("extensible", true_c p);
+		           ("class", str p "Object")],
+		           obj_fields))
 	    
     | ThisExpr (p) -> EId (p, "this")
 	
@@ -156,31 +160,49 @@ let rec ds expr =
     | HintExpr (p, e1, e2) -> str p "NYI---Hints"
 
 and ds_fields fields = 
+    (* Builds a cascading let that evaluates the pieces of the object
+    literal in the correct order, and fills in the generated
+    identifiers in the correct attribute/field position in the map of
+    fields.  This is to preserve evaluation order --- the order of the
+    fields and attributes is irrelevant in an object *value*, but
+    needs to be respected when evaluating an object literal *)
+  let bind_attr (binder, fld_map) (p, name, expr) = 
+    let ident = mk_id ("$ds_" ^ name) in
+      (* For setters, we don't have a writable property, so we
+         remove it from the defaults *)
+    let this_fld_for a = match a with
+      | Setter -> AttrMap.remove Writable (IdMap.find name fld_map)
+      | _ -> IdMap.find name fld_map in
+    let add_attr a v = 
+      IdMap.add name (AttrMap.add a v (this_fld_for a)) fld_map in
+    let mk_bind attr_expr obj =
+      binder (ELet (p, ident, ds attr_expr, obj)) in
+    match expr with
+      | SetterExpr (p, setter_exp) -> 
+          mk_bind setter_exp, add_attr Setter (EId (p, ident))
+      | GetterExpr (p, getter_exp) -> 
+          mk_bind getter_exp, add_attr Getter (EId (p, ident))
+      | value_exp ->
+          mk_bind value_exp, add_attr Value (EId (p, ident))
+  in
   let defaults = 
     AttrMap.add Config (true_c dummy_pos)
       (AttrMap.add Writable (true_c dummy_pos)
 	 (AttrMap.add Enum (true_c dummy_pos) AttrMap.empty)) in
-  let collect_fields fields = 
-    let folder (p, name, e) map = 
-      let curr = if IdMap.mem name map then IdMap.find name map else [] in
-	IdMap.add name ((p, e) :: curr) map
-    in
-      List.fold_right folder fields IdMap.empty
+    (* Map with all fields found mapping to default attr lists *)
+  let fields_init =
+    let add_fld fld_map (p, name, e) =
+      IdMap.add name defaults fld_map
+    in List.fold_left add_fld IdMap.empty fields
   in
-  let mk_attr_field attrs = 
-    let folder (p, exp) map = match exp with 
-      | GetterExpr (p, e) -> AttrMap.add Getter (ds e) map
-      | SetterExpr (p, e) -> AttrMap.add Setter (ds e) map
-      | e -> AttrMap.add Value (ds e) map
-    in
-      AttrMap.fold (fun k v l -> ((k,v)::l)) 
-	(List.fold_right folder attrs defaults) []
+  let (binder, obj_map) = 
+    List.fold_left bind_attr ((fun x -> x), fields_init) fields
   in
-  let attr_fields = collect_fields fields in
-  let folder name attr_exps new_fields =
-    ((name, (mk_attr_field attr_exps)) :: new_fields)
+  let fold_fld name attr_map new_fields =
+    (name, (AttrMap.fold (fun a v l -> (a,v)::l) attr_map [])) :: new_fields
   in
-    IdMap.fold folder attr_fields []
+  let obj = IdMap.fold fold_fld obj_map [] in
+    (binder, obj)
 
 and var_lift expr =
   let folder (p,id) e = 
