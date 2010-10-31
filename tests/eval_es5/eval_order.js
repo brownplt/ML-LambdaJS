@@ -2,7 +2,7 @@ function() {
     try {
         var err = function ()  { throw "error"; };
         var y = 0;
-        var o = {x : (y = 5), z: err()};
+        var o = {x: (y = 5), z: err()};
     }
     catch(e) {
         assertobj(y === 5 &&
