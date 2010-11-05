@@ -1,0 +1,1540 @@
+(let ([[toBoolean]] (lambda (x)
+                     (if (~stx=~ (~typeof~ x) "undefined")
+                      false
+                      (if (~stx=~ (~typeof~ x) "null")
+                       false
+                       (if (~stx=~ (~typeof~ x) "boolean")
+                        x
+                        (if (~stx=~ (~typeof~ x) "number")
+                         (if (if (~stx=~ x 0)
+                              false
+                              true)
+                          (if (~stx=~ x nan)
+                           false
+                           true)
+                          false)
+                         (if (~stx=~ (~typeof~ x) "string")
+                          (if (~stx=~ x "")
+                           false
+                           true)
+                          true)))))))
+ (let ([[ToString]] (lambda (obj)
+                     (label
+                      ret
+                      (begin
+                       (if (~primitive?~ obj)
+                        (break ret (~prim->str~ obj))
+                        undefined)
+                       (let (ts (get-field obj "toString"))
+                        (begin
+                         (if (~is-callable~ ts)
+                          (let (str (ts obj (object
+                                             
+                                             )))
+                           (if (~primitive?~ str)
+                            (break ret (~prim->str~ str))
+                            undefined))
+                          undefined)
+                         (let (vo (get-field obj "valueOf"))
+                          (begin
+                           (if (~is-callable~ vo)
+                            (let (val (vo obj (object
+                                               
+                                               )))
+                             (if (~primitive?~ val)
+                              (break ret (~prim->str~ val))
+                              undefined))
+                            undefined)
+                           (throw "TypeError")))))))))
+  (let ([[ToNumber]] (lambda (obj)
+                      (label
+                       ret
+                       (if (~primitive?~ obj)
+                        (~prim->str~ obj)
+                        (begin
+                         undefined
+                         (let (vo (get-field obj "valueOf"))
+                          (if (~is-callable~ vo)
+                           (let (val (vo obj))
+                            (if (~primitive?~ val)
+                             (break ret (~prim->str~ val))
+                             undefined))
+                           (begin
+                            undefined
+                            (let (ts (get-field obj "toString"))
+                             (if (~is-callable~ ts)
+                              (let (str (ts obj))
+                               (if (~primitive?~ str)
+                                (break ret (~prim->str~ str))
+                                undefined))
+                              (begin
+                               undefined
+                               (throw "TypeError"))))))))))))
+   (let ([[toUInt]] (lambda (n)
+                     ([[ToNumber]] n)))
+    (let ([[in]] (lambda (obj field)
+                  false))
+     (let ([[Object_prototype]] (object
+                                 ("proto" null)
+                                 ("extensible" true)
+                                 ("class" "Object")
+                                 ))
+      (let ([[Function_prototype]] (object
+                                    ("proto" [[Object_prototype]])
+                                    ("extensible" true)
+                                    ("class" "Function")
+                                    ))
+       (let ([[Error]] (object
+                        ("proto" [[Function_prototype]])
+                        ))
+        (let ([[Error_prototype]] (object
+                                   ("class" "Error")
+                                   ("proto" [[Object_prototype]])
+                                   ("extensible" false)
+                                   ["name"
+                                    ("value" "Error")
+                                    ("configurable" false)
+                                    ("writable" false)
+                                    ("enumerable" false)]
+                                   ["constructor"
+                                    ("value" [[Error]])
+                                    ("configurable" false)
+                                    ("writable" false)
+                                    ("enumerable" false)]
+                                   ["message"
+                                    ("value" "")
+                                    ("configurable" false)
+                                    ("writable" false)
+                                    ("enumerable" false)]))
+         (let ([[makeNativeErrorPrototype]] (lambda (constr name_str)
+                                             (object
+                                              ("proto" [[Error_prototype]])
+                                              ("class" "Error")
+                                              ("extensible" false)
+                                              ["constructor"
+                                               ("value" constr)
+                                               ("configurable" false)
+                                               ("writable" false)
+                                               ("enumerable" false)]
+                                              ["name"
+                                               ("value" name_str)
+                                               ("configurable" false)
+                                               ("writable" false)
+                                               ("enumerable" false)]
+                                              ["message"
+                                               ("value" "")
+                                               ("configurable" false)
+                                               ("writable" false)
+                                               ("enumerable" false)])))
+          (let ([[TypeError_prototype]] (object
+                                         
+                                         ))
+           (let ([[TypeError]] (let ($prototype (object
+                                                 ("proto" [[Object_prototype]])
+                                                 ("extensible" true)
+                                                 ("Class" "Object")
+                                                 ["constructor"
+                                                  ("value" undefined)
+                                                  ("writable" true)
+                                                  ("enumerable" false)
+                                                  ("configurable" true)]))
+                                (let ($funobj (object
+                                               ("code" (lambda (this args)
+                                                        (let (msg (get-field args "0"))
+                                                         (let (obj (object
+                                                                    ("class" "Error")
+                                                                    ("proto" [[TypeError_prototype]])
+                                                                    ("extensible" true)
+                                                                    ))
+                                                          (if (~stx=~ msg undefined)
+                                                           (begin
+                                                            (update-field obj "message" "asdf")
+                                                            obj)
+                                                           (begin
+                                                            (~print~ msg)
+                                                            (begin
+                                                             (update-field obj "message" "asdf")
+                                                             obj)))))))
+                                               ("proto" [[Function_prototype]])
+                                               ("extensible" true)
+                                               ["length"
+                                                ("value" 1.)
+                                                ("writable" false)
+                                                ("enumerable" false)
+                                                ("configurable" false)]
+                                               ["prototype"
+                                                ("value" $prototype)
+                                                ("writable" true)
+                                                ("configurable" false)
+                                                ("enumerable" false)]))
+                                 (begin
+                                  (update-field $prototype "constructor" $funobj)
+                                  $funobj))))
+            (let ([[type_error]] (lambda (msg)
+                                  ([[TypeError]] undefined (object
+                                                            
+                                                            ["0"
+                                                             ("value" msg)]))))
+             (let ([[CallNoArgs]] (lambda (f)
+                                   (f undefined (object
+                                                 
+                                                 ))))
+              (begin
+               (begin
+                (set! [[TypeError_prototype]] ([[makeNativeErrorPrototype]] [[TypeError]] "TypeError"))
+                (update-field [[TypeError]] "prototype" [[TypeError_prototype]]))
+               (let ([[toObject]] (lambda (x)
+                                   (if (~stx=~ (~typeof~ x) "undefined")
+                                    (throw ([[type_error]] "toObject given undefined"))
+                                    (if (~stx=~ (~typeof~ x) "null")
+                                     (throw ([[CallNoArgs]] [[TypeError]]))
+                                     (if (~stx=~ (~typeof~ x) "boolean")
+                                      (object
+                                       ("proto" "Boolean_prototype")
+                                       ("class" "Boolean")
+                                       ["value"
+                                        ("value" x)
+                                        ("enumerable" true)
+                                        ("configurable" true)
+                                        ("writable" true)])
+                                      (if (~stx=~ (~typeof~ x) "number")
+                                       (object
+                                        ("proto" "Number_prototype")
+                                        ("class" "Number")
+                                        ["value"
+                                         ("value" x)
+                                         ("enumerable" true)
+                                         ("configurable" true)
+                                         ("writable" true)])
+                                       (if (~stx=~ (~typeof~ x) "string")
+                                        (object
+                                         ("proto" "String_prototype")
+                                         ("class" "String")
+                                         ["value"
+                                          ("value" x)
+                                          ("enumerable" true)
+                                          ("configurable" true)
+                                          ("writable" true)])
+                                        x)))))))
+                (let ([[print]] (let ($prototype (object
+                                                  ("proto" [[Object_prototype]])
+                                                  ("extensible" true)
+                                                  ("Class" "Object")
+                                                  ["constructor"
+                                                   ("value" undefined)
+                                                   ("writable" true)
+                                                   ("enumerable" false)
+                                                   ("configurable" true)]))
+                                 (let ($funobj (object
+                                                ("code" (lambda (this args)
+                                                         (let (s (get-field args "0"))
+                                                          (begin
+                                                           (~print~ ([[ToString]] s))
+                                                           undefined))))
+                                                ("proto" [[Function_prototype]])
+                                                ("extensible" true)
+                                                ["length"
+                                                 ("value" 1.)
+                                                 ("writable" false)
+                                                 ("enumerable" false)
+                                                 ("configurable" false)]
+                                                ["prototype"
+                                                 ("value" $prototype)
+                                                 ("writable" true)
+                                                 ("configurable" false)
+                                                 ("enumerable" false)]))
+                                  (begin
+                                   (update-field $prototype "constructor" $funobj)
+                                   $funobj))))
+                 (let ([[getPrototypeOf]] (let ($prototype (object
+                                                            ("proto" [[Object_prototype]])
+                                                            ("extensible" true)
+                                                            ("Class" "Object")
+                                                            ["constructor"
+                                                             ("value" undefined)
+                                                             ("writable" true)
+                                                             ("enumerable" false)
+                                                             ("configurable" true)]))
+                                           (let ($funobj (object
+                                                          ("code" (lambda (this args)
+                                                                   (let (obj (get-field args "0"))
+                                                                    (if (if (~stx=~ (~typeof~ obj) "object")
+                                                                    false
+                                                                    true)
+                                                                    (throw ([[CallNoArgs]] [[TypeError]]))
+                                                                    (~get-proto~ obj)))))
+                                                          ("proto" [[Function_prototype]])
+                                                          ("extensible" true)
+                                                          ["length"
+                                                           ("value" 1.)
+                                                           ("writable" false)
+                                                           ("enumerable" false)
+                                                           ("configurable" false)]
+                                                          ["prototype"
+                                                           ("value" $prototype)
+                                                           ("writable" true)
+                                                           ("configurable" false)
+                                                           ("enumerable" false)]))
+                                            (begin
+                                             (update-field $prototype "constructor" $funobj)
+                                             $funobj))))
+                  (let ([[mkArgsArray]] (lambda (alist)
+                                         (let (arr (object
+                                                    ("extensible" true)
+                                                    ("proto" [[Object_prototype]])
+                                                    ("class" "Arguments")
+                                                    ))
+                                          (let (len (get-field alist "length"))
+                                           (let (add_arg (fix aa (lambda (ar-acc curr-index)
+                                                                  (if (~stx=~ curr-index len)
+                                                                   ar-acc
+                                                                   (let (nextval (get-field alist curr-index))
+                                                                    (begin
+                                                                    (update-field ar-acc curr-index nextval)
+                                                                    (aa ar-acc (~+~ curr-index 1))))))))
+                                            (add_arg arr 0))))))
+                   (let ([[call]] (let ($prototype (object
+                                                    ("proto" [[Object_prototype]])
+                                                    ("extensible" true)
+                                                    ("Class" "Object")
+                                                    ["constructor"
+                                                     ("value" undefined)
+                                                     ("writable" true)
+                                                     ("enumerable" false)
+                                                     ("configurable" true)]))
+                                   (let ($funobj (object
+                                                  ("code" (lambda (this args)
+                                                           (let (thisarg (get-field args "0"))
+                                                            (this thisarg args))))
+                                                  ("proto" [[Function_prototype]])
+                                                  ("extensible" true)
+                                                  ["length"
+                                                   ("value" 1.)
+                                                   ("writable" false)
+                                                   ("enumerable" false)
+                                                   ("configurable" false)]
+                                                  ["prototype"
+                                                   ("value" $prototype)
+                                                   ("writable" true)
+                                                   ("configurable" false)
+                                                   ("enumerable" false)]))
+                                    (begin
+                                     (update-field $prototype "constructor" $funobj)
+                                     $funobj))))
+                    (let ([[apply]] (let ($prototype (object
+                                                      ("proto" [[Object_prototype]])
+                                                      ("extensible" true)
+                                                      ("Class" "Object")
+                                                      ["constructor"
+                                                       ("value" undefined)
+                                                       ("writable" true)
+                                                       ("enumerable" false)
+                                                       ("configurable" true)]))
+                                     (let ($funobj (object
+                                                    ("code" (lambda (this args)
+                                                             (let (thisarg (get-field args "0"))
+                                                              (let (arglist (get-field args "1"))
+                                                               (if (let (%or (~stx=~ arglist undefined))
+                                                                    (if %or
+                                                                    %or
+                                                                    (~stx=~ arglist null)))
+                                                                (this thisarg ([[mkArgsArray]] (object
+                                                                    
+                                                                    )))
+                                                                (if (if (~stx=~ (~typeof~ arglist) "object")
+                                                                    false
+                                                                    true)
+                                                                 (throw ([[CallNoArgs]] [[TypeError]]))
+                                                                 (let (len (get-field arglist "length"))
+                                                                  (if (let (%or (~stx=~ len null))
+                                                                    (if %or
+                                                                    %or
+                                                                    (~stx=~ len undefined)))
+                                                                   (throw ([[CallNoArgs]] [[TypeError]]))
+                                                                   (let (n (let ($funobj (get-field [[global]] "[[ToUInt]]"))
+                                                                    ($funobj $funobj (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("class" "Arguments")
+                                                                    ("extensible" false)
+                                                                    ["length"
+                                                                    ("value" 1)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["0"
+                                                                    ("value" len)
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]))))
+                                                                    (if (if (~stx=~ ([[ToNumber]] len) n)
+                                                                    false
+                                                                    true)
+                                                                    (throw ([[CallNoArgs]] [[TypeError]]))
+                                                                    (this (get-field [[global]] "[[thisargs]]") ([[mkArgsArray]] arglist))))))))))))
+                                                    ("proto" [[Function_prototype]])
+                                                    ("extensible" true)
+                                                    ["length"
+                                                     ("value" 2.)
+                                                     ("writable" false)
+                                                     ("enumerable" false)
+                                                     ("configurable" false)]
+                                                    ["prototype"
+                                                     ("value" $prototype)
+                                                     ("writable" true)
+                                                     ("configurable" false)
+                                                     ("enumerable" false)]))
+                                      (begin
+                                       (update-field $prototype "constructor" $funobj)
+                                       $funobj))))
+                     (let ([[Object]] (object
+                                       ("proto" [[Object_prototype]])
+                                       ("extensible" true)
+                                       ("class" "Function")
+                                       ("code" undefined)
+                                       ["prototype"
+                                        ("value" [[Object_prototype]])
+                                        ("writable" false)
+                                        ("enumerable" false)
+                                        ("configurable" false)]
+                                       ["getPrototypeOf"
+                                        ("value" [[getPrototypeOf]])
+                                        ("writable" false)
+                                        ("configurable" false)
+                                        ("enumerable" false)]))
+                      (let ([[Array_prototype]] (object
+                                                 ("proto" [[Object_prototype]])
+                                                 ("extensible" true)
+                                                 ("class" "Array")
+                                                 ))
+                       (let ([[eval]] (let ($prototype (object
+                                                        ("proto" [[Object_prototype]])
+                                                        ("extensible" true)
+                                                        ("Class" "Object")
+                                                        ["constructor"
+                                                         ("value" undefined)
+                                                         ("writable" true)
+                                                         ("enumerable" false)
+                                                         ("configurable" true)]))
+                                       (let ($funobj (object
+                                                      ("code" (lambda (this args)
+                                                               (let (s (get-field args "0"))
+                                                                (throw "EVAL---BOOM"))))
+                                                      ("proto" [[Function_prototype]])
+                                                      ("extensible" true)
+                                                      ["length"
+                                                       ("value" 1.)
+                                                       ("writable" false)
+                                                       ("enumerable" false)
+                                                       ("configurable" false)]
+                                                      ["prototype"
+                                                       ("value" $prototype)
+                                                       ("writable" true)
+                                                       ("configurable" false)
+                                                       ("enumerable" false)]))
+                                        (begin
+                                         (update-field $prototype "constructor" $funobj)
+                                         $funobj))))
+                        (let ([[global]] (object
+                                          ("proto" null)
+                                          ("class" "Lambda-JS global")
+                                          ("extensible" true)
+                                          ["NaN"
+                                           ("value" nan)
+                                           ("writable" false)
+                                           ("enumerable" false)
+                                           ("configurable" false)]
+                                          ["Infinity"
+                                           ("value" inf)
+                                           ("writable" false)
+                                           ("enumerable" false)
+                                           ("configurable" false)]
+                                          ["undefined"
+                                           ("value" undefined)
+                                           ("writable" false)
+                                           ("enumerable" false)
+                                           ("configurable" false)]
+                                          ["print"
+                                           ("value" [[print]])]
+                                          ["Object"
+                                           ("value" [[Object]])]
+                                          ["Object_prototype"
+                                           ("value" [[Object_prototype]])]
+                                          ["Function_prototype"
+                                           ("value" [[Function_prototype]])]
+                                          ["Array_prototype"
+                                           ("value" [[Array_prototype]])]
+                                          ["eval"
+                                           ("value" [[eval]])]
+                                          ["TypeError"
+                                           ("value" [[TypeError]])]))
+                         (begin
+                          (update-field [[global]] "window" [[global]])
+                          (let ([[isDataField]] (lambda (obj field)
+                                                 (let (%or (~has-value~ obj field))
+                                                  (if %or
+                                                   %or
+                                                   (~has-writable~ obj field)))))
+                           (let ([[isAccessorField]] (lambda (obj field)
+                                                      (let (%or (~has-setter~ obj field))
+                                                       (if %or
+                                                        %or
+                                                        (~has-getter~ obj field)))))
+                            (let ([[isDataDescriptor]] (lambda (attr-obj)
+                                                        (let (%or (if (~stx=~ (get-field (~typeof~ attr-obj) "value") "undefined")
+                                                                   false
+                                                                   true))
+                                                         (if %or
+                                                          %or
+                                                          (if (~stx=~ (get-field (~typeof~ attr-obj) "writable") "undefined")
+                                                           false
+                                                           true)))))
+                             (let ([[isAccessorDescriptor]] (lambda (attr-obj)
+                                                             (let (%or (if (~stx=~ (get-field (~typeof~ attr-obj) "set") "undefined")
+                                                                    false
+                                                                    true))
+                                                              (if %or
+                                                               %or
+                                                               (if (~stx=~ (get-field (~typeof~ attr-obj) "get") "undefined")
+                                                                false
+                                                                true)))))
+                              (let ([[isGenericDescriptor]] (lambda (attr-obj)
+                                                             (~stx=~ ((if (~stx=~ ([[isAccessorDescriptor]] attr-obj) false)
+                                                                    [[isDataDescriptor]]
+                                                                    false) attr-obj) false)))
+                               (let ([[copy-when-defined]] (lambda (obj1 obj2 s)
+                                                            (if (if (~stx=~ (get-field obj2 s) undefined)
+                                                                 false
+                                                                 true)
+                                                             (update-field obj1 s (get-field obj2 s))
+                                                             undefined)))
+                                (let ([[copy-data-desc]] (lambda (obj1 obj2)
+                                                          (begin
+                                                           ([[copy-when-defined]] obj1 obj2 "configurable")
+                                                           (begin
+                                                            ([[copy-when-defined]] obj1 obj2 "enumerable")
+                                                            (begin
+                                                             ([[copy-when-defined]] obj1 obj2 "writable")
+                                                             (begin
+                                                              ([[copy-when-defined]] obj1 obj2 "value")
+                                                              (begin
+                                                               (delete-field obj1 "get")
+                                                               (delete-field obj1 "set"))))))))
+                                 (let ([[copy-access-desc]] (lambda (obj1 obj2)
+                                                             (begin
+                                                              ([[copy-when-defined]] obj1 obj2 "configurable")
+                                                              (begin
+                                                               ([[copy-when-defined]] obj1 obj2 "enumerable")
+                                                               (begin
+                                                                ([[copy-when-defined]] obj1 obj2 "set")
+                                                                (begin
+                                                                 ([[copy-when-defined]] obj1 obj2 "get")
+                                                                 (begin
+                                                                  (delete-field obj1 "value")
+                                                                  (delete-field obj1 "writable"))))))))
+                                  (let ([[defineOwnProperty]] (lambda (obj field attr-obj)
+                                                               (if (if (~stx=~ (~typeof~ obj) "object")
+                                                                    false
+                                                                    true)
+                                                                (throw ([[type_error]] "defineOwnProperty didn't get object"))
+                                                                (let (fstr ([[ToString]] field))
+                                                                 (if (~stx=~ (~has-own-property?~ obj fstr) false)
+                                                                  (if (~is-extensible~ obj fstr)
+                                                                   (begin
+                                                                    (~define-property~ obj fstr attr-obj)
+                                                                    true)
+                                                                   (throw ([[type_error]] "(defineOwnProperty) Attempt to add a property to a non-extensible object.")))
+                                                                  (let (current-prop (~get-own-property~ obj field))
+                                                                   (begin
+                                                                    (if (~stx=~ (get-field current-prop "configurable") false)
+                                                                    (if (~stx=~ (get-field attr-obj "configurable") true)
+                                                                    (throw ([[type_error]] "escalating configurable from false to true"))
+                                                                    (if (~stx=~ (get-field attr-obj "configurable") (~stx=~ (get-field current-prop "enumerable") false))
+                                                                    (throw ([[type_error]] "configurable and enumerable disagree"))
+                                                                    undefined))
+                                                                    undefined)
+                                                                    (begin
+                                                                    (if ((if (~stx=~ ([[isDataDescriptor]] current-prop) [[isDataDescriptor]])
+                                                                    false
+                                                                    true) attr-obj)
+                                                                    (if (~stx=~ (get-field current-prop "configurable") false)
+                                                                    (throw ([[type_error]] "(defineOwnProperty) Non-configurable property"))
+                                                                    (if ([[isDataDescriptor]] (get-field [[global]] "[[current]]"))
+                                                                    ([[copy-data-desc]] (get-field [[global]] "[[current-obj]]") attr-obj)
+                                                                    ([[copy-access-desc]] (get-field [[global]] "[[current-obj]]") attr-obj)))
+                                                                    (if ((if ([[isDataDescriptor]] current-prop)
+                                                                    [[isDataDescriptor]]
+                                                                    false) attr-obj)
+                                                                    (if (~stx=~ (get-field current-prop "configurable") false)
+                                                                    (if (~stx=~ (get-field current-prop "writable") false)
+                                                                    (if (~stx=~ (get-field attr-obj "writable") true)
+                                                                    (throw ([[type_error]] "(defineOwnProperty) Cannot escalate writable from false to true."))
+                                                                    (if (if (~stx=~ (get-field attr-obj "value") (get-field current-prop "value"))
+                                                                    false
+                                                                    true)
+                                                                    (throw ([[type_error]] "(defineOwnProperty) Cannot change a non-configurable value"))
+                                                                    ([[copy-data-desc]] current-prop attr-obj)))
+                                                                    ([[copy-data-desc]] current-prop attr-obj))
+                                                                    ([[copy-data-desc]] current-prop attr-obj))
+                                                                    (if (~stx=~ (get-field current-prop "configurable") false)
+                                                                    (if (let (%or (if (~stx=~ (get-field current-prop "set") (get-field attr-obj "set"))
+                                                                    false
+                                                                    true))
+                                                                    (if %or
+                                                                    %or
+                                                                    (if (~stx=~ (get-field current-prop "get") (get-field attr-obj "get"))
+                                                                    false
+                                                                    true)))
+                                                                    (throw ([[type_error]] "(defineOwnProperty) Cannot change setter or getter of non-configurable property."))
+                                                                    ([[copy-access-desc]] current-prop attr-obj))
+                                                                    ([[copy-access-desc]] current-prop attr-obj))))
+                                                                    (begin
+                                                                    (~define-property~ obj field current-prop)
+                                                                    true)))))))))
+                                   (let ([[newObject]] (lambda ()
+                                                        (let (newObj (object
+                                                                    ("proto" [[Object]])
+                                                                    ("extensible" true)
+                                                                    ("class" "Object")
+                                                                    ))
+                                                         ([[Object]] newObj))))
+                                    (let ([[getOwnPropertyDescriptor]] (lambda (obj field)
+                                                                    (let (fstring ([[ToString]] field))
+                                                                    (if (if (~stx=~ (~typeof~ obj) "object")
+                                                                    false
+                                                                    true)
+                                                                    (throw ([[type_error]] "getOwnPD didn't get object"))
+                                                                    (~get-own-property~ obj field)))))
+                                     (begin
+                                      (update-field [[Object]] "defineProperty" (let ($prototype (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("extensible" true)
+                                                                    ("Class" "Object")
+                                                                    ["constructor"
+                                                                    ("value" undefined)
+                                                                    ("writable" true)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" true)]))
+                                                                    (let ($funobj (object
+                                                                    ("code" (lambda (this args)
+                                                                    (let (obj (get-field args "0"))
+                                                                    (let (field (get-field args "1"))
+                                                                    (let (propobj (get-field args "2"))
+                                                                    (if (if (~stx=~ (~typeof~ obj) "object")
+                                                                    false
+                                                                    true)
+                                                                    (throw ([[type_error]] "defineProperty didn't get object"))
+                                                                    (let (attrobj (object
+                                                                    
+                                                                    ))
+                                                                    (let (enumerable (get-field propobj "enumerable"))
+                                                                    (begin
+                                                                    (if (if (~stx=~ (~typeof~ enumerable) "undefined")
+                                                                    false
+                                                                    true)
+                                                                    (update-field attrobj "enumerable" enumerable)
+                                                                    attrobj)
+                                                                    (let (configurable (get-field propobj "configurable"))
+                                                                    (begin
+                                                                    (if (if (~stx=~ (~typeof~ configurable) "undefined")
+                                                                    false
+                                                                    true)
+                                                                    (update-field attrobj "configurable" configurable)
+                                                                    attrobj)
+                                                                    (let (writable (get-field propobj "writable"))
+                                                                    (begin
+                                                                    (if (if (~stx=~ (~typeof~ writable) "undefined")
+                                                                    false
+                                                                    true)
+                                                                    (update-field attrobj "writable" writable)
+                                                                    attrobj)
+                                                                    (let (value (get-field propobj "value"))
+                                                                    (begin
+                                                                    (if (if (~stx=~ (~typeof~ value) "undefined")
+                                                                    false
+                                                                    true)
+                                                                    (update-field attrobj "value" value)
+                                                                    attrobj)
+                                                                    (let (get (get-field propobj "get"))
+                                                                    (begin
+                                                                    (if (if (if (~stx=~ (~typeof~ get) "undefined")
+                                                                    false
+                                                                    true)
+                                                                    (if (~stx=~ (~typeof~ get) "function")
+                                                                    false
+                                                                    true)
+                                                                    false)
+                                                                    (throw ([[type_error]] "defineProperty given a non-function getter"))
+                                                                    (update-field attrobj "get" get))
+                                                                    (let (set (get-field propobj "set"))
+                                                                    (begin
+                                                                    (if (if (if (~stx=~ (~typeof~ set) "undefined")
+                                                                    false
+                                                                    true)
+                                                                    (if (~stx=~ (~typeof~ set) "function")
+                                                                    false
+                                                                    true)
+                                                                    false)
+                                                                    (throw ([[type_error]] "defineProperty given a non-function setter"))
+                                                                    (update-field attrobj "set" set))
+                                                                    (if (if (let (%or (if (~stx=~ (get-field (~typeof~ attrobj) "value") "undefined")
+                                                                    false
+                                                                    true))
+                                                                    (if %or
+                                                                    %or
+                                                                    (if (~stx=~ (get-field (~typeof~ attrobj) "writable") "undefined")
+                                                                    false
+                                                                    true)))
+                                                                    (let (%or (if (~stx=~ (get-field (~typeof~ attrobj) "set") "undefined")
+                                                                    false
+                                                                    true))
+                                                                    (if %or
+                                                                    %or
+                                                                    (if (~stx=~ (get-field (~typeof~ attrobj) "get") "undefined")
+                                                                    false
+                                                                    true)))
+                                                                    false)
+                                                                    (throw ([[type_error]] "The attributes given to defineProperty were inconsistent"))
+                                                                    ([[defineOwnProperty]] obj field attrobj)))))))))))))))))))))
+                                                                    ("proto" [[Function_prototype]])
+                                                                    ("extensible" true)
+                                                                    ["length"
+                                                                    ("value" 3.)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["prototype"
+                                                                    ("value" $prototype)
+                                                                    ("writable" true)
+                                                                    ("configurable" false)
+                                                                    ("enumerable" false)]))
+                                                                    (begin
+                                                                    (update-field $prototype "constructor" $funobj)
+                                                                    $funobj))))
+                                      (begin
+                                       (update-field [[Object]] "getOwnPropertyDescriptor" (let ($prototype (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("extensible" true)
+                                                                    ("Class" "Object")
+                                                                    ["constructor"
+                                                                    ("value" undefined)
+                                                                    ("writable" true)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" true)]))
+                                                                    (let ($funobj (object
+                                                                    ("code" (lambda (this args)
+                                                                    (let (obj (get-field args "0"))
+                                                                    (let (field (get-field args "1"))
+                                                                    ([[getOwnPropertyDescriptor]] obj field)))))
+                                                                    ("proto" [[Function_prototype]])
+                                                                    ("extensible" true)
+                                                                    ["length"
+                                                                    ("value" 2.)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["prototype"
+                                                                    ("value" $prototype)
+                                                                    ("writable" true)
+                                                                    ("configurable" false)
+                                                                    ("enumerable" false)]))
+                                                                    (begin
+                                                                    (update-field $prototype "constructor" $funobj)
+                                                                    $funobj))))
+                                       (begin
+                                        (update-field [[Object_prototype]] "hasOwnProperty" (let ($prototype (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("extensible" true)
+                                                                    ("Class" "Object")
+                                                                    ["constructor"
+                                                                    ("value" undefined)
+                                                                    ("writable" true)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" true)]))
+                                                                    (let ($funobj (object
+                                                                    ("code" (lambda (this args)
+                                                                    (let (fname (get-field args "0"))
+                                                                    (~has-own-property?~ this fname))))
+                                                                    ("proto" [[Function_prototype]])
+                                                                    ("extensible" true)
+                                                                    ["length"
+                                                                    ("value" 1.)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["prototype"
+                                                                    ("value" $prototype)
+                                                                    ("writable" true)
+                                                                    ("configurable" false)
+                                                                    ("enumerable" false)]))
+                                                                    (begin
+                                                                    (update-field $prototype "constructor" $funobj)
+                                                                    $funobj))))
+                                        (let ([[instanceof]] (lambda (obj1 obj2)
+                                                              (if (if (~stx=~ (~typeof~ obj1) "object")
+                                                                   false
+                                                                   true)
+                                                               (throw ([[CallNoArgs]] [[TypeError]]))
+                                                               (let (o (get-field obj2 "prototype"))
+                                                                (if (if (~stx=~ (~typeof~ o) "object")
+                                                                    false
+                                                                    true)
+                                                                 (throw ([[CallNoArgs]] [[TypeError]]))
+                                                                 (let (repeat (fix rep (lambda (proto)
+                                                                    (if (if (~stx=~ proto o)
+                                                                    false
+                                                                    true)
+                                                                    (rep (~get-proto~ proto))
+                                                                    true))))
+                                                                  (repeat (~get-proto~ obj1))))))))
+                                         (let ([[toPrimitive]] (lambda (val hint)
+                                                                (if (~stx=~ hint "string")
+                                                                 ([[ToString]] val)
+                                                                 ([[ToNumber]] val))))
+                                          (let ([[plus]] (lambda (arg1 arg2)
+                                                          (let (lval ([[toPrimitive]] arg1 undefined))
+                                                           (let (rval ([[toPrimitive]] arg2 undefined))
+                                                            (if (let (%or (~stx=~ (~typeof~ lval) "string"))
+                                                                 (if %or
+                                                                  %or
+                                                                  (~stx=~ (~typeof~ rval) "string")))
+                                                             (~string+~ ([[ToString]] lval) ([[ToString]] rval))
+                                                             (~+~ ([[ToNumber]] lval) ([[ToNumber]] rval)))))))
+                                           (let ([[hasProperty]] (lambda (obj field)
+                                                                  (if (if (~stx=~ (~typeof~ obj) "object")
+                                                                    false
+                                                                    true)
+                                                                   ([[CallNoArgs]] [[TypeError]])
+                                                                   (~has-property~ obj ([[ToString]] field)))))
+                                            (begin
+                                             (update-field [[global]] "hasProperty" (get-field [[global]] "[[has_property]]"))
+                                             (begin
+                                              (begin
+                                               (begin
+                                                undefined
+                                                (begin
+                                                 (update-field [[global]] "ES5Harness" (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("extensible" true)
+                                                                    ["global"
+                                                                    ("value" (get-field [[global]] "window"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["registerTest"
+                                                                    ("value" (let ($prototype (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("extensible" true)
+                                                                    ("Class" "Object")
+                                                                    ["constructor"
+                                                                    ("value" undefined)
+                                                                    ("writable" true)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" true)]))
+                                                                    (let ($funobj (object
+                                                                    ("code" (lambda (this args)
+                                                                    (let (to (get-field args "0"))
+                                                                    (label
+                                                                    %return
+                                                                    (begin
+                                                                    (update-field this "test" (let ($constructor (get-field [[global]] "sth_test"))
+                                                                    (let ($proto (get-field $constructor "prototype"))
+                                                                    (let ($newObj (object
+                                                                    ("proto" $proto)
+                                                                    ("extensible" true)
+                                                                    ("Class" "Object")
+                                                                    ))
+                                                                    (let ($resObj ($constructor $newObj (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("class" "Arguments")
+                                                                    ("extensible" false)
+                                                                    ["length"
+                                                                    ("value" 1)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["0"
+                                                                    ("value" to)
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)])))
+                                                                    (if (~stx=~ (~typeof~ $resObj) "Object")
+                                                                    $resObj
+                                                                    $newObj))))))
+                                                                    undefined)))))
+                                                                    ("proto" [[Function_prototype]])
+                                                                    ("extensible" true)
+                                                                    ["length"
+                                                                    ("value" 1.)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["prototype"
+                                                                    ("value" $prototype)
+                                                                    ("writable" true)
+                                                                    ("configurable" false)
+                                                                    ("enumerable" false)]))
+                                                                    (begin
+                                                                    (update-field $prototype "constructor" $funobj)
+                                                                    $funobj))))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["run"
+                                                                    ("value" (let ($prototype (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("extensible" true)
+                                                                    ("Class" "Object")
+                                                                    ["constructor"
+                                                                    ("value" undefined)
+                                                                    ("writable" true)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" true)]))
+                                                                    (let ($funobj (object
+                                                                    ("code" (lambda (this args)
+                                                                    (let (t undefined)
+                                                                    (let (ut undefined)
+                                                                    (let (res undefined)
+                                                                    (let (prereq undefined)
+                                                                    (let (pres undefined)
+                                                                    (let (cachedGlobal undefined)
+                                                                    (let (globalState undefined)
+                                                                    (label
+                                                                    %return
+                                                                    (begin
+                                                                    (set! t (get-field this "test"))
+                                                                    (begin
+                                                                    undefined
+                                                                    (begin
+                                                                    (set! ut (get-field [[global]] "undefined"))
+                                                                    (begin
+                                                                    undefined
+                                                                    (begin
+                                                                    (set! res false)
+                                                                    (begin
+                                                                    undefined
+                                                                    (begin
+                                                                    (set! prereq (get-field [[global]] "undefined"))
+                                                                    (begin
+                                                                    undefined
+                                                                    (begin
+                                                                    (set! pres true)
+                                                                    (begin
+                                                                    undefined
+                                                                    (begin
+                                                                    (set! cachedGlobal (get-field this "global"))
+                                                                    (begin
+                                                                    undefined
+                                                                    (begin
+                                                                    (set! globalState (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("extensible" true)
+                                                                    ["undefined"
+                                                                    ("value" (get-field cachedGlobal "undefined"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["NaN"
+                                                                    ("value" (get-field cachedGlobal "NaN"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["Infinity"
+                                                                    ("value" (get-field cachedGlobal "Infinity"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["Object"
+                                                                    ("value" (get-field cachedGlobal "Object"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["Array"
+                                                                    ("value" (get-field cachedGlobal "Array"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["Function"
+                                                                    ("value" (get-field cachedGlobal "Function"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["String"
+                                                                    ("value" (get-field cachedGlobal "String"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["Number"
+                                                                    ("value" (get-field cachedGlobal "Number"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["Boolean"
+                                                                    ("value" (get-field cachedGlobal "Boolean"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["RegExp"
+                                                                    ("value" (get-field cachedGlobal "RegExp"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["Math"
+                                                                    ("value" (get-field cachedGlobal "Math"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["Error"
+                                                                    ("value" (get-field cachedGlobal "Error"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["eval"
+                                                                    ("value" (get-field cachedGlobal "eval"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["parseInt"
+                                                                    ("value" (get-field cachedGlobal "parseInt"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["parseFloat"
+                                                                    ("value" (get-field cachedGlobal "parseFloat"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["isNaN"
+                                                                    ("value" (get-field cachedGlobal "isNaN"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["isFinite"
+                                                                    ("value" (get-field cachedGlobal "isFinite"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["EvalError"
+                                                                    ("value" (get-field cachedGlobal "EvalError"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["RangeError"
+                                                                    ("value" (get-field cachedGlobal "RangeError"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["ReferenceError"
+                                                                    ("value" (get-field cachedGlobal "ReferenceError"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["SyntaxError"
+                                                                    ("value" (get-field cachedGlobal "SyntaxError"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["TypeError"
+                                                                    ("value" (get-field cachedGlobal "TypeError"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["URIError"
+                                                                    ("value" (get-field cachedGlobal "URIError"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]))
+                                                                    (begin
+                                                                    undefined
+                                                                    (begin
+                                                                    (set! ut t)
+                                                                    (begin
+                                                                    (try-finally
+                                                                    (try-catch
+                                                                    (begin
+                                                                    (set! res (let ($obj ut)
+                                                                    (let ($fun (get-field $obj "theTestcase"))
+                                                                    ($fun $obj (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("class" "Arguments")
+                                                                    ("extensible" false)
+                                                                    ["length"
+                                                                    ("value" 0)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)])))))
+                                                                    (begin
+                                                                    (if (~stx=~ res true)
+                                                                    (begin
+                                                                    (let ($funobj (get-field [[global]] "print"))
+                                                                    ($funobj $funobj (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("class" "Arguments")
+                                                                    ("extensible" false)
+                                                                    ["length"
+                                                                    ("value" 1)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["0"
+                                                                    ("value" "Passed.")
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)])))
+                                                                    undefined)
+                                                                    (begin
+                                                                    (let ($funobj (get-field [[global]] "print"))
+                                                                    ($funobj $funobj (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("class" "Arguments")
+                                                                    ("extensible" false)
+                                                                    ["length"
+                                                                    ("value" 1)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["0"
+                                                                    ("value" "Failed.")
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)])))
+                                                                    undefined))
+                                                                    undefined))
+                                                                    (lambda (e)
+                                                                    (begin
+                                                                    (let ($funobj (get-field [[global]] "print"))
+                                                                    ($funobj $funobj (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("class" "Arguments")
+                                                                    ("extensible" false)
+                                                                    ["length"
+                                                                    ("value" 1)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["0"
+                                                                    ("value" (get-field e "message"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)])))
+                                                                    (begin
+                                                                    (let ($funobj (get-field [[global]] "print"))
+                                                                    ($funobj $funobj (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("class" "Arguments")
+                                                                    ("extensible" false)
+                                                                    ["length"
+                                                                    ("value" 1)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["0"
+                                                                    ("value" ([[plus]] ([[plus]] ([[plus]] "failed with exception: " (get-field e "name")) ": ") (get-field e "message")))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)])))
+                                                                    undefined))))
+                                                                    undefined)
+                                                                    undefined))))))))))))))))))))))))))
+                                                                    ("proto" [[Function_prototype]])
+                                                                    ("extensible" true)
+                                                                    ["length"
+                                                                    ("value" 0.)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["prototype"
+                                                                    ("value" $prototype)
+                                                                    ("writable" true)
+                                                                    ("configurable" false)
+                                                                    ("enumerable" false)]))
+                                                                    (begin
+                                                                    (update-field $prototype "constructor" $funobj)
+                                                                    $funobj))))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]))
+                                                 (begin
+                                                  (update-field [[global]] "sth_test" (let ($prototype (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("extensible" true)
+                                                                    ("Class" "Object")
+                                                                    ["constructor"
+                                                                    ("value" undefined)
+                                                                    ("writable" true)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" true)]))
+                                                                    (let ($funobj (object
+                                                                    ("code" (lambda (this args)
+                                                                    (let (to (get-field args "0"))
+                                                                    (label
+                                                                    %return
+                                                                    (begin
+                                                                    (update-field this "testObj" to)
+                                                                    (begin
+                                                                    (update-field this "description" (get-field to "description"))
+                                                                    (begin
+                                                                    (update-field this "theTestcase" (get-field to "test"))
+                                                                    (begin
+                                                                    (update-field this "path" (get-field [[global]] "path"))
+                                                                    (begin
+                                                                    (update-field this "res" (get-field [[global]] "undefined"))
+                                                                    (begin
+                                                                    (update-field this "pre" (get-field to "precondition"))
+                                                                    undefined))))))))))
+                                                                    ("proto" [[Function_prototype]])
+                                                                    ("extensible" true)
+                                                                    ["length"
+                                                                    ("value" 1.)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["prototype"
+                                                                    ("value" $prototype)
+                                                                    ("writable" true)
+                                                                    ("configurable" false)
+                                                                    ("enumerable" false)]))
+                                                                    (begin
+                                                                    (update-field $prototype "constructor" $funobj)
+                                                                    $funobj))))
+                                                  undefined)))
+                                               (begin
+                                                (let ($obj (get-field [[global]] "ES5Harness"))
+                                                 (let ($fun (get-field $obj "registerTest"))
+                                                  ($fun $obj (object
+                                                              ("proto" [[Object_prototype]])
+                                                              ("class" "Arguments")
+                                                              ("extensible" false)
+                                                              ["length"
+                                                               ("value" 1)
+                                                               ("writable" false)
+                                                               ("enumerable" false)
+                                                               ("configurable" false)]
+                                                              ["0"
+                                                               ("value" (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("extensible" true)
+                                                                    ["id"
+                                                                    ("value" "15.2.3.6-4-10")
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["path"
+                                                                    ("value" "TestCases/chapter15/15.2/15.2.3/15.2.3.6/15.2.3.6-4-10.js")
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["description"
+                                                                    ("value" "Object.defineProperty throws TypeError when changing [[Enumerable]] from false to true on non-configurable accessor properties")
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["test"
+                                                                    ("value" (let (testcase undefined)
+                                                                    (begin
+                                                                    (set! testcase (let ($prototype (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("extensible" true)
+                                                                    ("Class" "Object")
+                                                                    ["constructor"
+                                                                    ("value" undefined)
+                                                                    ("writable" true)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" true)]))
+                                                                    (let ($funobj (object
+                                                                    ("code" (lambda (this args)
+                                                                    (let (o undefined)
+                                                                    (let (getter undefined)
+                                                                    (let (d1 undefined)
+                                                                    (let (desc undefined)
+                                                                    (let (d2 undefined)
+                                                                    (label
+                                                                    %return
+                                                                    (begin
+                                                                    (set! o (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("extensible" true)
+                                                                    ))
+                                                                    (begin
+                                                                    undefined
+                                                                    (begin
+                                                                    (set! getter (let ($prototype (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("extensible" true)
+                                                                    ("Class" "Object")
+                                                                    ["constructor"
+                                                                    ("value" undefined)
+                                                                    ("writable" true)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" true)]))
+                                                                    (let ($funobj (object
+                                                                    ("code" (lambda (this args)
+                                                                    (label
+                                                                    %return
+                                                                    (begin
+                                                                    (break %return 1)
+                                                                    undefined))))
+                                                                    ("proto" [[Function_prototype]])
+                                                                    ("extensible" true)
+                                                                    ["length"
+                                                                    ("value" 0.)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["prototype"
+                                                                    ("value" $prototype)
+                                                                    ("writable" true)
+                                                                    ("configurable" false)
+                                                                    ("enumerable" false)]))
+                                                                    (begin
+                                                                    (update-field $prototype "constructor" $funobj)
+                                                                    $funobj))))
+                                                                    (begin
+                                                                    undefined
+                                                                    (begin
+                                                                    (set! d1 (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("extensible" true)
+                                                                    ["get"
+                                                                    ("value" getter)
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["enumerable"
+                                                                    ("value" false)
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["configurable"
+                                                                    ("value" false)
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]))
+                                                                    (begin
+                                                                    undefined
+                                                                    (begin
+                                                                    (let ($obj (get-field [[global]] "Object"))
+                                                                    (let ($fun (get-field $obj "defineProperty"))
+                                                                    ($fun $obj (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("class" "Arguments")
+                                                                    ("extensible" false)
+                                                                    ["length"
+                                                                    ("value" 3)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["0"
+                                                                    ("value" o)
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["1"
+                                                                    ("value" "foo")
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["2"
+                                                                    ("value" d1)
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]))))
+                                                                    (begin
+                                                                    (set! desc (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("extensible" true)
+                                                                    ["get"
+                                                                    ("value" getter)
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["enumerable"
+                                                                    ("value" true)
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]))
+                                                                    (begin
+                                                                    undefined
+                                                                    (begin
+                                                                    (try-finally
+                                                                    (try-catch
+                                                                    (begin
+                                                                    (let ($obj (get-field [[global]] "Object"))
+                                                                    (let ($fun (get-field $obj "defineProperty"))
+                                                                    ($fun $obj (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("class" "Arguments")
+                                                                    ("extensible" false)
+                                                                    ["length"
+                                                                    ("value" 3)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["0"
+                                                                    ("value" o)
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["1"
+                                                                    ("value" "foo")
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["2"
+                                                                    ("value" desc)
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]))))
+                                                                    undefined)
+                                                                    (lambda (e)
+                                                                    (begin
+                                                                    (if ([[instanceof]] e (get-field [[global]] "TypeError"))
+                                                                    (begin
+                                                                    (set! d2 (let ($obj (get-field [[global]] "Object"))
+                                                                    (let ($fun (get-field $obj "getOwnPropertyDescriptor"))
+                                                                    ($fun $obj (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("class" "Arguments")
+                                                                    ("extensible" false)
+                                                                    ["length"
+                                                                    ("value" 2)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["0"
+                                                                    ("value" o)
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["1"
+                                                                    ("value" "foo")
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)])))))
+                                                                    (begin
+                                                                    undefined
+                                                                    (begin
+                                                                    (if (let ($lAnd (let ($lAnd (~stx=~ (get-field d2 "get") getter))
+                                                                    (if ([[toBoolean]] $lAnd)
+                                                                    (~stx=~ (get-field d2 "enumerable") false)
+                                                                    $lAnd)))
+                                                                    (if ([[toBoolean]] $lAnd)
+                                                                    (~stx=~ (get-field d2 "configurable") false)
+                                                                    $lAnd))
+                                                                    (begin
+                                                                    (break %return true)
+                                                                    undefined)
+                                                                    undefined)
+                                                                    undefined)))
+                                                                    undefined)
+                                                                    undefined)))
+                                                                    undefined)
+                                                                    undefined))))))))))))))))))
+                                                                    ("proto" [[Function_prototype]])
+                                                                    ("extensible" true)
+                                                                    ["length"
+                                                                    ("value" 0.)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["prototype"
+                                                                    ("value" $prototype)
+                                                                    ("writable" true)
+                                                                    ("configurable" false)
+                                                                    ("enumerable" false)]))
+                                                                    (begin
+                                                                    (update-field $prototype "constructor" $funobj)
+                                                                    $funobj))))
+                                                                    testcase)))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]
+                                                                    ["precondition"
+                                                                    ("value" (let (prereq undefined)
+                                                                    (begin
+                                                                    (set! prereq (let ($prototype (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("extensible" true)
+                                                                    ("Class" "Object")
+                                                                    ["constructor"
+                                                                    ("value" undefined)
+                                                                    ("writable" true)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" true)]))
+                                                                    (let ($funobj (object
+                                                                    ("code" (lambda (this args)
+                                                                    (label
+                                                                    %return
+                                                                    (begin
+                                                                    (break %return (let ($lAnd (let ($funobj (get-field [[global]] "fnExists"))
+                                                                    ($funobj $funobj (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("class" "Arguments")
+                                                                    ("extensible" false)
+                                                                    ["length"
+                                                                    ("value" 1)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["0"
+                                                                    ("value" (get-field (get-field [[global]] "Object") "defineProperty"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]))))
+                                                                    (if ([[toBoolean]] $lAnd)
+                                                                    (let ($funobj (get-field [[global]] "fnExists"))
+                                                                    ($funobj $funobj (object
+                                                                    ("proto" [[Object_prototype]])
+                                                                    ("class" "Arguments")
+                                                                    ("extensible" false)
+                                                                    ["length"
+                                                                    ("value" 1)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["0"
+                                                                    ("value" (get-field (get-field [[global]] "Object") "getOwnPropertyDescriptor"))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)])))
+                                                                    $lAnd)))
+                                                                    undefined))))
+                                                                    ("proto" [[Function_prototype]])
+                                                                    ("extensible" true)
+                                                                    ["length"
+                                                                    ("value" 0.)
+                                                                    ("writable" false)
+                                                                    ("enumerable" false)
+                                                                    ("configurable" false)]
+                                                                    ["prototype"
+                                                                    ("value" $prototype)
+                                                                    ("writable" true)
+                                                                    ("configurable" false)
+                                                                    ("enumerable" false)]))
+                                                                    (begin
+                                                                    (update-field $prototype "constructor" $funobj)
+                                                                    $funobj))))
+                                                                    prereq)))
+                                                                    ("enumerable" true)
+                                                                    ("configurable" true)
+                                                                    ("writable" true)]))
+                                                               ("enumerable" true)
+                                                               ("configurable" true)
+                                                               ("writable" true)]))))
+                                                undefined))
+                                              (begin
+                                               (let ($obj (get-field [[global]] "ES5Harness"))
+                                                (let ($fun (get-field $obj "run"))
+                                                 ($fun $obj (object
+                                                             ("proto" [[Object_prototype]])
+                                                             ("class" "Arguments")
+                                                             ("extensible" false)
+                                                             ["length"
+                                                              ("value" 0)
+                                                              ("writable" false)
+                                                              ("enumerable" false)
+                                                              ("configurable" false)]))))
+                                               undefined)))))))))))))))))))))))))))))))))))))))))))))))
+"defineProperty given a non-function getter"
+""
+"failed with exception: TypeError: "
+
