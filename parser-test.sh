@@ -22,7 +22,7 @@ function run_test {
 }
 
 if [ -d $BASE ]; then
-  FILES=`find $BASE -name *.js`
+  FILES=`find $BASE -name "*.js"`
   for FILE in $FILES; do
     run_test $FILE
   done

@@ -113,30 +113,30 @@ rule token = parse
    | "?" { parse_re := true; Ques }
    | ":" { parse_re := true; Colon }
    | "||" { parse_re := true; LOr }
-   | "&&" { parse_re := false; LAnd }
-   | "|" { parse_re := false; BOr }
-   | "^" { parse_re := false; BXor }
-   | "&" { parse_re := false; BAnd }
-   | "===" { parse_re := false; StrictEq }
-   | "==" { parse_re := false; AbstractEq }
-   | "!=" { parse_re := false; AbstractNEq }
-   | "!==" { parse_re := false; StrictNEq }
-   | "<<" { parse_re := false; LShift }
-   | ">>" { parse_re := false; RShift }
-   | ">>>" { parse_re := false; SpRShift }
-   | "<=" { parse_re := false; LEq }
-   | "<" { parse_re := false; LT }
-   | ">=" { parse_re := false; GEq }
-   | ">" { parse_re := false; GT }
-   | "++" { parse_re := false; PlusPlus }
-   | "--" { parse_re := false; MinusMinus }
-   | "+" { parse_re := false; Plus }
-   | "-" { parse_re := false; Minus }
-   | "*" { parse_re := false; Times }
+   | "&&" { parse_re := true; LAnd }
+   | "|" { parse_re := true; BOr }
+   | "^" { parse_re := true; BXor }
+   | "&" { parse_re := true; BAnd }
+   | "===" { parse_re := true; StrictEq }
+   | "==" { parse_re := true; AbstractEq }
+   | "!=" { parse_re := true; AbstractNEq }
+   | "!==" { parse_re := true; StrictNEq }
+   | "<<" { parse_re := true; LShift }
+   | ">>" { parse_re := true; RShift }
+   | ">>>" { parse_re := true; SpRShift }
+   | "<=" { parse_re := true; LEq }
+   | "<" { parse_re := true; LT }
+   | ">=" { parse_re := true; GEq }
+   | ">" { parse_re := true; GT }
+   | "++" { parse_re := true; PlusPlus }
+   | "--" { parse_re := true; MinusMinus }
+   | "+" { parse_re := true; Plus }
+   | "-" { parse_re := true; Minus }
+   | "*" { parse_re := true; Times }
    | "!" { parse_re := true; Exclamation }
    | "~" { parse_re := false; Tilde }
    | "." { parse_re := false; Period }
-   | "[" { parse_re := false; LBrack }
+   | "[" { parse_re := true; LBrack }
    | "]" { parse_re := false; RBrack }
 
    | "if" { parse_re := false; If  }
