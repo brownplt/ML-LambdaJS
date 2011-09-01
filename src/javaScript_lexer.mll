@@ -31,6 +31,9 @@ let get_string () =
   let s = Buffer.contents string_buf in
     Buffer.clear string_buf;
     s
+
+let comments : (pos * string) list ref = ref []
+
 }
 
 (* dec_digit+ corresponds to DecimalDigits in the spec. *)
@@ -73,11 +76,16 @@ rule token = parse
    | '\n' { new_line lexbuf; token lexbuf }
    | '\r' { new_line lexbuf; token lexbuf }
    | "\r\n" { new_line lexbuf; token lexbuf }
-   | "/*" { block_comment lexbuf }
+   | "/*"
+     { let start_p = Lexing.lexeme_start_p lexbuf in
+       let str = block_comment lexbuf in 
+       let end_p = Lexing.lexeme_end_p lexbuf in
+       comments := ((start_p, end_p), str) :: !comments;
+       token lexbuf }
    | "//"[^ '\r' '\n']* [ '\r' '\n' ] { new_line lexbuf; token lexbuf }
 
    | "/*:" { parse_re := false; comment_start_p := lexeme_start_p lexbuf;
-             hint lexbuf }
+             HINT (block_comment lexbuf) }
 
    (* ContinueId and BreakId are tokens for labelled break and continue.  They
     * include their target label.
@@ -172,22 +180,15 @@ rule token = parse
    | eof { EOF }
 
 and block_comment = parse
-  | "*/" { token lexbuf }
-  | '*' { block_comment lexbuf }
-  | "\r\n" { new_line lexbuf; block_comment lexbuf; }
-  | [ '\n' '\r' ]  { new_line lexbuf; block_comment lexbuf }
-  | [^ '\n' '\r' '*'] { block_comment lexbuf }
-
-and hint = parse
   | "*/" { let str = Buffer.contents block_comment_buf in
-             Buffer.clear block_comment_buf; HINT str }
-  | '*' { Buffer.add_char block_comment_buf '*'; hint lexbuf }
+             Buffer.clear block_comment_buf; str }
+  | '*' { Buffer.add_char block_comment_buf '*'; block_comment lexbuf }
   | "\r\n" { new_line lexbuf; Buffer.add_char block_comment_buf '\n'; 
-             hint lexbuf }
+             block_comment lexbuf }
   | [ '\n' '\r' ] { new_line lexbuf; Buffer.add_char block_comment_buf '\n';
-                    hint lexbuf }
+                    block_comment lexbuf }
   | ([^ '\n' '\r' '*'])+ as txt { Buffer.add_string block_comment_buf txt;
-                                  hint lexbuf }
+                                  block_comment lexbuf }
 
 and string_lit end_ch = parse
   (* multi-line *)
