@@ -27,7 +27,7 @@ type expr
   | TryFinallyExpr of pos * expr * expr
   | ThrowExpr of pos * expr
   | FuncStmtExpr of pos * id * id list * expr
-  | HintExpr of pos * string * expr
+  | ParenExpr of pos * expr
 
 and lvalue =
     VarLValue of pos * id
@@ -103,12 +103,11 @@ let rec expr (e : S.expr) = match e with
           (a, lv,
            InfixExpr (a,string_of_infixOp (infix_of_assignOp op),lv_e,expr e))
       in eval_lvalue lv body_fn
-  | S.ParenExpr (_, e) -> expr e
+  | S.ParenExpr (p, e) -> ParenExpr (p, expr e)
   | S.ListExpr (a,e1,e2) -> seq a (expr e1) (expr e2)
   | S.CallExpr (a,func,args) -> AppExpr (a,expr func,map expr args)
   | S.FuncExpr (a, args, body) ->
       FuncExpr (a, args, LabelledExpr (a, "%return", stmt body))
-  | S.HintExpr (p, text, e) -> HintExpr (p, text, expr e)      
   | S.NamedFuncExpr (a, name, args, body) ->
       (* INFO: This translation is absurd and makes typing impossible.
          Introduce FIX and eliminate loops in the process. Note that the
@@ -205,7 +204,6 @@ and stmt (s : S.stmt) = match s with
   | S.VarDeclStmt (a, decls) -> varDeclList a decls
   | S.LabelledStmt (p, lbl, s) ->
       LabelledExpr (p, lbl, stmt s)
-  | S.HintStmt (p, txt, s) -> HintExpr (p, txt, stmt s)
 
 and forInit p (fi : S.forInit) = match fi with
     S.NoForInit -> ConstExpr (p, S.CUndefined)
@@ -225,8 +223,6 @@ and varDeclList p decls = match decls with
 and varDecl p (decl : S.varDecl) = match decl with
     S.VarDeclNoInit (a, x) -> VarDeclExpr (a, x, ConstExpr (p, S.CUndefined))
   | S.VarDecl (a, x, e) -> VarDeclExpr (a, x, expr e)
-  | S.HintVarDecl (a, s, x) -> 
-      VarDeclExpr (a, x, HintExpr (a, s, ConstExpr (p, S.CUndefined)))
 
 and collectClauseExprs exprs clauses = match clauses with
   | S.CaseClause (p, e, s) :: rest -> begin match stmt s with
@@ -316,7 +312,7 @@ let rec locals expr = match expr with
   | TryFinallyExpr (_, e1, e2) -> IdSet.union (locals e1) (locals e2)
   | ThrowExpr (_, e) -> locals e
   | FuncStmtExpr (_, f, _, _) -> IdSet.singleton f
-  | HintExpr (_, _, e) -> locals e
+  | ParenExpr (_, e) -> locals e
 
 and lv_locals lvalue = match lvalue with
     VarLValue _ -> IdSet.empty

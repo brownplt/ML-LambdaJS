@@ -43,7 +43,7 @@ type expr
   | FuncStmtExpr of pos * id * id list * expr
       (** We leave function statements in place, so that they can be lifted
           for JavaScript to turned into letrecs for Typed JavaScript. *)
-  | HintExpr of pos * string * expr
+  | ParenExpr of pos * expr
 
 
 and lvalue =

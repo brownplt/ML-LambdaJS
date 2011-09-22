@@ -71,7 +71,6 @@ type prop =
 type varDecl =
   | VarDeclNoInit of pos * id
   | VarDecl of pos * id * expr
-  | HintVarDecl of pos * string * id
 
 and forInit =
   | NoForInit
@@ -113,7 +112,6 @@ and expr =
   | CallExpr of pos * expr * expr list
   | FuncExpr of pos * id list * stmt
   | NamedFuncExpr of pos * id * id list * stmt
-  | HintExpr of pos * string * expr
 
 and stmt =
   | BlockStmt of pos * stmt list
@@ -137,7 +135,6 @@ and stmt =
   | WithStmt of expr * stmt
   | VarDeclStmt of pos * varDecl list
   | FuncStmt of pos * id * id list * stmt
-  | HintStmt of pos * string * stmt
 
 type prog =
   | Prog of pos * stmt list

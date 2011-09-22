@@ -132,7 +132,6 @@ primary_expr :
       { ObjectExpr (($startpos, $endpos),$2) }
   | LParen expr RParen
       { ParenExpr (($startpos, $endpos),$2) }
-  | HINT primary_expr { HintExpr (($startpos, $endpos), $1, $2) }
   | This { ThisExpr (($startpos, $endpos)) }
 
 member_expr
@@ -141,11 +140,6 @@ member_expr
   | Function LParen ids RParen LBrace src_elts RBrace
     { FuncExpr (($startpos, $endpos), $3, 
                 BlockStmt (($startpos($5), $endpos($7)), $6)) }
-  | Function LParen ids RParen HINT LBrace src_elts RBrace
-      { HintExpr 
-          (($startpos($5), $endpos($5)), $5,
-           FuncExpr (($startpos, $endpos), $3, 
-                     BlockStmt (($startpos($6), $endpos($8)), $7))) }
   | Function Id LParen ids RParen LBrace src_elts RBrace
       { NamedFuncExpr (($startpos, $endpos), $2, $4, 
                        BlockStmt (($startpos($6), $startpos($8)), $7)) }
@@ -339,12 +333,10 @@ expr_noin
 varDecl
   : Id { VarDeclNoInit (($startpos, $endpos),$1) }
   | Id Assign assign_expr { VarDecl (($startpos, $endpos),$1,$3) }
-  | Id HINT { HintVarDecl (($startpos, $endpos), $2, $1) }
 
 varDecl_noin
   : Id { VarDeclNoInit (($startpos, $endpos),$1) }
   | Id Assign assign_noin_expr { VarDecl (($startpos, $endpos),$1,$3) }
-  | Id HINT { HintVarDecl (($startpos, $endpos), $2, $1) }
 
 case
   : Case expr Colon stmts 
@@ -436,9 +428,6 @@ src_elt
   : stmt { $1 }
   | Function Id LParen ids RParen src_elt_block
     { FuncStmt (($startpos, $endpos), $2, $4, $6) } 
-  | Function Id LParen ids RParen HINT src_elt_block
-    { HintStmt (($startpos($6), $endpos($6)), $6,
-                FuncStmt (($startpos, $endpos), $2, $4, $7)) } 
 
 program : src_elts EOF { Prog (($startpos, $endpos), $1) }
 

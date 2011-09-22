@@ -84,9 +84,6 @@ rule token = parse
        token lexbuf }
    | "//"[^ '\r' '\n']* [ '\r' '\n' ] { new_line lexbuf; token lexbuf }
 
-   | "/*:" { parse_re := false; comment_start_p := lexeme_start_p lexbuf;
-             HINT (block_comment lexbuf) }
-
    (* ContinueId and BreakId are tokens for labelled break and continue.  They
     * include their target label.
     *)

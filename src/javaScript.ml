@@ -150,7 +150,6 @@ module Pretty = struct
   let rec varDecl decl = match decl with
       VarDeclNoInit (_,x) -> text x
     | VarDecl (_,x,e) -> horz [text x; text "="; expr e]
-    | HintVarDecl (_,s,x) -> horz [text x; text s]
 
   and caseClause clause = match clause with
       CaseClause (_,e,s) -> sep [expr e; text ":"; stmt s]
@@ -225,8 +224,6 @@ module Pretty = struct
         vert [ sep [ text "function"; text name; 
                      parens (horz (commas (map text args))) ];
                stmt body ]
-    | HintExpr (_, txt, e) ->
-        horz [ text "/*:"; text txt; text "*/"; expr e ]
 
   and stmt s = match s with
     | BlockStmt (_,ss) -> 
@@ -268,9 +265,6 @@ module Pretty = struct
         sep [text "function"; text name; 
              parens (horz (commas (List.map text args)));
              block body]
-    | HintStmt (_, txt, s) ->
-        vert [ horz [ text "/*:"; text txt; text "*/" ];
-               stmt s ]
 
   let p_expr = expr
 
