@@ -24,8 +24,6 @@ let rec expr_to_lvalue (e : expr) : lvalue =  match e with
 %token <float> Float
 %token <JavaScript_syntax.assignOp> AssignOp
 
-%token <string> HINT
-
 %token If Else True False New Instanceof This Null Function Typeof Void
  Delete Switch Default Case While Do Break Var In For Try Catch Finally Throw
  Return With Continue

@@ -51,6 +51,7 @@ module Pretty = struct
     | PrefixExpr (_, op, e) -> parens (horz [ text op; expr e ])
     | InfixExpr (_, op, e1, e2) -> parens (horz [ text op; expr e1; expr e2 ])
     | AssignExpr (_, lv, e) -> parens (horz [ text "set"; lvalue lv; expr e ])
+    | ParenExpr (_, e) -> parens (horz [ text "parens"; expr e ])
 
   and lvalue lv = match lv with
       VarLValue (_, x) -> text x
