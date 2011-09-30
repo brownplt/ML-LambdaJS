@@ -109,10 +109,8 @@ let rec expr (e : S.expr) = match e with
   | S.FuncExpr (a, args, body) ->
       FuncExpr (a, args, LabelledExpr (a, "%return", stmt body))
   | S.NamedFuncExpr (a, name, args, body) ->
-      (* INFO: This translation is absurd and makes typing impossible.
-         Introduce FIX and eliminate loops in the process. Note that the
-         parser does not produce NamedFuncExprs, so for the moment, this is
-         inconsequential. *)
+      (* TODO(arjun): This translation is absurd and makes typing impossible.
+         Introduce FIX and eliminate loops in the process. *)
       let anonymous_func = 
         FuncExpr (a,args,LabelledExpr (a,"%return",stmt body)) in
       LetExpr (a,name, ConstExpr (a, S.CUndefined),

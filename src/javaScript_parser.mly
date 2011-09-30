@@ -135,12 +135,10 @@ primary_expr :
 member_expr
   : primary_expr 
       { $1 }
-  | Function LParen ids RParen LBrace src_elts RBrace
-    { FuncExpr (($startpos, $endpos), $3, 
-                BlockStmt (($startpos($5), $endpos($7)), $6)) }
-  | Function Id LParen ids RParen LBrace src_elts RBrace
-      { NamedFuncExpr (($startpos, $endpos), $2, $4, 
-                       BlockStmt (($startpos($6), $startpos($8)), $7)) }
+  | Function LParen ids RParen body=src_elt_block
+    { FuncExpr (($startpos, $endpos), $3, body) }
+  | Function Id LParen ids RParen body=src_elt_block
+    { NamedFuncExpr (($startpos, $endpos), $2, $4, body) } 
   | member_expr Period Id
       { DotExpr (($startpos, $endpos), $1, $3) } 
   | member_expr LBrack expr RBrack
@@ -374,7 +372,10 @@ stmt :
   | Semi 
       { EmptyStmt (($startpos, $endpos)) }
   | expr Semi
-      { ExprStmt $1 }
+      { match $1 with
+          | NamedFuncExpr (p, x, args, body) -> FuncStmt (p, x, args, body)
+          | e -> ExprStmt e 
+      }
   | Continue Semi 
       { ContinueStmt (($startpos, $endpos)) }
   | ContinueId Semi 
