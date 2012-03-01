@@ -3,6 +3,8 @@ open Format
 
 type printer = formatter -> unit
 
+val empty : printer
+
 val nest : printer -> printer
 
 val sep : printer list -> printer

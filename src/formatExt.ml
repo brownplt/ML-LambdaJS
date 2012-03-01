@@ -1,6 +1,8 @@
 open Format
 
 type printer = formatter -> unit
+
+let empty (fmt : formatter) : unit = ()
  
 let nest (p : printer) (fmt : formatter) : unit =
   pp_open_vbox fmt 2;
