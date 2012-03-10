@@ -28,6 +28,7 @@ type expr
   | ThrowExpr of pos * expr
   | FuncStmtExpr of pos * id * id list * expr
   | ParenExpr of pos * expr
+  | BotExpr of pos
 
 and lvalue =
     VarLValue of pos * id
@@ -311,6 +312,7 @@ let rec locals expr = match expr with
   | ThrowExpr (_, e) -> locals e
   | FuncStmtExpr (_, f, _, _) -> IdSet.singleton f
   | ParenExpr (_, e) -> locals e
+  | BotExpr _ -> IdSet.empty
 
 and lv_locals lvalue = match lvalue with
     VarLValue _ -> IdSet.empty

@@ -3,6 +3,121 @@ open Exprjs_syntax
 
 let from_javascript = Exprjs_syntax.from_javascript
 
+let rec lift_decls e = 
+  let apply_decls (exp, decls) =
+    let dummy_p = (Lexing.dummy_pos, Lexing.dummy_pos) in
+    let wrapE e = List.fold_right (fun id body -> 
+      SeqExpr(dummy_p, 
+              VarDeclExpr(dummy_p, id, BotExpr dummy_p),
+              body)) decls e in
+    match exp with
+    | LabelledExpr(p, id, e) -> LabelledExpr(p, id, wrapE e) 
+    | _ -> wrapE exp in
+  let rec lift_list es decls =
+    let (es', decls') =
+      List.fold_left (fun (es, decls) e -> let (e', decls') = lift e decls in (e'::es, decls')) ([], decls) es in
+    (List.rev es', decls') 
+  and lift_field (p, id, e) decls =
+    let (e', decls') = lift e decls in ((p, id, e'), decls')
+  and lift_fields (es : 'a list) (decls : 'c list) : ('b list * 'c list) =
+    let (es', decls') =
+      List.fold_left (fun (es, decls) e -> 
+        let (e', decls') = lift_field e decls in (e'::es, decls')) ([], decls) es in
+    (List.rev es', decls') 
+  and lift e decls = match e with
+    | FuncStmtExpr (p, name, args, body) ->
+      let func' = lift_decls (FuncExpr(p, args, body)) in
+      (AssignExpr(p, VarLValue(p, name), func'), name::decls)
+    | VarDeclExpr (p, v, e) ->
+      let (e', decls') = lift e decls in
+      (AssignExpr(p, VarLValue(p, v), e'), v::decls')
+
+    | FuncExpr(p, args, body) ->
+      let (body', lifted_body_decls) = lift body [] in
+      let body' = apply_decls (body', lifted_body_decls) in
+      (FuncExpr(p, args, body'), [])
+
+    | BotExpr _ -> (e, decls)
+    | ConstExpr _ -> (e, decls)
+    | ArrayExpr(p, es) ->
+      let (es', decls') = lift_list es decls in
+      (ArrayExpr(p, es'), decls')
+    | ObjectExpr (p, fields) ->
+      let (fs', decls') = lift_fields fields decls in
+      (ObjectExpr(p, fs'), decls')
+    | ThisExpr _ -> (e, decls)
+    | VarExpr(p, id) -> (e, decls)
+    | IdExpr _ -> (e, decls)
+    | BracketExpr(p, e1, e2) ->
+      let (e1', decls') = lift e1 decls in
+      let (e2', decls') = lift e2 decls' in
+      (BracketExpr(p, e1', e2'), decls')
+    | NewExpr(p, f, args) ->
+      let (f', decls') = lift f decls in
+      let (args', decls') = lift_list args decls' in
+      (NewExpr(p, f', args'), decls')
+    | PrefixExpr(p, id, e) ->
+      let (e', decls') = lift e decls in
+      (PrefixExpr(p, id, e'), decls')
+    | InfixExpr(p, op, e1, e2) ->
+      let (e1', decls') = lift e1 decls in
+      let (e2', decls') = lift e2 decls' in
+      (InfixExpr(p, op, e1', e2'), decls')
+    | IfExpr(p, e1, e2, e3) ->
+      let (e1', decls') = lift e1 decls in
+      let (e2', decls') = lift e2 decls' in
+      let (e3', decls') = lift e3 decls' in
+      (IfExpr(p, e1', e2', e3'), decls')
+    | AssignExpr(p, lval, e) ->
+      let (e', decls') = lift e decls in
+      (AssignExpr(p, lval, e'), decls')
+    | AppExpr(p, f, args) ->
+      let (f', decls') = lift f decls in
+      let (args', decls') = lift_list args decls' in
+      (AppExpr(p, f', args'), decls')
+    | LetExpr(p, id, e1, e2) ->
+      let (e1', decls') = lift e1 decls in
+      let (e2', decls') = lift e2 decls' in
+      (LetExpr(p, id, e1', e2'), decls')
+    | SeqExpr(p, e1, e2) ->
+      let (e1', decls') = lift e1 decls in
+      let (e2', decls') = lift e2 decls' in
+      (SeqExpr(p, e1', e2'), decls')
+    | WhileExpr(p, e1, e2) ->
+      let (e1', decls') = lift e1 decls in
+      let (e2', decls') = lift e2 decls' in
+      (WhileExpr(p, e1', e2'), decls')
+    | DoWhileExpr(p, e1, e2) ->
+      let (e1', decls') = lift e1 decls in
+      let (e2', decls') = lift e2 decls' in
+      (DoWhileExpr(p, e1', e2'), decls')
+    | LabelledExpr(p, id, e) ->
+      let (e', decls') = lift e decls in
+      (LabelledExpr(p, id, e'), decls') 
+    | BreakExpr(p, id, e) ->
+      let (e', decls') = lift e decls in
+      (BreakExpr(p, id, e'), decls')
+    | ForInExpr(p, id, e1, e2) ->
+      let (e1', decls') = lift e1 decls in
+      let (e2', decls') = lift e2 decls' in
+      (ForInExpr(p, id, e1', e2'), decls')
+    | TryCatchExpr(p, e1, id, e2) ->
+      let (e1', decls') = lift e1 decls in
+      let (e2', decls') = lift e2 decls' in
+      (TryCatchExpr(p, e1', id, e2'), decls')
+    | TryFinallyExpr(p, e1, e2) ->
+      let (e1', decls') = lift e1 decls in
+      let (e2', decls') = lift e2 decls' in
+      (TryFinallyExpr(p, e1', e2'), decls')
+    | ThrowExpr(p, e) ->
+      let (e', decls') = lift e decls in
+      (ThrowExpr(p, e'), decls')
+    | ParenExpr(p, e) ->
+      let (e', decls') = lift e decls in
+      (ParenExpr(p, e'), decls')
+  in apply_decls (lift e [])
+    
+
 module Pretty = struct
 
   open Format
@@ -52,6 +167,7 @@ module Pretty = struct
     | InfixExpr (_, op, e1, e2) -> parens (horz [ text op; expr e1; expr e2 ])
     | AssignExpr (_, lv, e) -> parens (horz [ text "set"; lvalue lv; expr e ])
     | ParenExpr (_, e) -> parens (horz [ text "parens"; expr e ])
+    | BotExpr _ -> text "_|_"
 
   and lvalue lv = match lv with
       VarLValue (_, x) -> text x

@@ -44,7 +44,7 @@ type expr
       (** We leave function statements in place, so that they can be lifted
           for JavaScript to turned into letrecs for Typed JavaScript. *)
   | ParenExpr of pos * expr
-
+  | BotExpr of pos
 
 and lvalue =
     VarLValue of pos * id
