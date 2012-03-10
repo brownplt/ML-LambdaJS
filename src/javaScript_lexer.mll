@@ -10,13 +10,15 @@ let parse_re = ref false
 
 (* TODO: if integer conversions overflow, treat as a float *)
 let parse_num_lit (s : string) : token =
+  let safe_int_of_string s =
+    try Int (int_of_string s) with _ -> Float (float_of_string s) in
   if S.contains s 'x' || S.contains s 'X'
-    then Int (int_of_string s)
+    then (safe_int_of_string s)
     else if S.contains s '.'
            then Float (float_of_string s)
            else if S.contains s 'e' || S.contains s 'E'
                   then Float (float_of_string s)
-                  else Int (int_of_string s)
+                  else (safe_int_of_string s)
 
 let mk_loc (buf : lexbuf) : pos =
   Lexing.lexeme_start_p buf, Lexing.lexeme_end_p buf
@@ -74,15 +76,15 @@ let double_quoted_string_char =
 rule token = parse
    | blank + { token lexbuf }
    | '\n' { new_line lexbuf; token lexbuf }
-   | '\r' { new_line lexbuf; token lexbuf }
    | "\r\n" { new_line lexbuf; token lexbuf }
+   | '\r' { new_line lexbuf; token lexbuf }
    | "/*"
      { let start_p = Lexing.lexeme_start_p lexbuf in
        let str = block_comment lexbuf in 
        let end_p = Lexing.lexeme_end_p lexbuf in
        comments := ((start_p, end_p), str) :: !comments;
        token lexbuf }
-   | "//"[^ '\r' '\n']* [ '\r' '\n' ] { new_line lexbuf; token lexbuf }
+   | "//"[^ '\r' '\n']* ( '\r' | '\n' | "\r\n" ) { new_line lexbuf; token lexbuf }
 
    (* ContinueId and BreakId are tokens for labelled break and continue.  They
     * include their target label.
@@ -162,6 +164,8 @@ rule token = parse
    | "while" { parse_re := false; While  }
    | "do" { parse_re := false; Do  }
    | "break" { parse_re := false; Break  }
+   | "let" { parse_re := false; Var (* HACK *) }
+   | "const" { parse_re := false; Var (* HACK *) }
    | "var" { parse_re := false; Var  }
    | "in" { parse_re := false; In  }
    | "for" { parse_re := false; For  }
@@ -222,6 +226,7 @@ and string_lit end_ch = parse
 and regexp = parse
   | "/" { Regexp (get_string (), false, false) }
   | "/mg" { Regexp (get_string (), true, false) } (* TODO: m-flag ignored *)
+  | "/gm" { Regexp (get_string (), true, false) } (* TODO: m-flag ignored *)
   | "/gi" { Regexp (get_string (), true, true) }
   | "/g" { Regexp (get_string (), true, false) }
   | "/i" { Regexp (get_string (), false, true) }
