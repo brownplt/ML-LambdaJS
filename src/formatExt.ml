@@ -9,18 +9,20 @@ let nest (p : printer) (fmt : formatter) : unit =
   p fmt;
   pp_close_box fmt ()
  
-let rec sep (lst : printer list) (fmt : formatter) : unit = match lst with
+let rec sep' space (lst : printer list) (fmt : formatter) : unit = match lst with
     x1 :: x2 :: xs' ->
       pp_open_box fmt 2;
       x1 fmt; 
       pp_close_box fmt ();
-      pp_print_space fmt (); 
-      sep (x2 :: xs') fmt
+      space fmt; 
+      sep' space (x2 :: xs') fmt
   | [x] -> 
       pp_open_box fmt 2;
       x fmt;
       pp_close_box fmt ()
   | [] -> ()
+
+let sep = sep' (fun fmt -> pp_print_space fmt ())
 
 let rec squish (lst : printer list) (fmt : formatter) : unit = match lst with
   | x :: xs -> x fmt; squish xs fmt
@@ -30,6 +32,11 @@ let rec squish (lst : printer list) (fmt : formatter) : unit = match lst with
 let vert (p : printer list) (fmt : formatter) : unit = 
   pp_open_vbox fmt 0;
   sep p fmt;
+  pp_close_box fmt ()
+
+let hov n b (p : printer list) (fmt : formatter) : unit = 
+  pp_open_hvbox fmt b;
+  sep' (fun fmt -> pp_print_break fmt n 0) p fmt;
   pp_close_box fmt ()
  
 let horz (p : printer list) (fmt : formatter) : unit = 

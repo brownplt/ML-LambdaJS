@@ -3,9 +3,9 @@ open Exprjs_syntax
 
 let from_javascript = Exprjs_syntax.from_javascript
 
+let dummy_p = (Lexing.dummy_pos, Lexing.dummy_pos)
 let rec lift_decls e = 
   let apply_decls (exp, decls) =
-    let dummy_p = (Lexing.dummy_pos, Lexing.dummy_pos) in
     let wrapE e = List.fold_right (fun id body -> 
       SeqExpr(dummy_p, 
               VarDeclExpr(dummy_p, id, BotExpr dummy_p),
@@ -27,15 +27,15 @@ let rec lift_decls e =
   and lift e decls = match e with
     | FuncStmtExpr (p, name, args, body) ->
       let func' = lift_decls (FuncExpr(p, args, body)) in
-      (AssignExpr(p, VarLValue(p, name), func'), name::decls)
+      (AssignExpr(dummy_p, VarLValue(p, name), func'), name::decls)
     | VarDeclExpr (p, v, e) ->
       let (e', decls') = lift e decls in
-      (AssignExpr(p, VarLValue(p, v), e'), v::decls')
+      (AssignExpr(dummy_p, VarLValue(p, v), e'), v::decls')
 
     | FuncExpr(p, args, body) ->
       let (body', lifted_body_decls) = lift body [] in
       let body' = apply_decls (body', lifted_body_decls) in
-      (FuncExpr(p, args, body'), [])
+      (FuncExpr(p, args, body'), decls)
 
     | BotExpr _ -> (e, decls)
     | ConstExpr _ -> (e, decls)
@@ -135,9 +135,9 @@ module Pretty = struct
         parens (horz (text "new" :: expr c :: map expr args))
     | IfExpr (_, e1, e2, e3) ->
         parens (vert [ horz [ text "if"; expr e1 ]; expr e2; expr e3 ])
-    | AppExpr (_, f, args) -> parens (horz (expr f :: map expr args))
+    | AppExpr (_, f, args) -> parens (hov 1 2 (expr f :: map expr args))
     | FuncExpr (_, args, body) ->
-        parens (vert [ text "fun"; parens (horz (map text args)); expr body ])
+        parens (vert [ horz [text "fun"; parens (horz (map text args))]; expr body ])
     | LetExpr (_, x, e1, e2) ->
         parens (vert [ horz [ text "let"; text x; text "="; expr e1; 
                               text "in" ];
@@ -148,12 +148,12 @@ module Pretty = struct
     | DoWhileExpr (_, e1, e2) ->
         parens (vert [ text "do-while"; expr e1; expr e2 ])
     | LabelledExpr (_, x, e) ->
-        parens (vert [ text "label"; text x; expr e ])
+        parens (vert [ horz [text "label"; text x]; expr e ])
     | BreakExpr (_, x, e) ->
-        parens (vert [ text "break"; text x; expr e ])
+        parens (hov 1 0 [ horz [text "break"; text x]; expr e ])
     | TryCatchExpr (_, body, x, catch) ->
         parens (vert [ text "try"; expr body; 
-                       parens (vert [text "catch"; text x; expr body ]) ])
+                       parens (vert [horz [text "catch"; text x]; expr body ]) ])
     | TryFinallyExpr (_, body, finally) ->
         parens (vert [ text "try"; expr body; 
                        parens (vert [ text "finally"; expr finally ])])
@@ -161,11 +161,11 @@ module Pretty = struct
         parens (horz [ text "for"; text x; text "in"; expr obj; expr body ])
     | ThrowExpr (_, e) ->  parens (horz [ text "throw"; expr e ])
     | FuncStmtExpr (_, f, args, body) ->
-        parens (horz [ text "function"; text f; 
-                       parens (horz (map text args)); expr body ])
+        parens (hov 1 2 [horz [ text "function"; text f; 
+                             parens (horz (map text args))]; expr body ])
     | PrefixExpr (_, op, e) -> parens (horz [ text op; expr e ])
-    | InfixExpr (_, op, e1, e2) -> parens (horz [ text op; expr e1; expr e2 ])
-    | AssignExpr (_, lv, e) -> parens (horz [ text "set"; lvalue lv; expr e ])
+    | InfixExpr (_, op, e1, e2) -> parens (horz [ text op; hov 1 0 [expr e1; expr e2] ])
+    | AssignExpr (_, lv, e) -> parens (hov 1 2 [horz [ text "set"; lvalue lv]; expr e ])
     | ParenExpr (_, e) -> parens (horz [ text "parens"; expr e ])
     | BotExpr _ -> text "_|_"
 
@@ -173,7 +173,7 @@ module Pretty = struct
       VarLValue (_, x) -> text x
     | PropLValue (_, e1, e2) -> squish [ expr e1; brackets (expr e2) ]
 
-  and prop (_, s, e) =  parens (horz [ text s; text ":"; expr e ])
+  and prop (_, s, e) =  parens (hov 1 2 [horz [ text s; text ":"]; expr e ])
 
   let p_expr = expr
 

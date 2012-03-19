@@ -13,6 +13,8 @@ val squish : printer list -> printer
 
 val vert : printer list -> printer
 
+val hov : int -> int -> printer list -> printer
+
 val horz : printer list -> printer
 
 val text : string -> printer
