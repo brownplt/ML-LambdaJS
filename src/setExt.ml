@@ -26,6 +26,6 @@ module Make (Set : Set.S) = struct
     Set.fold (fun e lst -> e :: lst) set []    
 
   let p_set p_elt set = 
-    braces (horz (List.map p_elt (to_list set)))
+    braces (hov 2 1 (List.map p_elt (to_list set)))
 
 end
