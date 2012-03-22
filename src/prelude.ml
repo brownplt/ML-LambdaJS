@@ -61,8 +61,11 @@ let second2 f (a, b) = (a, f b)
 let third3 f (a, b, c) = (a, b, f c)
 
 let string_of_position (p, e) = 
-  Format.sprintf "%s:%d:%d-%d" p.pos_fname p.pos_lnum (p.pos_cnum - p.pos_bol)
+  if (p.pos_lnum = e.pos_lnum) 
+  then Format.sprintf "%s:%d:%d-%d" p.pos_fname p.pos_lnum (p.pos_cnum - p.pos_bol)
     (e.pos_cnum - e.pos_bol)
+  else Format.sprintf "%s:%d:%d-%d:%d" p.pos_fname p.pos_lnum (p.pos_cnum - p.pos_bol)
+    e.pos_lnum (e.pos_cnum - e.pos_bol)
 
 let snd3 (a, b, c) = b
 
