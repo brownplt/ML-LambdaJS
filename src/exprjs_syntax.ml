@@ -17,11 +17,11 @@ type expr
   | FuncExpr of pos * id list * expr
   | LetExpr of pos * id * expr * expr
   | SeqExpr of pos * expr * expr
-  | WhileExpr of pos * expr * expr
-  | DoWhileExpr of pos * expr * expr
+  | WhileExpr of pos * id list * expr * expr (* break label(s), cond, body *)
+  | DoWhileExpr of pos * id list * expr * expr (* break label(s), cond, body *)
   | LabelledExpr of pos * id * expr
   | BreakExpr of pos * id * expr
-  | ForInExpr of pos * id * expr * expr
+  | ForInExpr of pos * id list * id * expr * expr (* break label(s), var, obj, body *)
   | VarDeclExpr of pos * id * expr
   | TryCatchExpr of pos * expr * id * expr
   | TryFinallyExpr of pos * expr * expr
@@ -141,29 +141,25 @@ and stmt (s : S.stmt) = match s with
                                     ConstExpr (p, S.CBool false),
                                     caseClauses p clauses)),
                   ConstExpr (p, S.CUndefined)))
-  | S.LabelledStmt (p1, lbl ,S.WhileStmt (p2, test, body)) -> LabelledExpr 
-        (p1, "%break", LabelledExpr
-           (p1,lbl,WhileExpr
-              (p2,expr test,LabelledExpr 
-                 (p2,"%continue",LabelledExpr
-                    (p1,"%continue-"^lbl,stmt body)))))
-                             
-                                             
-  | S.WhileStmt (p,test,body) -> LabelledExpr
-        (p,"%break",WhileExpr 
-           (p,expr test,LabelledExpr 
-              (p,"%continue",stmt body)))
-  | S.LabelledStmt (p1, lbl ,S.DoWhileStmt (p2, body, test)) -> LabelledExpr 
-        (p1, "%break", LabelledExpr
-           (p1,lbl,DoWhileExpr
-              (p2, LabelledExpr 
-                 (p1,"%continue",LabelledExpr
-                    (p2,"%continue-"^lbl,stmt body)),
-              expr test)))
-  | S.DoWhileStmt (p, body, test) -> LabelledExpr
-      (p, "%break", DoWhileExpr 
-           (p, LabelledExpr (p, "%continue", stmt body),
-            expr test))
+  | S.LabelledStmt (p1, lbl ,S.WhileStmt (p2, test, body)) -> 
+    WhileExpr
+      (p2, [lbl; "%break"], expr test,LabelledExpr 
+        (p2,"%continue",LabelledExpr
+          (p1,"%continue-"^lbl,stmt body)))  
+  | S.WhileStmt (p,test,body) -> 
+    WhileExpr 
+      (p, ["%break"], expr test,LabelledExpr 
+        (p,"%continue",stmt body))
+  | S.LabelledStmt (p1, lbl ,S.DoWhileStmt (p2, body, test)) -> 
+    DoWhileExpr
+      (p2, [lbl; "%break"],LabelledExpr 
+        (p1,"%continue",LabelledExpr
+          (p2,"%continue-"^lbl,stmt body)),
+       expr test) (* TODO!! *)
+  | S.DoWhileStmt (p, body, test) -> 
+    DoWhileExpr 
+      (p, ["%break"], LabelledExpr (p, "%continue", stmt body),
+       expr test)
   | S.BreakStmt a -> BreakExpr (a,"%break", ConstExpr (a, S.CUndefined))
   | S.BreakToStmt (a,lbl) -> BreakExpr (a,lbl, ConstExpr (a, S.CUndefined))
   | S.ContinueStmt a -> BreakExpr (a,"%continue", ConstExpr (a, S.CUndefined))
@@ -183,23 +179,19 @@ and stmt (s : S.stmt) = match s with
   | S.ForStmt (a, init, stop, incr, body) ->
       seq a
         (forInit a init)
-        (LabelledExpr 
-           (a, "%break",
-            WhileExpr 
-              (a, expr stop, 
-               seq a
-                 (LabelledExpr (a, "%continue", stmt body))
-                 (expr incr))))
+        (WhileExpr 
+           (a, ["%break"], expr stop, 
+            seq a
+              (LabelledExpr (a, "%continue", stmt body))
+              (expr incr)))
   | S.ForInStmt (p, init, e, body) ->
       let (x, init_e) = forInInit init in
         SeqExpr 
           (p, init_e,
-           LabelledExpr
-             (p, "%break",
-              ForInExpr 
-                (p, x, expr e,
-                 LabelledExpr
-                   (p, "%continue", stmt body))))
+           ForInExpr 
+             (p, ["%break"], x, expr e,
+              LabelledExpr
+                (p, "%continue", stmt body)))
   | S.VarDeclStmt (a, decls) -> varDeclList a decls
   | S.LabelledStmt (p, lbl, s) ->
       LabelledExpr (p, lbl, stmt s)
@@ -299,11 +291,11 @@ let rec locals expr = match expr with
          introduced by the expression transformation. *)
       IdSet.union (locals e1) (locals e2)
   | SeqExpr (_, e1, e2) -> IdSet.union (locals e1) (locals e2)
-  | WhileExpr (_, e1, e2) -> IdSet.union (locals e1) (locals e2)
-  | DoWhileExpr (_, e1, e2) -> IdSet.union (locals e1) (locals e2)
+  | WhileExpr (_, _, e1, e2) -> IdSet.union (locals e1) (locals e2)
+  | DoWhileExpr (_, _, e1, e2) -> IdSet.union (locals e1) (locals e2)
   | LabelledExpr (_, _, e) -> locals e
   | BreakExpr (_, _, e) -> locals e
-  | ForInExpr (_, _, e1, e2) -> IdSet.union (locals e1) (locals e2)
+  | ForInExpr (_, _, _, e1, e2) -> IdSet.union (locals e1) (locals e2)
   | VarDeclExpr (_, x, e) -> IdSet.add x (locals e)
   | TryCatchExpr (_, e1, _, e2) ->
       (* TODO: figure out how to handle catch-bound identifiers *)

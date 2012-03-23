@@ -30,11 +30,11 @@ type expr
   | LetExpr of pos * id * expr * expr 
       (** We need let-expressions to simplify statements. *)
   | SeqExpr of pos * expr * expr
-  | WhileExpr of pos * expr * expr
-  | DoWhileExpr of pos * expr * expr
+  | WhileExpr of pos * id list * expr * expr (* break label(s), cond, body *)
+  | DoWhileExpr of pos * id list * expr * expr (* break label(s), cond, body *)
   | LabelledExpr of pos * id * expr
   | BreakExpr of pos * id * expr
-  | ForInExpr of pos * id * expr * expr
+  | ForInExpr of pos * id list * id * expr * expr (* break label(s), var, obj, body *)
   | VarDeclExpr of pos * id * expr
       (** We do not transform VarDeclStmts to let-bindings at this stage *)
   | TryCatchExpr of pos * expr * id * expr

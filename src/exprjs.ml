@@ -83,24 +83,24 @@ let rec lift_decls e =
       let (e1', decls') = lift e1 decls in
       let (e2', decls') = lift e2 decls' in
       (SeqExpr(p, e1', e2'), decls')
-    | WhileExpr(p, e1, e2) ->
+    | WhileExpr(p, lbl, e1, e2) ->
       let (e1', decls') = lift e1 decls in
       let (e2', decls') = lift e2 decls' in
-      (WhileExpr(p, e1', e2'), decls')
-    | DoWhileExpr(p, e1, e2) ->
+      (WhileExpr(p, lbl, e1', e2'), decls')
+    | DoWhileExpr(p, lbl, e1, e2) ->
       let (e1', decls') = lift e1 decls in
       let (e2', decls') = lift e2 decls' in
-      (DoWhileExpr(p, e1', e2'), decls')
+      (DoWhileExpr(p, lbl, e1', e2'), decls')
     | LabelledExpr(p, id, e) ->
       let (e', decls') = lift e decls in
       (LabelledExpr(p, id, e'), decls') 
     | BreakExpr(p, id, e) ->
       let (e', decls') = lift e decls in
       (BreakExpr(p, id, e'), decls')
-    | ForInExpr(p, id, e1, e2) ->
+    | ForInExpr(p, lbl, id, e1, e2) ->
       let (e1', decls') = lift e1 decls in
       let (e2', decls') = lift e2 decls' in
-      (ForInExpr(p, id, e1', e2'), decls')
+      (ForInExpr(p, lbl, id, e1', e2'), decls')
     | TryCatchExpr(p, e1, id, e2) ->
       let (e1', decls') = lift e1 decls in
       let (e2', decls') = lift e2 decls' in
@@ -144,9 +144,16 @@ module Pretty = struct
                        expr e2 ])
     | SeqExpr (_, e1, e2) -> parens (vert [ text "seq"; expr e1; expr e2 ])
     | VarDeclExpr (_, x, e) ->  horz [ text "var"; text x; text "="; expr e ]
-    | WhileExpr (_, e1, e2) -> parens (vert [ text "while"; expr e1; expr e2 ])
-    | DoWhileExpr (_, e1, e2) ->
-        parens (vert [ text "do-while"; expr e1; expr e2 ])
+    | WhileExpr (_, lbls, e1, e2) -> 
+      List.fold_right (fun lbl body -> 
+        parens (vert [horz[text "label"; text lbl]; body]))
+        lbls
+        (parens (vert [ text "while"; expr e1; expr e2 ]))
+    | DoWhileExpr (_, lbls, e1, e2) ->
+      List.fold_right (fun lbl body -> 
+        parens (vert [horz[text "label"; text lbl]; body]))
+        lbls
+        (parens (vert [ text "do-while"; expr e1; expr e2 ]))
     | LabelledExpr (_, x, e) ->
         parens (vert [ horz [text "label"; text x]; expr e ])
     | BreakExpr (_, x, e) ->
@@ -157,8 +164,11 @@ module Pretty = struct
     | TryFinallyExpr (_, body, finally) ->
         parens (vert [ text "try"; expr body; 
                        parens (vert [ text "finally"; expr finally ])])
-    | ForInExpr (_, x, obj, body) -> 
-        parens (horz [ text "for"; text x; text "in"; expr obj; expr body ])
+    | ForInExpr (_, lbls, x, obj, body) -> 
+      List.fold_right (fun lbl body -> 
+        parens (vert [horz[text "label"; text lbl]; body]))
+        lbls
+        (parens (horz [ text "for"; text x; text "in"; expr obj; expr body ]))
     | ThrowExpr (_, e) ->  parens (horz [ text "throw"; expr e ])
     | FuncStmtExpr (_, f, args, body) ->
         parens (hov 1 2 [horz [ text "function"; text f; 
