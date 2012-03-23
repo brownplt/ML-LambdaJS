@@ -115,3 +115,19 @@ let rec iota' m lst =
   else iota' (m - 1) (m :: lst)
 
 let iota n = iota' (n - 1) []
+
+let timefn msg f arg =
+  let startT = Unix.time () in
+  Printf.eprintf "%s: Starting...\n" msg; Pervasives.flush stderr;
+  try
+    let ret = f arg in
+    let endT = Unix.time () in
+    Printf.eprintf "%s: Done.  Time elapsed: %d\n" msg (int_of_float (endT -. startT));
+    Pervasives.flush stderr;
+    ret
+  with e ->
+    let endT = Unix.time () in
+    Printf.eprintf "%s: Done.  Time elapsed: %d\n" msg (int_of_float (endT -. startT));
+    Pervasives.flush stderr;
+    raise e
+
