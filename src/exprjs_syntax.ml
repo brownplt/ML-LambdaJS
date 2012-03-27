@@ -169,7 +169,8 @@ and stmt (s : S.stmt) = match s with
       FuncStmtExpr 
         (a, f, args, LabelledExpr 
            (a, "%return", stmt s))
-  | S.ExprStmt e -> expr e
+  | S.ExprStmt e -> let a = (Lexing.dummy_pos, Lexing.dummy_pos) in
+                    seq a (expr e) (ConstExpr (a, S.CUndefined))
   | S.ThrowStmt (a, e) -> ThrowExpr (a, expr e)
   | S.ReturnStmt (a, e) -> BreakExpr (a, "%return", expr e)
   | S.WithStmt _ -> failwith "we do not account for with statements"
