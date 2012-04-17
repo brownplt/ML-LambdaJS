@@ -27,10 +27,10 @@ let rec lift_decls e =
   and lift e decls = match e with
     | FuncStmtExpr (p, name, args, body) ->
       let func' = lift_decls (FuncExpr(p, args, body)) in
-      (AssignExpr(dummy_p, VarLValue(p, name), func'), name::decls)
+      (AssignExpr(dummy_p, VarLValue(dummy_p, name), func'), name::decls)
     | VarDeclExpr (p, v, e) ->
       let (e', decls') = lift e decls in
-      (AssignExpr(dummy_p, VarLValue(p, v), e'), v::decls')
+      (AssignExpr(dummy_p, VarLValue(dummy_p, v), e'), v::decls')
 
     | FuncExpr(p, args, body) ->
       let (body', lifted_body_decls) = lift body [] in
