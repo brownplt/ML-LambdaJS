@@ -20,8 +20,8 @@ let parse_num_lit (s : string) : token =
                   then Float (float_of_string s)
                   else (safe_int_of_string s)
 
-let mk_loc (buf : lexbuf) : pos =
-  Lexing.lexeme_start_p buf, Lexing.lexeme_end_p buf
+let mk_loc (buf : lexbuf) : Pos.t =
+  Pos.real (Lexing.lexeme_start_p buf, Lexing.lexeme_end_p buf)
 
 let block_comment_buf = Buffer.create 120
 
@@ -34,7 +34,7 @@ let get_string () =
     Buffer.clear string_buf;
     s
 
-let comments : (pos * string) list ref = ref []
+let comments : (Pos.t * string) list ref = ref []
 
 }
 
@@ -82,7 +82,7 @@ rule token = parse
      { let start_p = Lexing.lexeme_start_p lexbuf in
        let str = block_comment lexbuf in 
        let end_p = Lexing.lexeme_end_p lexbuf in
-       comments := ((start_p, end_p), str) :: !comments;
+       comments := (Pos.real (start_p, end_p), str) :: !comments;
        token lexbuf }
    | "//"[^ '\r' '\n']* ( '\r' | '\n' | "\r\n" ) { new_line lexbuf; token lexbuf }
 

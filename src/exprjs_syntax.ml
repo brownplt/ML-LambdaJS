@@ -1,38 +1,38 @@
 open Prelude
 
 type expr
-  = ConstExpr of pos * JavaScript_syntax.const
-  | ArrayExpr of pos * expr list
-  | ObjectExpr of pos * (pos * string * expr) list
-  | ThisExpr of pos
-  | VarExpr of pos * id
-  | IdExpr of pos * id
-  | BracketExpr of pos * expr * expr
-  | NewExpr of pos * expr * expr list
-  | PrefixExpr of pos * id * expr
-  | InfixExpr of pos * id * expr * expr
-  | IfExpr of pos * expr * expr * expr
-  | AssignExpr of pos * lvalue * expr
-  | AppExpr of pos * expr * expr list
-  | FuncExpr of pos * id list * expr
-  | LetExpr of pos * id * expr * expr
-  | SeqExpr of pos * expr * expr
-  | WhileExpr of pos * id list * expr * expr (* break label(s), cond, body *)
-  | DoWhileExpr of pos * id list * expr * expr (* break label(s), cond, body *)
-  | LabelledExpr of pos * id * expr
-  | BreakExpr of pos * id * expr
-  | ForInExpr of pos * id list * id * expr * expr (* break label(s), var, obj, body *)
-  | VarDeclExpr of pos * id * expr
-  | TryCatchExpr of pos * expr * id * expr
-  | TryFinallyExpr of pos * expr * expr
-  | ThrowExpr of pos * expr
-  | FuncStmtExpr of pos * id * id list * expr
-  | ParenExpr of pos * expr
-  | BotExpr of pos
+  = ConstExpr of Pos.t * JavaScript_syntax.const
+  | ArrayExpr of Pos.t * expr list
+  | ObjectExpr of Pos.t * (Pos.t * string * expr) list
+  | ThisExpr of Pos.t
+  | VarExpr of Pos.t * id
+  | IdExpr of Pos.t * id
+  | BracketExpr of Pos.t * expr * expr
+  | NewExpr of Pos.t * expr * expr list
+  | PrefixExpr of Pos.t * id * expr
+  | InfixExpr of Pos.t * id * expr * expr
+  | IfExpr of Pos.t * expr * expr * expr
+  | AssignExpr of Pos.t * lvalue * expr
+  | AppExpr of Pos.t * expr * expr list
+  | FuncExpr of Pos.t * id list * expr
+  | LetExpr of Pos.t * id * expr * expr
+  | SeqExpr of Pos.t * expr * expr
+  | WhileExpr of Pos.t * id list * expr * expr (* break label(s), cond, body *)
+  | DoWhileExpr of Pos.t * id list * expr * expr (* break label(s), cond, body *)
+  | LabelledExpr of Pos.t * id * expr
+  | BreakExpr of Pos.t * id * expr
+  | ForInExpr of Pos.t * id list * id * expr * expr (* break label(s), var, obj, body *)
+  | VarDeclExpr of Pos.t * id * expr
+  | TryCatchExpr of Pos.t * expr * id * expr
+  | TryFinallyExpr of Pos.t * expr * expr
+  | ThrowExpr of Pos.t * expr
+  | FuncStmtExpr of Pos.t * id * id list * expr
+  | ParenExpr of Pos.t * expr
+  | BotExpr of Pos.t
 
 and lvalue =
-    VarLValue of pos * id
-  | PropLValue of pos * expr * expr
+    VarLValue of Pos.t * id
+  | PropLValue of Pos.t * expr * expr
 
 (******************************************************************************)
 
@@ -57,6 +57,37 @@ let string_of_infixOp = FormatExt.to_string JavaScript.Pretty.p_infixOp
 let rec seq a e1 e2 = match e1 with
   | SeqExpr (a', e11, e12) -> SeqExpr (a, e11, seq a' e12 e2)
   | _ -> SeqExpr (a, e1, e2)
+
+let pos e = match e with
+  | ConstExpr(p, _)
+  | ArrayExpr(p, _)
+  | ObjectExpr(p, _)
+  | ThisExpr p
+  | VarExpr(p, _)
+  | IdExpr(p, _)
+  | BracketExpr(p, _, _)
+  | NewExpr(p, _, _)
+  | PrefixExpr(p, _, _)
+  | InfixExpr(p, _, _, _)
+  | IfExpr(p, _, _, _)
+  | AssignExpr(p, _, _)
+  | AppExpr(p, _, _) 
+  | FuncExpr(p, _, _)
+  | LetExpr(p, _, _, _)
+  | SeqExpr(p, _, _)
+  | WhileExpr(p, _, _, _) 
+  | DoWhileExpr(p, _, _, _) 
+  | LabelledExpr(p, _, _)
+  | BreakExpr(p, _, _)
+  | ForInExpr(p, _, _, _, _)
+  | VarDeclExpr(p, _, _)
+  | TryCatchExpr(p, _, _, _)
+  | TryFinallyExpr(p, _, _)
+  | ThrowExpr(p, _)
+  | FuncStmtExpr(p, _, _, _)
+  | ParenExpr(p, _)
+  | BotExpr p -> p
+
 
 let rec expr (e : S.expr) = match e with
   | S.ConstExpr (p, c) -> ConstExpr (p, c)
@@ -169,7 +200,7 @@ and stmt (s : S.stmt) = match s with
       FuncStmtExpr 
         (a, f, args, LabelledExpr 
            (a, "%return", stmt s))
-  | S.ExprStmt e -> let a = (Lexing.dummy_pos, Lexing.dummy_pos) in
+  | S.ExprStmt e -> let a = Pos.synth (JavaScript_syntax.pos_expr e) in
                     seq a (expr e) (ConstExpr (a, S.CUndefined))
   | S.ThrowStmt (a, e) -> ThrowExpr (a, expr e)
   | S.ReturnStmt (a, e) -> BreakExpr (a, "%return", expr e)

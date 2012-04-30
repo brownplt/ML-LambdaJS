@@ -2,8 +2,6 @@ open Lexing
 
 type id = string
 
-(** We track the start and end position of each syntactic form. *)
-type pos = Lexing.position * Lexing.position 
 
 module IdOrderedType = struct
   type t = id
@@ -12,12 +10,26 @@ end
 
 module Pos = struct
 
-  type t = pos
+  type t = Lexing.position * Lexing.position * bool (* start, end, is synthetic? *)
 
+  let dummy = (Lexing.dummy_pos, Lexing.dummy_pos, true)
   let compare = Pervasives.compare
 
-  let before (_, p1_end) (p2_start, _) = 
+  let before (_, p1_end, _) (p2_start, _, _) = 
     p1_end.pos_cnum < p2_start.pos_cnum
+
+  let synth (p_start, p_end, _) = (p_start, p_end, true)
+  let synthetic (p_start, p_end) = (p_start, p_end, true)
+  let real (p_start, p_end) = (p_start, p_end, false)
+  let rangeToString p e =
+    if (p.pos_lnum = e.pos_lnum) 
+    then Format.sprintf "%s:%d:%d-%d" p.pos_fname p.pos_lnum (p.pos_cnum - p.pos_bol)
+      (e.pos_cnum - e.pos_bol)
+    else Format.sprintf "%s:%d:%d-%d:%d" p.pos_fname p.pos_lnum (p.pos_cnum - p.pos_bol)
+      e.pos_lnum (e.pos_cnum - e.pos_bol)
+  let toString (p, e, _) = rangeToString p e
+  let toLexPos (s, e, _) = (s, e)
+  let isSynthetic (_, _, synth) = synth
 end
 
 module Int = struct
@@ -59,13 +71,6 @@ let sprintf = Printf.sprintf
 let second2 f (a, b) = (a, f b)
 
 let third3 f (a, b, c) = (a, b, f c)
-
-let string_of_position (p, e) = 
-  if (p.pos_lnum = e.pos_lnum) 
-  then Format.sprintf "%s:%d:%d-%d" p.pos_fname p.pos_lnum (p.pos_cnum - p.pos_bol)
-    (e.pos_cnum - e.pos_bol)
-  else Format.sprintf "%s:%d:%d-%d:%d" p.pos_fname p.pos_lnum (p.pos_cnum - p.pos_bol)
-    e.pos_lnum (e.pos_cnum - e.pos_bol)
 
 let snd3 (a, b, c) = b
 

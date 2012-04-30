@@ -3,12 +3,11 @@ open Exprjs_syntax
 
 let from_javascript = Exprjs_syntax.from_javascript
 
-let dummy_p = (Lexing.dummy_pos, Lexing.dummy_pos)
 let rec lift_decls e = 
   let apply_decls (exp, decls) =
     let wrapE e = List.fold_right (fun id body -> 
-      SeqExpr(dummy_p, 
-              VarDeclExpr(dummy_p, id, BotExpr dummy_p),
+      SeqExpr(Pos.synth (pos e), 
+              VarDeclExpr(Pos.synth (pos e), id, BotExpr (Pos.synth (pos e))),
               body)) decls e in
     match exp with
     | LabelledExpr(p, id, e) -> LabelledExpr(p, id, wrapE e) 
@@ -27,10 +26,10 @@ let rec lift_decls e =
   and lift e decls = match e with
     | FuncStmtExpr (p, name, args, body) ->
       let func' = lift_decls (FuncExpr(p, args, body)) in
-      (AssignExpr(dummy_p, VarLValue(dummy_p, name), func'), name::decls)
+      (AssignExpr(Pos.synth (pos e), VarLValue(Pos.synth (pos e), name), func'), name::decls)
     | VarDeclExpr (p, v, e) ->
       let (e', decls') = lift e decls in
-      (AssignExpr(dummy_p, VarLValue(dummy_p, v), e'), v::decls')
+      (AssignExpr(Pos.synth (pos e), VarLValue(Pos.synth (pos e), v), e'), v::decls')
 
     | FuncExpr(p, args, body) ->
       let (body', lifted_body_decls) = lift body [] in

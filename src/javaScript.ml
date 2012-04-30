@@ -11,12 +11,12 @@ let parse_javascript cin name =
     with
       |  Failure "lexing: empty token" ->
            failwith (sprintf "lexical error at %s"
-                       (string_of_position 
-                          (lexbuf.lex_curr_p, lexbuf.lex_curr_p)))
+                       (Pos.rangeToString
+                          lexbuf.lex_curr_p lexbuf.lex_curr_p))
       | JavaScript_parser.Error ->
            failwith (sprintf "parse error at %s; unexpected token %s"
-                       (string_of_position 
-                          (lexbuf.lex_curr_p, lexbuf.lex_curr_p))
+                       (Pos.rangeToString
+                          lexbuf.lex_curr_p lexbuf.lex_curr_p)
                        (lexeme lexbuf))
 
 let parse_javascript_from_channel cin name =
@@ -28,12 +28,12 @@ let parse_javascript_from_channel cin name =
     with
       |  Failure "lexing: empty token" ->
            failwith (sprintf "lexical error at %s"
-                       (string_of_position 
-                          (lexbuf.lex_curr_p, lexbuf.lex_curr_p)))
+                       (Pos.rangeToString
+                          lexbuf.lex_curr_p lexbuf.lex_curr_p))
       | JavaScript_parser.Error ->
            failwith (sprintf "parse error at %s; unexpected token %s"
-                       (string_of_position 
-                          (lexbuf.lex_curr_p, lexbuf.lex_curr_p))
+                       (Pos.rangeToString
+                          lexbuf.lex_curr_p lexbuf.lex_curr_p)
                        (lexeme lexbuf))
 
 let parse_expr cin name =
@@ -44,12 +44,12 @@ let parse_expr cin name =
     with
       |  Failure "lexing: empty token" ->
            failwith (sprintf "lexical error at %s"
-                       (string_of_position 
-                          (lexbuf.lex_curr_p, lexbuf.lex_curr_p)))
+                       (Pos.rangeToString
+                          lexbuf.lex_curr_p lexbuf.lex_curr_p))
       | JavaScript_parser.Error ->
            failwith (sprintf "parse error at %s"
-                       (string_of_position 
-                          (lexbuf.lex_curr_p, lexbuf.lex_curr_p)))
+                       (Pos.rangeToString
+                          lexbuf.lex_curr_p lexbuf.lex_curr_p))
 
 
 module Pretty = struct
@@ -258,7 +258,7 @@ module Pretty = struct
                text "finally"; block finally ]
     | ThrowStmt (_,e) -> sep [text "throw"; expr e; text ";"]
     | ReturnStmt (_,e) ->  sep [ text "return"; nest (expr e); text ";" ]
-    | WithStmt (e,s) -> sep [text "with"; paren_exp e; stmt s]
+    | WithStmt (_,e,s) -> sep [text "with"; paren_exp e; stmt s]
     | VarDeclStmt (_,decls) ->
         squish [ text "var "; horz (commas (map varDecl decls)); text ";" ]
     | FuncStmt (_,name,args,body) ->

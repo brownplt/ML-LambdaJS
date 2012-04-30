@@ -91,9 +91,9 @@ prop
 fields
   : { [] }
   | prop Colon expr 
-    { [ (($startpos($1), $startpos($3)), $1, $3) ] }
+    { [ (Pos.real ($startpos($1), $startpos($3)), $1, $3) ] }
   | prop Colon expr Comma fields  
-      { (($startpos($1), $startpos($3)), $1, $3) :: $5 }
+      { (Pos.real ($startpos($1), $startpos($3)), $1, $3) :: $5 }
 
 varDecls
   : varDecl { [$1] }
@@ -107,7 +107,7 @@ element_list
   : 
       { [] }
   | Comma 
-      { [ ConstExpr (($startpos, $endpos), CUndefined) ] }
+      { [ ConstExpr (Pos.real ($startpos, $endpos), CUndefined) ] }
   | assign_expr { [$1] }
   | assign_expr Comma element_list 
       { $1::$3 }
@@ -122,46 +122,46 @@ const :
   | Float { CNum $1 }
 
 primary_expr :
-  | const { ConstExpr (($startpos, $endpos), $1) }
-  | Id { VarExpr (($startpos, $endpos), $1) }
+  | const { ConstExpr (Pos.real ($startpos, $endpos), $1) }
+  | Id { VarExpr (Pos.real ($startpos, $endpos), $1) }
   | LBrack element_list RBrack
-      { ArrayExpr (($startpos, $endpos),$2) }
+      { ArrayExpr (Pos.real ($startpos, $endpos),$2) }
   | LBrace fields RBrace
-      { ObjectExpr (($startpos, $endpos),$2) }
+      { ObjectExpr (Pos.real ($startpos, $endpos),$2) }
   | LParen expr RParen
-      { ParenExpr (($startpos, $endpos),$2) }
-  | This { ThisExpr (($startpos, $endpos)) }
+      { ParenExpr (Pos.real ($startpos, $endpos),$2) }
+  | This { ThisExpr (Pos.real ($startpos, $endpos)) }
 
 member_expr
   : primary_expr 
       { $1 }
   | Function LParen ids RParen body=src_elt_block
-    { FuncExpr (($startpos, $endpos), $3, body) }
+    { FuncExpr (Pos.real ($startpos, $endpos), $3, body) }
   | Function Id LParen ids RParen body=src_elt_block
-    { NamedFuncExpr (($startpos, $endpos), $2, $4, body) } 
+    { NamedFuncExpr (Pos.real ($startpos, $endpos), $2, $4, body) } 
   | member_expr Period Id
-      { DotExpr (($startpos, $endpos), $1, $3) } 
+      { DotExpr (Pos.real ($startpos, $endpos), $1, $3) } 
   | member_expr LBrack expr RBrack
-      { BracketExpr (($startpos, $endpos),$1,$3) }
+      { BracketExpr (Pos.real ($startpos, $endpos),$1,$3) }
   | New member_expr LParen exprs RParen 
-      { NewExpr (($startpos, $endpos),$2,$4) }
+      { NewExpr (Pos.real ($startpos, $endpos),$2,$4) }
   
 new_expr
   : member_expr
       { $1 }
   | New new_expr
-      { NewExpr (($startpos, $endpos),$2,[]) }
+      { NewExpr (Pos.real ($startpos, $endpos),$2,[]) }
 
 
 call_expr
   : member_expr LParen exprs RParen
-      { CallExpr (($startpos, $endpos),$1,$3) }
+      { CallExpr (Pos.real ($startpos, $endpos),$1,$3) }
   | call_expr LParen exprs RParen
-      { CallExpr (($startpos, $endpos),$1,$3) }
+      { CallExpr (Pos.real ($startpos, $endpos),$1,$3) }
   | call_expr LBrack expr RBrack 
-      { BracketExpr (($startpos, $endpos),$1,$3) }
+      { BracketExpr (Pos.real ($startpos, $endpos),$1,$3) }
   | call_expr Period Id 
-      { DotExpr (($startpos, $endpos), $1, $3) }
+      { DotExpr (Pos.real ($startpos, $endpos), $1, $3) }
 
 lhs_expr
   : new_expr
@@ -173,92 +173,92 @@ postfix_expr
   : lhs_expr 
       { $1 }
   | lhs_expr PlusPlus
-      { UnaryAssignExpr (($startpos, $endpos),PostfixInc,expr_to_lvalue $1) }
+      { UnaryAssignExpr (Pos.real ($startpos, $endpos),PostfixInc,expr_to_lvalue $1) }
   | lhs_expr MinusMinus
-      { UnaryAssignExpr (($startpos, $endpos),PostfixDec,expr_to_lvalue $1) }
+      { UnaryAssignExpr (Pos.real ($startpos, $endpos),PostfixDec,expr_to_lvalue $1) }
 
 unary_expr
   : postfix_expr 
       { $1 }
   | PlusPlus unary_expr 
-      { UnaryAssignExpr (($startpos, $endpos),PrefixInc,expr_to_lvalue $2) }
+      { UnaryAssignExpr (Pos.real ($startpos, $endpos),PrefixInc,expr_to_lvalue $2) }
   | MinusMinus unary_expr 
-      { UnaryAssignExpr (($startpos, $endpos),PrefixDec,expr_to_lvalue $2) }
+      { UnaryAssignExpr (Pos.real ($startpos, $endpos),PrefixDec,expr_to_lvalue $2) }
   | Exclamation unary_expr 
-      { PrefixExpr (($startpos, $endpos),PrefixLNot,$2) } 
+      { PrefixExpr (Pos.real ($startpos, $endpos),PrefixLNot,$2) } 
   | Tilde unary_expr 
-      { PrefixExpr (($startpos, $endpos),PrefixBNot,$2) }
+      { PrefixExpr (Pos.real ($startpos, $endpos),PrefixBNot,$2) }
   | Minus unary_expr
-      { PrefixExpr (($startpos, $endpos),PrefixMinus,$2) }
+      { PrefixExpr (Pos.real ($startpos, $endpos),PrefixMinus,$2) }
   | Plus unary_expr
-      { PrefixExpr (($startpos, $endpos),PrefixPlus,$2) }
+      { PrefixExpr (Pos.real ($startpos, $endpos),PrefixPlus,$2) }
   | Typeof unary_expr
-      { PrefixExpr (($startpos, $endpos),PrefixTypeof,$2) }
+      { PrefixExpr (Pos.real ($startpos, $endpos),PrefixTypeof,$2) }
   | Void unary_expr
-      { PrefixExpr (($startpos, $endpos),PrefixVoid,$2) }
+      { PrefixExpr (Pos.real ($startpos, $endpos),PrefixVoid,$2) }
   | Delete unary_expr 
-      { PrefixExpr (($startpos, $endpos),PrefixDelete,$2) }
+      { PrefixExpr (Pos.real ($startpos, $endpos),PrefixDelete,$2) }
 
 (* Combines UnaryExpression, MultiplicativeExpression, AdditiveExpression, and
    ShiftExpression by using precedence and associativity rules. *)
 op_expr
   : unary_expr { $1 }
   | op_expr Times op_expr
-      { InfixExpr (($startpos, $endpos),OpMul,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpMul,$1,$3) }
   | op_expr Div op_expr
-      { InfixExpr (($startpos, $endpos),OpDiv,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpDiv,$1,$3) }
   | op_expr Mod op_expr 
-      { InfixExpr (($startpos, $endpos),OpMod,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpMod,$1,$3) }
   | op_expr Plus op_expr
-      { InfixExpr (($startpos, $endpos),OpAdd,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpAdd,$1,$3) }
   | op_expr Minus op_expr
-      { InfixExpr (($startpos, $endpos),OpSub,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpSub,$1,$3) }
   | op_expr LShift op_expr 
-      { InfixExpr (($startpos, $endpos),OpLShift,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpLShift,$1,$3) }
   | op_expr RShift op_expr
-      { InfixExpr (($startpos, $endpos),OpZfRShift,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpZfRShift,$1,$3) }
   | op_expr SpRShift op_expr
-      { InfixExpr (($startpos, $endpos),OpSpRShift,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpSpRShift,$1,$3) }
 
 in_expr
   : op_expr 
       { $1 }
   | in_expr LT in_expr
-      { InfixExpr (($startpos, $endpos),OpLT,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpLT,$1,$3) }
   | in_expr GT in_expr 
-      { InfixExpr (($startpos, $endpos),OpGT,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpGT,$1,$3) }
   | in_expr LEq in_expr 
-      { InfixExpr (($startpos, $endpos),OpLEq,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpLEq,$1,$3) }
   | in_expr GEq in_expr
-      { InfixExpr (($startpos, $endpos),OpGEq,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpGEq,$1,$3) }
   | in_expr Instanceof in_expr
-      { InfixExpr (($startpos, $endpos),OpInstanceof,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpInstanceof,$1,$3) }
   | in_expr In in_expr
-      { InfixExpr (($startpos, $endpos),OpIn,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpIn,$1,$3) }
   | in_expr StrictEq in_expr 
-      { InfixExpr (($startpos, $endpos),OpStrictEq,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpStrictEq,$1,$3) }
   | in_expr StrictNEq in_expr
-      { InfixExpr (($startpos, $endpos),OpStrictNEq,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpStrictNEq,$1,$3) }
   | in_expr AbstractEq in_expr
-      { InfixExpr (($startpos, $endpos),OpEq,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpEq,$1,$3) }
   | in_expr AbstractNEq in_expr
-      { InfixExpr (($startpos, $endpos),OpNEq,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpNEq,$1,$3) }
   | in_expr BAnd in_expr
-      { InfixExpr (($startpos, $endpos),OpBAnd,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpBAnd,$1,$3) }
   | in_expr BXor in_expr
-      { InfixExpr (($startpos, $endpos),OpBXor,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpBXor,$1,$3) }
   | in_expr BOr in_expr
-      { InfixExpr (($startpos, $endpos),OpBOr,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpBOr,$1,$3) }
   | in_expr LAnd in_expr
-      { InfixExpr (($startpos, $endpos),OpLAnd,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpLAnd,$1,$3) }
   | in_expr LOr in_expr
-      { InfixExpr (($startpos, $endpos),OpLOr,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpLOr,$1,$3) }
 
 cond_expr
   : in_expr
       { $1 }
   | in_expr Ques assign_expr Colon assign_expr 
-      { IfExpr (($startpos, $endpos),$1,$3,$5) }
+      { IfExpr (Pos.real ($startpos, $endpos),$1,$3,$5) }
 
 
 assign_expr
@@ -266,85 +266,85 @@ assign_expr
       { $1 }
   (* we need the use Assign (token for =) in other productions. *)
   | lhs_expr AssignOp assign_expr 
-    { AssignExpr (($startpos, $endpos), $2, expr_to_lvalue $1, $3) }
+    { AssignExpr (Pos.real ($startpos, $endpos), $2, expr_to_lvalue $1, $3) }
   | lhs_expr Assign assign_expr 
-    { AssignExpr (($startpos, $endpos), OpAssign, expr_to_lvalue $1, $3) }
+    { AssignExpr (Pos.real ($startpos, $endpos), OpAssign, expr_to_lvalue $1, $3) }
 
 
 expr 
   : assign_expr 
       { $1 }
   | expr Comma assign_expr
-      { ListExpr (($startpos, $endpos),$1,$3) }
+      { ListExpr (Pos.real ($startpos, $endpos),$1,$3) }
 
 noin_expr
   : op_expr
       { $1 }
   | noin_expr LT noin_expr 
-      { InfixExpr (($startpos, $endpos),OpLT,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpLT,$1,$3) }
   | noin_expr GT noin_expr
-      { InfixExpr (($startpos, $endpos),OpGT,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpGT,$1,$3) }
   | noin_expr LEq noin_expr
-      { InfixExpr (($startpos, $endpos),OpLEq,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpLEq,$1,$3) }
   | noin_expr GEq noin_expr
-      { InfixExpr (($startpos, $endpos),OpGEq,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpGEq,$1,$3) }
   | noin_expr Instanceof noin_expr
-      { InfixExpr (($startpos, $endpos),OpInstanceof,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpInstanceof,$1,$3) }
   | noin_expr StrictEq noin_expr 
-      { InfixExpr (($startpos, $endpos),OpStrictEq,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpStrictEq,$1,$3) }
   | noin_expr StrictNEq noin_expr
-      { InfixExpr (($startpos, $endpos),OpStrictNEq,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpStrictNEq,$1,$3) }
   | noin_expr AbstractEq noin_expr
-      { InfixExpr (($startpos, $endpos),OpEq,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpEq,$1,$3) }
   | noin_expr AbstractNEq noin_expr
-      { InfixExpr (($startpos, $endpos),OpNEq,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpNEq,$1,$3) }
   | noin_expr BAnd noin_expr 
-      { InfixExpr (($startpos, $endpos),OpBAnd,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpBAnd,$1,$3) }
   | noin_expr BXor noin_expr 
-      { InfixExpr (($startpos, $endpos),OpBXor,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpBXor,$1,$3) }
   | noin_expr BOr noin_expr
-      { InfixExpr (($startpos, $endpos),OpBOr,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpBOr,$1,$3) }
   | noin_expr LAnd noin_expr
-      { InfixExpr (($startpos, $endpos),OpLAnd,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpLAnd,$1,$3) }
   | noin_expr LOr noin_expr 
-      { InfixExpr (($startpos, $endpos),OpLOr,$1,$3) }
+      { InfixExpr (Pos.real ($startpos, $endpos),OpLOr,$1,$3) }
 
 cond_noin_expr
   : noin_expr { $1 }
   | noin_expr Ques assign_noin_expr Colon assign_noin_expr 
-    { IfExpr (($startpos, $endpos),$1,$3,$5) }
+    { IfExpr (Pos.real ($startpos, $endpos),$1,$3,$5) }
 
 assign_noin_expr
   : cond_noin_expr { $1 }
   | lhs_expr AssignOp assign_noin_expr 
-    { AssignExpr (($startpos, $endpos), $2, expr_to_lvalue $1, $3) }
+    { AssignExpr (Pos.real ($startpos, $endpos), $2, expr_to_lvalue $1, $3) }
   | lhs_expr Assign assign_noin_expr 
-    { AssignExpr (($startpos, $endpos), OpAssign, expr_to_lvalue $1, $3) }
+    { AssignExpr (Pos.real ($startpos, $endpos), OpAssign, expr_to_lvalue $1, $3) }
 
 expr_noin
   : assign_noin_expr { $1 }
   | noin_expr Comma assign_noin_expr 
-      { ListExpr (($startpos, $endpos),$1,$3) }
+      { ListExpr (Pos.real ($startpos, $endpos),$1,$3) }
 
 varDecl
-  : Id { VarDeclNoInit (($startpos, $endpos),$1) }
-  | Id Assign assign_expr { VarDecl (($startpos, $endpos),$1,$3) }
+  : Id { VarDeclNoInit (Pos.real ($startpos, $endpos),$1) }
+  | Id Assign assign_expr { VarDecl (Pos.real ($startpos, $endpos),$1,$3) }
 
 varDecl_noin
-  : Id { VarDeclNoInit (($startpos, $endpos),$1) }
-  | Id Assign assign_noin_expr { VarDecl (($startpos, $endpos),$1,$3) }
+  : Id { VarDeclNoInit (Pos.real ($startpos, $endpos),$1) }
+  | Id Assign assign_noin_expr { VarDecl (Pos.real ($startpos, $endpos),$1,$3) }
 
 case
   : Case expr Colon stmts 
-  { CaseClause (($startpos, $endpos),$2,BlockStmt (($startpos, $endpos),$4)) }
+  { CaseClause (Pos.real ($startpos, $endpos),$2,BlockStmt (Pos.real ($startpos, $endpos),$4)) }
   | Default Colon stmts
-  { CaseDefault (($startpos, $endpos),BlockStmt (($startpos, $endpos),$3)) }
+  { CaseDefault (Pos.real ($startpos, $endpos),BlockStmt (Pos.real ($startpos, $endpos),$3)) }
 
 forInInit :
   | Id 
-      { NoVarForInInit (($startpos, $endpos), $1) }
+      { NoVarForInInit (Pos.real ($startpos, $endpos), $1) }
   | Var Id 
-      { VarForInInit (($startpos, $endpos), $2) }
+      { VarForInInit (Pos.real ($startpos, $endpos), $2) }
 
 forInit
   : { NoForInit }
@@ -353,71 +353,71 @@ forInit
 
 catch
   : Catch LParen Id RParen block
-    { CatchClause (($startpos, $endpos), $3, $5) }
+    { CatchClause (Pos.real ($startpos, $endpos), $3, $5) }
 
 
 block : LBrace stmts RBrace
-      { BlockStmt (($startpos, $endpos),$2) }
+      { BlockStmt (Pos.real ($startpos, $endpos),$2) }
 
 paren_expr : LParen expr RParen
-      { ParenExpr (($startpos, $endpos),$2) }
+      { ParenExpr (Pos.real ($startpos, $endpos),$2) }
 
 opt_expr :
-  | { ConstExpr (($startpos, $endpos), CUndefined) }
+  | { ConstExpr (Pos.real ($startpos, $endpos), CUndefined) }
   | expr { $1 }
 
 stmt : 
   | LBrace stmts RBrace
-      { BlockStmt (($startpos, $endpos), $2) }
+      { BlockStmt (Pos.real ($startpos, $endpos), $2) }
   | Semi 
-      { EmptyStmt (($startpos, $endpos)) }
+      { EmptyStmt (Pos.real ($startpos, $endpos)) }
   | expr Semi
       { match $1 with
           | NamedFuncExpr (p, x, args, body) -> FuncStmt (p, x, args, body)
           | e -> ExprStmt e 
       }
   | Continue Semi 
-      { ContinueStmt (($startpos, $endpos)) }
+      { ContinueStmt (Pos.real ($startpos, $endpos)) }
   | ContinueId Semi 
-      { ContinueToStmt (($startpos, $endpos),$1) }
+      { ContinueToStmt (Pos.real ($startpos, $endpos),$1) }
   | If LParen expr  RParen stmt  %prec LowerThanElse
-    { IfSingleStmt (($startpos, $endpos), $3, $5) }
+    { IfSingleStmt (Pos.real ($startpos, $endpos), $3, $5) }
   | If LParen expr RParen stmt Else stmt
-    { IfStmt (($startpos, $endpos), $3, $5, $7) }
+    { IfStmt (Pos.real ($startpos, $endpos), $3, $5, $7) }
 
   | Switch paren_expr LBrace cases RBrace 
-      { SwitchStmt (($startpos, $endpos),$2,$4) }
+      { SwitchStmt (Pos.real ($startpos, $endpos),$2,$4) }
   | While paren_expr stmt
-      { WhileStmt (($startpos, $endpos),$2,$3) }
+      { WhileStmt (Pos.real ($startpos, $endpos),$2,$3) }
   | Do block While paren_expr Semi
-      { DoWhileStmt (($startpos, $endpos),$2,$4) }
+      { DoWhileStmt (Pos.real ($startpos, $endpos),$2,$4) }
   | Break  Semi
-      { BreakStmt (($startpos, $endpos)) }
+      { BreakStmt (Pos.real ($startpos, $endpos)) }
   | BreakId Semi
-      { BreakToStmt (($startpos, $endpos),$1) }
-  | Id Colon stmt { LabelledStmt (($startpos, $endpos), $1, $3) }
+      { BreakToStmt (Pos.real ($startpos, $endpos),$1) }
+  | Id Colon stmt { LabelledStmt (Pos.real ($startpos, $endpos), $1, $3) }
   | For LParen forInInit In expr RParen stmt
-    { ForInStmt (($startpos, $endpos),$3,$5,$7) }
+    { ForInStmt (Pos.real ($startpos, $endpos),$3,$5,$7) }
   | For LParen forInit Semi opt_expr Semi opt_expr RParen stmt
-    { ForStmt (($startpos, $endpos),$3,$5,$7,$9) }
+    { ForStmt (Pos.real ($startpos, $endpos),$3,$5,$7,$9) }
   | Try block catches
-    { TryStmt (($startpos, $endpos),$2,$3,EmptyStmt (($startpos, $endpos))) }
-  | Try block catches Finally block { TryStmt (($startpos, $endpos),$2,$3,$5) }
+    { TryStmt (Pos.real ($startpos, $endpos),$2,$3,EmptyStmt (Pos.real ($startpos, $endpos))) }
+  | Try block catches Finally block { TryStmt (Pos.real ($startpos, $endpos),$2,$3,$5) }
   | Throw expr Semi 
-      { ThrowStmt (($startpos, $endpos),$2) }
+      { ThrowStmt (Pos.real ($startpos, $endpos),$2) }
   | Return Semi 
-      { ReturnStmt (($startpos, $endpos),
-                    ConstExpr (($startpos, $endpos), CUndefined)) }
+      { ReturnStmt (Pos.real ($startpos, $endpos),
+                    ConstExpr (Pos.real ($startpos, $endpos), CUndefined)) }
   | Return expr Semi 
-      { ReturnStmt (($startpos, $endpos),$2) } 
+      { ReturnStmt (Pos.real ($startpos, $endpos),$2) } 
   | Var varDecls Semi
-      { VarDeclStmt (($startpos, $endpos),$2) }
+      { VarDeclStmt (Pos.real ($startpos, $endpos),$2) }
   | With LParen expr RParen stmt
-      { WithStmt ($3, $5) }
+      { WithStmt (Pos.real ($startpos, $endpos), $3, $5) }
 
 src_elt_block
   : LBrace src_elts RBrace 
-      { BlockStmt (($startpos, $endpos),$2) }
+      { BlockStmt (Pos.real ($startpos, $endpos),$2) }
  
 src_elts
   : { [] }
@@ -426,9 +426,9 @@ src_elts
 src_elt
   : stmt { $1 }
   | Function Id LParen ids RParen src_elt_block
-    { FuncStmt (($startpos, $endpos), $2, $4, $6) } 
+    { FuncStmt (Pos.real ($startpos, $endpos), $2, $4, $6) } 
 
-program : src_elts EOF { Prog (($startpos, $endpos), $1) }
+program : src_elts EOF { Prog (Pos.real ($startpos, $endpos), $1) }
 
 expression : expr EOF { $1 }
 
