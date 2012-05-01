@@ -228,6 +228,7 @@ and regexp = parse
   | "/mg" { Regexp (get_string (), true, false) } (* TODO: m-flag ignored *)
   | "/gm" { Regexp (get_string (), true, false) } (* TODO: m-flag ignored *)
   | "/gi" { Regexp (get_string (), true, true) }
+  | "/m" { Regexp (get_string (), false, false) } (* TODO: m-flag ignored *)
   | "/g" { Regexp (get_string (), true, false) }
   | "/i" { Regexp (get_string (), false, true) }
   | '\\' (_ as ch) { Buffer.add_char string_buf ch; regexp lexbuf }
