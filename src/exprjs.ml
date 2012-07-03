@@ -124,65 +124,65 @@ module Pretty = struct
 
   let rec expr e = match e with
     | ConstExpr (_, c) -> JavaScript.Pretty.p_const c
-    | ArrayExpr (_, es) -> parens (horz (map expr es))
-    | ObjectExpr (_, ps) -> brackets (vert (map prop ps))
+    | ArrayExpr (_, es) -> parens [horz (map expr es)]
+    | ObjectExpr (_, ps) -> brackets [vert (map prop ps)]
     | ThisExpr _ -> text "#this"
     | IdExpr (_, x) -> text x
     | VarExpr (_, x) -> text ("scope." ^ x)
-    | BracketExpr (_, e1, e2) -> squish [ expr e1; brackets (expr e2) ]
+    | BracketExpr (_, e1, e2) -> squish [ expr e1; brackets [expr e2] ]
     | NewExpr (_, c, args) -> 
-        parens (horz (text "new" :: expr c :: map expr args))
+        parens [horz (text "new" :: expr c :: map expr args)]
     | IfExpr (_, e1, e2, e3) ->
-        parens (vert [ horz [ text "if"; expr e1 ]; expr e2; expr e3 ])
-    | AppExpr (_, f, args) -> parens (hov 1 2 (expr f :: map expr args))
+        parens [vert [ horz [ text "if"; expr e1 ]; expr e2; expr e3 ]]
+    | AppExpr (_, f, args) -> parens [hov 1 2 (expr f :: map expr args)]
     | FuncExpr (_, args, body) ->
-        parens (vert [ horz [text "fun"; parens (horz (map text args))]; expr body ])
+        parens [vert [ horz [text "fun"; parens [horz (map text args)]]; expr body ]]
     | LetExpr (_, x, e1, e2) ->
-        parens (vert [ horz [ text "let"; text x; text "="; expr e1; 
+        parens [vert [ horz [ text "let"; text x; text "="; expr e1;
                               text "in" ];
-                       expr e2 ])
-    | SeqExpr (_, e1, e2) -> parens (vert [ text "seq"; expr e1; expr e2 ])
+                       expr e2 ]]
+    | SeqExpr (_, e1, e2) -> parens [vert [ text "seq"; expr e1; expr e2 ]]
     | VarDeclExpr (_, x, e) ->  horz [ text "var"; text x; text "="; expr e ]
     | WhileExpr (_, lbls, e1, e2) -> 
       List.fold_right (fun lbl body -> 
-        parens (vert [horz[text "label"; text lbl]; body]))
+        parens [vert [horz[text "label"; text lbl]; body]])
         lbls
-        (parens (vert [ text "while"; expr e1; expr e2 ]))
+        (parens [vert [ text "while"; expr e1; expr e2 ]])
     | DoWhileExpr (_, lbls, e1, e2) ->
       List.fold_right (fun lbl body -> 
-        parens (vert [horz[text "label"; text lbl]; body]))
+        parens [vert [horz[text "label"; text lbl]; body]])
         lbls
-        (parens (vert [ text "do-while"; expr e1; expr e2 ]))
+        (parens [vert [ text "do-while"; expr e1; expr e2 ]])
     | LabelledExpr (_, x, e) ->
-        parens (vert [ horz [text "label"; text x]; expr e ])
+        parens [vert [ horz [text "label"; text x]; expr e ]]
     | BreakExpr (_, x, e) ->
-        parens (hov 1 0 [ horz [text "break"; text x]; expr e ])
+        parens [hov 1 0 [ horz [text "break"; text x]; expr e ]]
     | TryCatchExpr (_, body, x, catch) ->
-        parens (vert [ text "try"; expr body; 
-                       parens (vert [horz [text "catch"; text x]; expr body ]) ])
+        parens [vert [ text "try"; expr body; 
+                       parens [vert [horz [text "catch"; text x]; expr body ]] ]]
     | TryFinallyExpr (_, body, finally) ->
-        parens (vert [ text "try"; expr body; 
-                       parens (vert [ text "finally"; expr finally ])])
+        parens [vert [ text "try"; expr body; 
+                       parens [vert [ text "finally"; expr finally ]]]]
     | ForInExpr (_, lbls, x, obj, body) -> 
       List.fold_right (fun lbl body -> 
-        parens (vert [horz[text "label"; text lbl]; body]))
+        parens [vert [horz[text "label"; text lbl]; body]])
         lbls
-        (parens (horz [ text "for"; text x; text "in"; expr obj; expr body ]))
-    | ThrowExpr (_, e) ->  parens (horz [ text "throw"; expr e ])
+        (parens [horz [ text "for"; text x; text "in"; expr obj; expr body ]])
+    | ThrowExpr (_, e) ->  parens [horz [ text "throw"; expr e ]]
     | FuncStmtExpr (_, f, args, body) ->
-        parens (hov 1 2 [horz [ text "function"; text f; 
-                             parens (horz (map text args))]; expr body ])
-    | PrefixExpr (_, op, e) -> parens (horz [ text op; expr e ])
-    | InfixExpr (_, op, e1, e2) -> parens (horz [ text op; hov 1 0 [expr e1; expr e2] ])
-    | AssignExpr (_, lv, e) -> parens (hov 1 2 [horz [ text "set"; lvalue lv]; expr e ])
-    | ParenExpr (_, e) -> parens (horz [ text "parens"; expr e ])
+        parens [hov 1 2 [horz [ text "function"; text f; 
+                             parens [horz (map text args)]]; expr body ]]
+    | PrefixExpr (_, op, e) -> parens [horz [ text op; expr e ]]
+    | InfixExpr (_, op, e1, e2) -> parens [horz [ text op; hov 1 0 [expr e1; expr e2] ]]
+    | AssignExpr (_, lv, e) -> parens [hov 1 2 [horz [ text "set"; lvalue lv]; expr e ]]
+    | ParenExpr (_, e) -> parens [horz [ text "parens"; expr e ]]
     | BotExpr _ -> text "_|_"
 
   and lvalue lv = match lv with
       VarLValue (_, x) -> text x
-    | PropLValue (_, e1, e2) -> squish [ expr e1; brackets (expr e2) ]
+    | PropLValue (_, e1, e2) -> squish [ expr e1; brackets [expr e2] ]
 
-  and prop (_, s, e) =  parens (hov 1 2 [horz [ text s; text ":"]; expr e ])
+  and prop (_, s, e) =  parens [hov 1 2 [horz [ text s; text ":"]; expr e ]]
 
   let p_expr = expr
 

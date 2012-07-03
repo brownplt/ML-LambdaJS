@@ -15,25 +15,25 @@ type op2 =
   | SetRef
 
 type exp =
-  | EConst of pos * JavaScript_syntax.const
-  | EId of pos * id
-  | EObject of pos * (pos * string * exp) list
-  | EUpdateField of pos * exp * exp * exp
-  | EOp1 of pos * op1 * exp
-  | EOp2 of pos * op2 * exp * exp
-  | EIf of pos * exp * exp * exp
-  | EApp of pos * exp * exp list
-  | ESeq of pos * exp * exp
-  | ELet of pos * id * exp * exp
-  | EFix of pos * (id * exp) list * exp 
+  | EConst of Pos.t * JavaScript_syntax.const
+  | EId of Pos.t * id
+  | EObject of Pos.t * (Pos.t * string * exp) list
+  | EUpdateField of Pos.t * exp * exp * exp
+  | EOp1 of Pos.t * op1 * exp
+  | EOp2 of Pos.t * op2 * exp * exp
+  | EIf of Pos.t * exp * exp * exp
+  | EApp of Pos.t * exp * exp list
+  | ESeq of Pos.t * exp * exp
+  | ELet of Pos.t * id * exp * exp
+  | EFix of Pos.t * (id * exp) list * exp 
       (** All bindings must be [ELambda]s. *)
-  | ELabel of pos * id * exp
-  | EBreak of pos * id * exp
-  | ETryCatch of pos * exp * exp
+  | ELabel of Pos.t * id * exp
+  | EBreak of Pos.t * id * exp
+  | ETryCatch of Pos.t * exp * exp
       (** Catch block must be an [ELambda] *)
-  | ETryFinally of pos * exp * exp
-  | EThrow of pos * exp
-  | ELambda of pos * id list * exp
+  | ETryFinally of Pos.t * exp * exp
+  | EThrow of Pos.t * exp
+  | ELambda of Pos.t * id list * exp
 
 (******************************************************************************)
 
@@ -49,17 +49,17 @@ let rec mk_array (p, exps) =
 let rec ds_expr (env : env) (expr : expr) : exp = match expr with
   | ConstExpr (p, c) -> EConst (p, c)
   | ArrayExpr (p, es) -> mk_array (p, map (ds_expr env) es)
-  | ObjectExpr (p, fields) -> 
+  | ObjectExpr (p, fields) ->
       (* Imperative object *)
       EOp1 (p, Ref, EObject (p, map (ds_field env) fields))
-  | ThisExpr p -> 
+  | ThisExpr p ->
       (* In JavaScript, 'this' is a reserved word.  Hence, we are certain that
          the the bound identifier is not captured by existing bindings. *)
       EId (p, "this")
   | IdExpr (p, x) -> EId (p, x)
   | VarExpr (p, x) -> begin
       (* TODO: IdExpr makes the else clause unnecessary *)
-      try 
+      try
         if IdMap.find x env then
           (* var-lifting would have introduced a binding for x. *)
           EOp1 (p, Deref, EId (p, x))
@@ -74,9 +74,9 @@ let rec ds_expr (env : env) (expr : expr) : exp = match expr with
   | PrefixExpr (p, op, e) -> EOp1 (p, Op1Prefix op, ds_expr env e)
   | InfixExpr (p, op, e1, e2) ->
       EOp2 (p, Op2Infix op, ds_expr env e1, ds_expr env e2)
-  | IfExpr (p, e1, e2, e3) -> 
+  | IfExpr (p, e1, e2, e3) ->
       EIf (p, ds_expr env e1, ds_expr env e2, ds_expr env e3)
-  | AssignExpr (p, VarLValue (p', x), e) -> 
+  | AssignExpr (p, VarLValue (p', x), e) ->
       if IdMap.mem x env then (* assume var-bound *)
         EOp2 (p, SetRef, EId (p, x), ds_expr env e)
       else
@@ -84,31 +84,31 @@ let rec ds_expr (env : env) (expr : expr) : exp = match expr with
               EUpdateField (p, (EOp1 (p, Deref, EId (p, "[[global]]"))),
                             EConst (p, JavaScript_syntax.CString x),
                             ds_expr env e))
-  | AssignExpr (p, PropLValue (p', e1, e2), e3) -> 
+  | AssignExpr (p, PropLValue (p', e1, e2), e3) ->
       ELet (p, "%obj", ds_expr env e1,
-            EOp2 (p, SetRef, EId (p, "%obj"), 
+            EOp2 (p, SetRef, EId (p, "%obj"),
                   EUpdateField (p, EOp1 (p, Deref, EId (p, "%obj")),
                                 ds_expr env e2,
                                 ds_expr env e3)))
   | LetExpr (p, x, e1, e2) ->
       ELet (p, x, ds_expr env e1, ds_expr (IdMap.add x false env) e2)
-  | SeqExpr (p, e1, e2) -> 
+  | SeqExpr (p, e1, e2) ->
       ESeq (p, ds_expr env e1, ds_expr env e2)
-  | WhileExpr (p, test, body) -> 
-      EFix (p, 
-            [ ("%while", 
-               ELambda (p, [], 
-                        EIf (p, ds_expr env test, 
-                             ESeq (p, ds_expr env body, 
+  | WhileExpr (p, test, body) ->
+      EFix (p,
+            [ ("%while",
+               ELambda (p, [],
+                        EIf (p, ds_expr env test,
+                             ESeq (p, ds_expr env body,
                                    EApp (p, EId (p, "%while"), [])),
                              EConst (p, JavaScript_syntax.CUndefined)))) ],
             EApp (p, EId (p, "%while"), []))
-  | DoWhileExpr (p, body, test) -> 
-      EFix (p, 
-            [ ("%dowhile", 
-               ELambda (p, [], 
+  | DoWhileExpr (p, body, test) ->
+      EFix (p,
+            [ ("%dowhile",
+               ELambda (p, [],
                         ESeq (p, ds_expr env body,
-                              EIf (p, ds_expr env test, 
+                              EIf (p, ds_expr env test,
                                    EApp (p, EId (p, "%while"), []),
                                    EConst (p, JavaScript_syntax.CUndefined))))) ],
             EApp (p, EId (p, "%dowhile"), []))
@@ -116,7 +116,7 @@ let rec ds_expr (env : env) (expr : expr) : exp = match expr with
       EFix
         (p,
          [ ("%forin",
-            ELambda 
+            ELambda
               (p, [x],
                (* TODO: Infinite loop below, but adequate for typing *)
                ESeq (p, ds_expr env body,
@@ -125,18 +125,18 @@ let rec ds_expr (env : env) (expr : expr) : exp = match expr with
   | LabelledExpr (p, l, e) ->
       ELabel (p, l, ds_expr env e)
   | BreakExpr (p, l, e) -> EBreak (p, l, ds_expr env e)
-  | VarDeclExpr (p, x, e) -> 
+  | VarDeclExpr (p, x, e) ->
       if IdMap.mem x env then
         (* var-lifting would have introduced a binding for x. *)
         EOp2 (p, SetRef, EId (p, x), ds_expr env e)
-      else 
+      else
         EOp2 (p, SetRef, EId (p, "[[global]]"),
               EUpdateField (p, EOp1 (p, Deref, EId (p, "[[global]]")),
                             EConst (p, JavaScript_syntax.CString x),
                             ds_expr env e))
   | TryCatchExpr (p, body, x, catch) ->
       ETryCatch (p, ds_expr env body, ELambda (p, [x], ds_expr env catch))
-  | TryFinallyExpr (p, e1, e2) -> 
+  | TryFinallyExpr (p, e1, e2) ->
       ETryFinally (p, ds_expr env e1, ds_expr env e2)
   | ThrowExpr (p, e) -> EThrow (p, ds_expr env e)
   | AppExpr (p, BracketExpr (p', obj, prop), args) ->
@@ -144,16 +144,16 @@ let rec ds_expr (env : env) (expr : expr) : exp = match expr with
             EApp (p, EOp2 (p', UnsafeGetField,
                            EOp1 (p', Deref, EId (p, "%obj")),
                                 ds_expr env prop),
-                  [ EId (p, "%obj"); 
+                  [ EId (p, "%obj");
                     mk_array (p, map (ds_expr env) args) ]))
   | AppExpr (p, f, args) ->
       EApp (p, ds_expr env f,
-            [ EId (p, "[[global]]"); 
+            [ EId (p, "[[global]]");
               mk_array (p, map (ds_expr env) args) ])
   | NewExpr (p, constr, args) -> (* TODO: FIX THIS AND APP *)
       ELet (p, "%constr", ds_expr env constr,
             EApp (p, EId (p, "%constr"),
-                  [ EObject (p, [ (p, "__proto__", 
+                  [ EObject (p, [ (p, "__proto__",
                                    EOp2 (p, UnsafeGetField,
                                          EOp1 (p, Deref, EId (p, "%constr")),
                                          EConst (p, JavaScript_syntax.CString "prototype"))) ]);
@@ -163,16 +163,16 @@ let rec ds_expr (env : env) (expr : expr) : exp = match expr with
       let init_var x exp =
         ELet (p, x, EOp1 (p, Ref, EConst (p, JavaScript_syntax.CUndefined)), exp)
       and get_arg x n exp =
-        ELet (p, x, 
+        ELet (p, x,
               EOp1 (p, Ref,
                     EOp2 (p, GetField, EOp1 (p, Deref, EId (p, "arguments")),
                           EConst (p, JavaScript_syntax.CString (string_of_int n)))),
-              exp) 
+              exp)
       and vars = Exprjs_syntax.locals body in
       let env = IdSet.fold (fun x env -> IdMap.add x true env) vars env in
       let env = fold_left (fun env x -> IdMap.add x true env) env args in
       let env = IdMap.add "arguments" false (IdMap.add "this" false env) in
-        ELambda 
+        ELambda
           (p, [ "this"; "arguments"],
            List.fold_right2 get_arg args (iota (List.length args))
              (fold_right init_var (IdSetExt.to_list vars)
@@ -183,7 +183,7 @@ let rec ds_expr (env : env) (expr : expr) : exp = match expr with
 and ds_field env (p, x, e) = (p, x, ds_expr env e)
 
 
-let p = (Lexing.dummy_pos, Lexing.dummy_pos)
+let p = Pos.dummy
 
 let desugar (expr : expr) = ds_expr IdMap.empty expr
 
@@ -213,17 +213,17 @@ module Pretty = struct
     | EId (_, x) -> text x
     | EObject (_, flds) ->
         let p_fld (_, s, e) = horz [ text s; text ":"; p_exp e ] in
-          braces (vert (map p_fld flds))
+          braces [vert (map p_fld flds)]
     | EUpdateField (_, e1, e2, e3) ->
-        horz [ p_exp e1; brackets (horz [ p_exp e2; text "="; p_exp e3 ]) ]
+        horz [ p_exp e1; brackets [horz [ p_exp e2; text "="; p_exp e3 ]] ]
     | EOp1 (_, op, e) -> squish [ p_op1 op; p_exp e ]
     | EOp2 (_, op, e1, e2) -> horz [ p_exp e1; p_op2 op; p_exp e2 ]
     | EIf (_, e1, e2, e3) -> 
-        vert [ horz [ text "if"; parens (p_exp e1) ];
-               braces (p_exp e2);
-               braces (p_exp e3) ]
+        vert [ horz [ text "if"; parens [p_exp e1] ];
+               braces [p_exp e2];
+               braces [p_exp e3] ]
   | EApp (_, e, es) -> 
-      horz [ p_exp e; parens (horz (map p_exp es)) ]
+      horz [ p_exp e; parens [horz (map p_exp es)] ]
   | ESeq (_, e1, e2) ->
       vert [ squish [ p_exp e1; text ";" ]; p_exp e2 ]
   | ELet (_, x, e1, e2) -> 
@@ -233,16 +233,16 @@ module Pretty = struct
       let p_bind (x, e) = horz [ text x; text "="; p_exp e ] in
         vert [ horz [ text "fix"; vert (map p_bind binds) ]; 
                horz [ text "in"; p_exp body ] ]
-  | ELabel (_, x, e) ->  horz [ text x; text ":"; braces (p_exp e) ]
-  | EBreak (_, x, e) -> horz [ text "break"; text x; braces (p_exp e) ]
+  | ELabel (_, x, e) ->  horz [ text x; text ":"; braces [p_exp e] ]
+  | EBreak (_, x, e) -> horz [ text "break"; text x; braces [p_exp e] ]
   | ETryCatch (_, e1, e2) -> 
-      vert [ text "try"; braces (p_exp e1); text "catch"; braces (p_exp e2) ]
+      vert [ text "try"; braces [p_exp e1]; text "catch"; braces [p_exp e2] ]
   | ETryFinally (_, e1, e2) -> 
-      vert [ text "try"; braces (p_exp e1); text "catch"; braces (p_exp e2) ]
+      vert [ text "try"; braces [p_exp e1]; text "catch"; braces [p_exp e2] ]
   | EThrow (_, e) -> horz [ text "throw"; p_exp e ]
   | ELambda (_, xs, e) ->
-      vert [ horz [ text "func"; parens (vert (map text xs)) ];
-             braces (p_exp e) ]
+      vert [ horz [ text "func"; parens [vert (map text xs)] ];
+             braces [p_exp e] ]
 
 
 end
