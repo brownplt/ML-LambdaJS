@@ -6,26 +6,36 @@ module type S = sig
 
   val from_list : (key * 'a) list -> 'a t
   val to_list : 'a t -> (key * 'a) list
+  val map_to_list : (key -> 'a -> 'b) -> 'a t -> 'b list
+  val find_default : 'a t -> key -> 'a -> 'a
   val keys : 'a t -> key list
   val values : 'a t -> 'a list
   val union : ('a -> 'a -> 'a) -> 'a t -> 'a t -> 'a t
   val join : (key -> 'a -> 'a -> 'a) -> 'a t -> 'a t -> 'a t
-  val p_map : (key -> printer) -> ('a -> printer) -> 'a t -> printer
+  val p_map : string -> printer -> (key -> printer) -> ('a -> printer) -> 'a t -> printer
   val diff : 'a t -> 'a t -> 'a t
   val filter : (key -> 'a -> bool) -> 'a t -> 'a t
 end
 
-module Make (Ord: Map.OrderedType) (Map : Map.S with type key = Ord.t) = struct
+module Make 
+  (Ord: Map.OrderedType)
+  (Map : Map.S with type key = Ord.t) 
+  : (S with type key = Ord.t with type +'a t = 'a Map.t) = struct
 
   type key = Ord.t
 
   type +'a t = 'a Map.t
+
+  let find_default m k default = try Map.find k m with Not_found -> default
 
   let from_list lst = 
     List.fold_left (fun m (k, v) -> Map.add k v m) Map.empty lst
 
   let to_list m = 
     Map.fold (fun k v lst -> (k, v) :: lst) m []
+
+  let map_to_list f m =
+    Map.fold (fun k v acc -> (f k v)::acc) m []
 
   let keys m =
       Map.fold (fun k _ lst -> k :: lst) m []
@@ -47,9 +57,11 @@ module Make (Ord: Map.OrderedType) (Map : Map.S with type key = Ord.t) = struct
         Map.add k v acc
     in Map.fold mk m1 m2 (* m2 is the accumulator *)
 
-  let p_map p_key p_val t = 
-    vert (List.map (fun (k, v) -> brackets (horz [ p_key k; p_val v ]))
-            (to_list t))
+  let p_map label cut p_key p_val t = 
+    label_braces label cut
+      (add_sep_between (text ",")
+         (List.map (fun (k, v) -> label_brackets "" cut [horz [p_key k; text "=>"]; p_val v ])
+            (to_list t)))
 
   let diff m1 m2 = 
     let fn key v acc =

@@ -91,3 +91,7 @@ val nub : 'a list -> 'a list
 val iota : int -> int list
 
 val timefn : string -> ('a -> 'b) -> 'a -> 'b
+
+val opt_map : ('a -> 'b) -> 'a option -> 'b option
+
+val map_pair : ('a -> 'b) -> ('a * 'a) -> ('b * 'b)

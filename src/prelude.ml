@@ -136,3 +136,5 @@ let timefn msg f arg =
     Pervasives.flush stderr;
     raise e
 
+let opt_map f o = match o with None -> None | Some o -> Some (f o)
+let map_pair f (x, y) = (f x, f y)

@@ -7,6 +7,8 @@ module type S = sig
 
   val from_list : (key * 'a) list -> 'a t
   val to_list : 'a t -> (key * 'a) list
+  val map_to_list : (key -> 'a -> 'b) -> 'a t -> 'b list
+  val find_default : 'a t -> key -> 'a -> 'a
   val keys : 'a t -> key list
   val values : 'a t -> 'a list
 
@@ -20,7 +22,9 @@ module type S = sig
       [f]. *)
   val join : (key -> 'a -> 'a -> 'a) -> 'a t -> 'a t -> 'a t
 
-  val p_map : (key -> printer) -> ('a -> printer) -> 'a t -> printer
+  (** p_map lbl cut k v prints lbl {cut[k(key) => v(val)], [k(key) => v(val)], ..., [k(key) => v(val)]}, 
+      with optional linebreaks (cut) at the braces *)
+  val p_map : string -> printer -> (key -> printer) -> ('a -> printer) -> 'a t -> printer
 
   val diff : 'a t -> 'a t -> 'a t
 

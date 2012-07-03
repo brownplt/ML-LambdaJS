@@ -179,12 +179,12 @@ module Pretty = struct
   and lvalue lv = match lv with
       VarLValue (_,x) -> text x
     | DotLValue (_,e,x) -> squish [expr e; text "."; text x]
-    | BracketLValue (_,e1,e2) -> squish [expr e1; brackets (expr e2)]
+    | BracketLValue (_,e1,e2) -> squish [expr e1; brackets [expr e2]]
 
 
   and catch clause = match clause with
       CatchClause (_,x,s) -> 
-        vert [ sep [ text "catch"; parens (text x) ]; block s ]
+        vert [ sep [ text "catch"; parens [text x] ]; block s ]
 
 
   and expr e = match e with
@@ -192,7 +192,7 @@ module Pretty = struct
         | CUndefined -> text ""
         | c -> p_const c
       end
-    | ArrayExpr (_,es) -> brackets (horz (commas (List.map expr es)))
+    | ArrayExpr (_,es) -> brackets [horz (commas (List.map expr es))]
     | ObjectExpr (_,ps) -> 
         let f (_, p, e) = sep [prop p; text ":"; expr e]
         in vert [ text "{"; nest (vert (map f ps)); text "}" ]
@@ -202,7 +202,7 @@ module Pretty = struct
     | BracketExpr (_,e1,e2) -> squish [expr e1; text "["; expr e2; text "]"]
     | NewExpr (_,constr,args) -> 
         squish [text "new "; expr constr; 
-                parens (horz (commas (List.map expr args))) ]
+                parens [horz (commas (List.map expr args))] ]
     | PrefixExpr (_,op,e) -> sep [prefixOp op; expr e]
     | UnaryAssignExpr (_, op, lv) -> 
         if prefix_unaryAssignOp op
@@ -213,16 +213,16 @@ module Pretty = struct
     | IfExpr (_,e1,e2,e3) ->
         sep [expr e1; text "?"; expr e2; text ":"; expr e3]
     | AssignExpr (_,op,lv,e) -> sep [lvalue lv; assignOp op; expr e]
-    | ParenExpr (_,e) -> parens (expr e)
+    | ParenExpr (_,e) -> parens [expr e]
     | ListExpr (_,e1,e2) -> sep (commas [expr e1; expr e2 ])
     | CallExpr (_,func,args) ->
-        squish [ expr func; parens (horz (commas (map expr args))) ]
+        squish [ expr func; parens [horz (commas (map expr args))] ]
     | FuncExpr (_,args,body) ->
-        vert [ sep [ text "function"; parens (horz (commas (map text args))) ];
+        vert [ sep [ text "function"; parens [horz (commas (map text args))] ];
                stmt body ]
     | NamedFuncExpr (_,name,args,body) ->
         vert [ sep [ text "function"; text name; 
-                     parens (horz (commas (map text args))) ];
+                     parens [horz (commas (map text args))] ];
                stmt body ]
 
   and stmt s = match s with
@@ -235,7 +235,7 @@ module Pretty = struct
     | IfSingleStmt (_,e,s1) -> vert [ sep [text "if"; paren_exp e ]; stmt s1 ]
     | SwitchStmt (_,e,clauses) ->
         vert [ horz [ text "switch"; paren_exp e ];
-               braces (vert (List.map caseClause clauses)) ]
+               braces [vert (List.map caseClause clauses)] ]
     | WhileStmt (_,e,s) -> vert [ sep [ text "while"; paren_exp e ]; stmt s ]
     | DoWhileStmt (_,s,e) -> 
         sep [text "do"; stmt s; text "while"; paren_exp e]
@@ -246,10 +246,10 @@ module Pretty = struct
     | LabelledStmt (_,x,s) -> sep [text (x ^ ":"); stmt s]
     | ForInStmt (_,fii,e,s) ->
         vert [ sep [ text "for"; 
-                     parens (horz [ for_in_init fii; text "in "; expr e]) ];
+                     parens [horz [ for_in_init fii; text "in "; expr e]] ];
                block s ]
     | ForStmt (_,fi,e1,e2,s) ->
-        vert [ sep  [text "for"; parens (horz [ for_init fi; expr e1; expr e2 ]) ];
+        vert [ sep  [text "for"; parens [horz [ for_init fi; expr e1; expr e2 ]] ];
                stmt s ]
     | TryStmt (_,body,catches,EmptyStmt _) ->
         vert (text "try" :: block body :: (map catch catches))
@@ -263,7 +263,7 @@ module Pretty = struct
         squish [ text "var "; horz (commas (map varDecl decls)); text ";" ]
     | FuncStmt (_,name,args,body) ->
         sep [text "function"; text name; 
-             parens (horz (commas (List.map text args)));
+             parens [horz (commas (List.map text args))];
              block body]
 
   let p_expr = expr
