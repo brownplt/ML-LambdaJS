@@ -5,6 +5,7 @@ type printer = formatter -> unit
 
 val empty : printer
 val print_space : printer
+val cut : printer
 
 val nest : printer -> printer
 val hnest : int -> printer -> printer
