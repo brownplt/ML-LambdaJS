@@ -5,7 +5,7 @@ type id = string
 
 module IdOrderedType = struct
   type t = id
-  let compare = Pervasives.compare
+  let compare = String.compare
 end
 
 module Pos = struct
